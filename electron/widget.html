@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oner 便签</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: rgba(20, 20, 30, 0.78);
+  --surface: rgba(255, 255, 255, 0.06);
+  --surface-hover: rgba(255, 255, 255, 0.12);
+  --text: #e8e8ed;
+  --text-dim: rgba(255, 255, 255, 0.4);
+  --accent: #3b82f6;
+  --accent-glow: rgba(59, 130, 246, 0.35);
+  --green: #22c55e;
+  --orange: #f59e0b;
+  --radius: 10px;
+}
+html, body {
+  height: 100%;
+  border-radius: var(--radius);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: transparent;
+  color: var(--text);
+  user-select: none;
+  overflow: hidden;
+}
+body.dragging { cursor: grabbing; }
+body.dragging * { pointer-events: none; }
+
+/* ─── Container ─── */
+.container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  backdrop-filter: blur(24px) saturate(1.5);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  border-radius: var(--radius);
+  margin: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ─── Title Bar ─── */
+.titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px 8px 14px;
+  cursor: grab;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+.titlebar:active { cursor: grabbing; }
+.titlebar-title {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.55;
+  letter-spacing: 0.5px;
+}
+.titlebar-actions {
+  display: flex;
+  gap: 5px;
+}
+.titlebar-btn {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  opacity: 0.45;
+  transition: opacity 0.15s;
+  font-size: 9px;
+  display: flex; align-items: center; justify-content: center;
+  color: white;
+  padding: 0;
+}
+.titlebar-btn:hover { opacity: 0.9; }
+.btn-pin { background: transparent; color: var(--text-dim); font-size: 11px; }
+.btn-pin.active { color: var(--accent); opacity: 1; }
+.btn-pin.desktop { color: var(--green); opacity: 0.8; }
+.btn-close { background: #ef4444; font-size: 11px; font-weight: bold; }
+
+/* ─── Notes Area ─── */
+.notes-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 10px 4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.08) transparent;
+}
+.notes-area::-webkit-scrollbar { width: 3px; }
+.notes-area::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
+
+.note-card {
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 5px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.note-card:hover { background: var(--surface-hover); }
+.note-card-header {
+  display: flex; align-items: center; gap: 7px;
+  margin-bottom: 2px;
+}
+.note-status-dot {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--text-dim);
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 7px;
+  color: white;
+}
+.note-status-dot.todo { border-color: var(--text-dim); background: transparent; }
+.note-status-dot.in_progress { border-color: var(--orange); background: var(--orange); }
+.note-status-dot.done { border-color: var(--green); background: var(--green); }
+.note-title {
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+.note-title.done { text-decoration: line-through; opacity: 0.4; }
+.note-preview {
+  font-size: 10.5px;
+  color: var(--text-dim);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-left: 21px;
+}
+
+/* Progress bar */
+.progress-wrap {
+  margin: 3px 0 0 21px;
+  display: flex; align-items: center; gap: 6px;
+}
+.progress-track {
+  flex: 1; height: 2.5px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s;
+  background: var(--accent);
+}
+.progress-fill.done { background: var(--green); }
+.progress-label {
+  font-size: 9.5px;
+  color: var(--text-dim);
+  min-width: 24px;
+  text-align: right;
+}
+
+/* Empty state */
+.empty-state {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  height: 100%;
+  opacity: 0.35;
+  gap: 6px;
+}
+.empty-state-icon { font-size: 28px; }
+.empty-state-text { font-size: 12px; }
+
+/* Loading */
+.loading-wrap {
+  display: flex; align-items: center; justify-content: center;
+  height: 100%;
+}
+.spinner {
+  width: 18px; height: 18px;
+  border: 2px solid rgba(255,255,255,0.06);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── Controls Bar ─── */
+.controls {
+  padding: 7px 12px 8px;
+  flex-shrink: 0;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.ctrl-btn {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10.5px;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 3px 7px;
+  border-radius: 5px;
+  background: transparent;
+  border: none;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.ctrl-btn:hover { background: var(--surface-hover); color: var(--text); }
+.ctrl-btn.active { color: var(--accent); background: rgba(59, 130, 246, 0.1); }
+.ctrl-btn.mode-desktop { color: var(--green); background: rgba(34, 197, 94, 0.08); }
+
+.ctrl-divider {
+  width: 1px;
+  height: 14px;
+  background: rgba(255,255,255,0.08);
+  margin: 0 2px;
+}
+
+.opacity-slider {
+  width: 48px;
+  -webkit-appearance: none;
+  height: 2.5px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+}
+.opacity-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  box-shadow: 0 0 4px var(--accent-glow);
+}
+
+.opacity-label {
+  font-size: 9.5px;
+  color: var(--text-dim);
+  min-width: 18px;
+  text-align: right;
+}
+</style>
+</head>
+<body>
+<div class="container" id="app">
+  <!-- Title Bar -->
+  <div class="titlebar" id="titlebar">
+    <span class="titlebar-title">Oner</span>
+    <div class="titlebar-actions">
+      <button class="titlebar-btn btn-pin" id="btnPin" title="切换置顶/桌面">📌</button>
+      <button class="titlebar-btn btn-close" id="btnClose" title="关闭便签">✕</button>
+    </div>
+  </div>
+
+  <!-- Notes List -->
+  <div class="notes-area" id="notesArea">
+    <div class="loading-wrap" id="loading"><div class="spinner"></div></div>
+  </div>
+
+  <!-- Controls Bar -->
+  <div class="controls">
+    <div class="control-group">
+      <button class="ctrl-btn" id="btnRefresh">↻</button>
+      <span class="ctrl-divider"></span>
+      <label class="ctrl-btn" id="btnPenetrate">
+        <span style="font-size:11px">⊘</span> 穿透
+      </label>
+      <span class="ctrl-divider"></span>
+      <button class="ctrl-btn" id="btnPinCtrl">📌</button>
+    </div>
+    <div class="control-group">
+      <input type="range" class="opacity-slider" id="opacitySlider" min="25" max="100" value="85">
+      <span class="opacity-label" id="opacityLabel">85%</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const api = window.widgetAPI;
+
+// ─── Window Drag ──────────────────────────────
+const titlebar = document.getElementById('titlebar');
+let isDragging = false;
+let dragX, dragY;
+
+titlebar.addEventListener('mousedown', (e) => {
+  if (e.target.tagName === 'BUTTON') return;
+  isDragging = true;
+  document.body.classList.add('dragging');
+  dragX = e.screenX;
+  dragY = e.screenY;
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (!isDragging) return;
+  window.moveBy(e.screenX - dragX, e.screenY - dragY);
+  dragX = e.screenX;
+  dragY = e.screenY;
+});
+
+document.addEventListener('mouseup', () => {
+  isDragging = false;
+  document.body.classList.remove('dragging');
+});
+
+// ─── Mode: always-on-top / desktop ────────────
+let mode = 'top'; // 'top' | 'desktop'
+const btnPin = document.getElementById('btnPin');
+const btnPinCtrl = document.getElementById('btnPinCtrl');
+
+function setMode(m) {
+  mode = m;
+  const isTop = m === 'top';
+  btnPin.textContent = isTop ? '📌' : '📎';
+  btnPin.className = 'titlebar-btn btn-pin' + (isTop ? ' active' : ' desktop');
+  btnPinCtrl.className = 'ctrl-btn' + (isTop ? ' active' : ' mode-desktop');
+  btnPinCtrl.textContent = isTop ? '📌 置顶' : '📎 桌面';
+  // IPC to set alwaysOnTop
+  if (api.setAlwaysOnTop) {
+    api.setAlwaysOnTop(isTop);
+  }
+}
+
+btnPin.addEventListener('click', () => {
+  setMode(mode === 'top' ? 'desktop' : 'top');
+});
+
+btnPinCtrl.addEventListener('click', () => {
+  setMode(mode === 'top' ? 'desktop' : 'top');
+});
+
+// ─── Penetrate (click-through) ────────────────
+let isPenetrate = false;
+const btnPenetrate = document.getElementById('btnPenetrate');
+
+btnPenetrate.addEventListener('click', async () => {
+  isPenetrate = !isPenetrate;
+  btnPenetrate.classList.toggle('active', isPenetrate);
+  if (api.toggleClickThrough) {
+    // Need to get actual state from main process
+    const result = await api.toggleClickThrough();
+    isPenetrate = result;
+    btnPenetrate.classList.toggle('active', isPenetrate);
+  }
+});
+
+// ─── Refresh ─────────────────────────────────
+const btnRefresh = document.getElementById('btnRefresh');
+btnRefresh.addEventListener('click', loadNotes);
+
+// ─── Close ────────────────────────────────────
+document.getElementById('btnClose').addEventListener('click', () => {
+  if (window.close) window.close();
+});
+
+// ─── Opacity ──────────────────────────────────
+const opacitySlider = document.getElementById('opacitySlider');
+const opacityLabel = document.getElementById('opacityLabel');
+
+opacitySlider.addEventListener('input', (e) => {
+  const val = parseInt(e.target.value);
+  opacityLabel.textContent = val + '%';
+  if (api.setOpacity) api.setOpacity(val / 100);
+});
+
+// ─── Notes Rendering ──────────────────────────
+function getStatusIcon(status) {
+  switch (status) {
+    case 'todo': return '';
+    case 'in_progress': return '◉';
+    case 'done': return '✓';
+    default: return '';
+  }
+}
+
+function getProgress(status) {
+  switch (status) {
+    case 'todo': return 0;
+    case 'in_progress': return 50;
+    case 'done': return 100;
+    default: return null;
+  }
+}
+
+function getProgressLabel(pct) {
+  if (pct === 0) return '0%';
+  if (pct === 100) return '✓';
+  return pct + '%';
+}
+
+function renderNotes(notesList) {
+  const area = document.getElementById('notesArea');
+  if (!notesList || notesList.length === 0) {
+    area.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📝</div><div class="empty-state-text">暂无备忘</div></div>';
+    return;
+  }
+
+  area.innerHTML = notesList.map(n => {
+    const pct = getProgress(n.status);
+    const icon = getStatusIcon(n.status);
+    const isDone = n.status === 'done';
+    const preview = (n.content || '').replace(/[#*`>\[\]]/g, '').trim().slice(0, 80);
+
+    return `
+      <div class="note-card" data-id="${n.id}">
+        <div class="note-card-header">
+          <div class="note-status-dot ${n.status}">${icon}</div>
+          <div class="note-title ${isDone ? 'done' : ''}">${n.title || '无标题'}</div>
+        </div>
+        ${preview ? `<div class="note-preview">${preview}</div>` : ''}
+        ${pct !== null ? `
+          <div class="progress-wrap">
+            <div class="progress-track">
+              <div class="progress-fill ${isDone ? 'done' : ''}" style="width:${pct}%"></div>
+            </div>
+            <span class="progress-label">${getProgressLabel(pct)}</span>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+
+  area.querySelectorAll('.note-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const id = card.dataset.id;
+      if (id && api.openNote) api.openNote(id);
+    });
+  });
+}
+
+async function loadNotes() {
+  const area = document.getElementById('notesArea');
+  area.innerHTML = '<div class="loading-wrap"><div class="spinner"></div></div>';
+  try {
+    const data = await api.getNotes();
+    renderNotes(data || []);
+  } catch {
+    area.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠</div><div class="empty-state-text">加载失败</div></div>';
+  }
+}
+
+// ─── Init ─────────────────────────────────────
+async function init() {
+  const state = await api.getState();
+  if (state) {
+    opacitySlider.value = Math.round((state.opacity || 0.85) * 100);
+    opacityLabel.textContent = Math.round((state.opacity || 0.85) * 100) + '%';
+
+    // Restore mode
+    if (state.alwaysOnTop === false) {
+      setMode('desktop');
+    } else {
+      setMode('top');
+    }
+
+    // Restore penetrate
+    isPenetrate = !!state.clickThrough;
+    btnPenetrate.classList.toggle('active', isPenetrate);
+  }
+
+  loadNotes();
+  setInterval(loadNotes, 30000);
+}
+
+init();
+</script>
+</body>
+</html>
