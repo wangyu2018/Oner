@@ -18,7 +18,7 @@ export default function StatusSelector({ value = 'note', onChange }) {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="appearance-none pl-8 pr-4 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
+        className="appearance-none pl-8 pr-4 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-accent-500 focus:border-transparent cursor-pointer"
       >
         {Object.entries(STATUS_CONFIG).map(([key, config]) => (
           <option key={key} value={key}>

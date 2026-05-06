@@ -1,10 +1,15 @@
 import jwt from 'jsonwebtoken';
-import { getDb } from '../db/index.js';
+import { queryOne } from '../db/helpers.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'oner-secret-key-change-in-production';
+// 无硬编码 fallback：JWT_SECRET 必须在环境变量中设置
+// server.js 启动时会验证并阻止使用默认值
+const JWT_SECRET = process.env.JWT_SECRET;
 const TOKEN_EXPIRY = '7d';
 
 export function generateToken(userId, device = '') {
+  if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET not configured');
+  }
   return jwt.sign(
     { userId, device },
     JWT_SECRET,
@@ -43,17 +48,10 @@ export function authMiddleware(req, res, next) {
   }
 
   // 检查 session 是否存在且未过期
-  const db = getDb();
-  const stmt = db.prepare(
-    "SELECT * FROM sessions WHERE token = ? AND expires_at > datetime('now')"
+  const session = queryOne(
+    "SELECT * FROM sessions WHERE token = ? AND expires_at > datetime('now')",
+    [token]
   );
-  stmt.bind([token]);
-
-  let session = null;
-  if (stmt.step()) {
-    session = stmt.getAsObject();
-  }
-  stmt.free();
 
   if (!session) {
     return res.status(401).json({
@@ -64,14 +62,10 @@ export function authMiddleware(req, res, next) {
   }
 
   // 获取用户信息
-  const userStmt = db.prepare('SELECT id, username, email, avatar FROM users WHERE id = ?');
-  userStmt.bind([decoded.userId]);
-
-  let user = null;
-  if (userStmt.step()) {
-    user = userStmt.getAsObject();
-  }
-  userStmt.free();
+  const user = queryOne(
+    'SELECT id, username, email, avatar FROM users WHERE id = ?',
+    [decoded.userId]
+  );
 
   if (!user) {
     return res.status(401).json({
@@ -102,15 +96,10 @@ export function optionalAuth(req, res, next) {
     return next();
   }
 
-  const db = getDb();
-  const userStmt = db.prepare('SELECT id, username, email, avatar FROM users WHERE id = ?');
-  userStmt.bind([decoded.userId]);
-
-  let user = null;
-  if (userStmt.step()) {
-    user = userStmt.getAsObject();
-  }
-  userStmt.free();
+  const user = queryOne(
+    'SELECT id, username, email, avatar FROM users WHERE id = ?',
+    [decoded.userId]
+  );
 
   req.user = user;
   next();

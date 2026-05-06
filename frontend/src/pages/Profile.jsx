@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Lock, Monitor, LogOut, Save, Trash2, ArrowLeft } from 'lucide-react';
+import { User, Mail, Lock, Monitor, LogOut, Save, Trash2, ArrowLeft, Palette } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../utils/api';
+import ThemeCustomizer from '../components/ThemeCustomizer';
 
 export default function Profile() {
   const { user, logout, updateUser } = useAuth();
@@ -153,6 +154,7 @@ export default function Profile() {
   const tabs = [
     { id: 'profile', label: '个人资料', icon: User },
     { id: 'password', label: '修改密码', icon: Lock },
+    { id: 'appearance', label: '外观', icon: Palette },
     { id: 'devices', label: '设备管理', icon: Monitor },
   ];
 
@@ -184,7 +186,7 @@ export default function Profile() {
                     onClick={() => setActiveTab(tab.id)}
                     className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${
                       activeTab === tab.id
-                        ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-l-2 border-blue-500'
+                        ? 'bg-accent-50 dark:bg-accent-900/30 text-accent-600 dark:text-accent-400 border-l-2 border-accent-500'
                         : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
                   >
@@ -245,7 +247,7 @@ export default function Profile() {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       placeholder="用于找回密码"
                     />
                   </div>
@@ -258,7 +260,7 @@ export default function Profile() {
                       type="text"
                       value={avatar}
                       onChange={(e) => setAvatar(e.target.value)}
-                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       placeholder="https://example.com/avatar.jpg"
                     />
                   </div>
@@ -266,7 +268,7 @@ export default function Profile() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="px-6 py-2.5 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-400 text-white font-medium rounded-lg transition-colors flex items-center gap-2"
+                    className="px-6 py-2.5 bg-accent-500 hover:bg-accent-600 disabled:bg-accent-400 text-white font-medium rounded-lg transition-colors flex items-center gap-2"
                   >
                     {loading ? (
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
@@ -295,7 +297,7 @@ export default function Profile() {
                       type="password"
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
-                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       placeholder="请输入当前密码"
                     />
                   </div>
@@ -308,7 +310,7 @@ export default function Profile() {
                       type="password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       placeholder="至少 6 个字符"
                     />
                   </div>
@@ -321,7 +323,7 @@ export default function Profile() {
                       type="password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       placeholder="再次输入新密码"
                     />
                   </div>
@@ -329,7 +331,7 @@ export default function Profile() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="px-6 py-2.5 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-400 text-white font-medium rounded-lg transition-colors flex items-center gap-2"
+                    className="px-6 py-2.5 bg-accent-500 hover:bg-accent-600 disabled:bg-accent-400 text-white font-medium rounded-lg transition-colors flex items-center gap-2"
                   >
                     {loading ? (
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
@@ -395,6 +397,13 @@ export default function Profile() {
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* 外观设置 */}
+            {activeTab === 'appearance' && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
+                <ThemeCustomizer />
               </div>
             )}
           </div>

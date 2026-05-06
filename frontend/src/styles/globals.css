@@ -2,6 +2,45 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ========== Theme CSS Variables ========== */
+:root {
+  /* Accent color HSL channels (bare values for Tailwind <alpha-value>) */
+  --accent-50:  217 91% 97%;
+  --accent-100: 217 91% 93%;
+  --accent-200: 217 91% 85%;
+  --accent-300: 217 91% 75%;
+  --accent-400: 217 91% 65%;
+  --accent-500: 217 91% 60%;
+  --accent-600: 217 91% 52%;
+  --accent-700: 217 91% 45%;
+  --accent-800: 217 91% 38%;
+  --accent-900: 217 91% 28%;
+
+  /* Wallpaper */
+  --wallpaper: none;
+  --wallpaper-blur: 20px;
+  --wallpaper-opacity: 0.3;
+}
+
+/* Wallpaper layer */
+html[data-wallpaper="true"] body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image: var(--wallpaper);
+  background-size: cover;
+  background-position: center;
+  filter: blur(var(--wallpaper-blur));
+  opacity: var(--wallpaper-opacity);
+  pointer-events: none;
+}
+
+/* iOS safe area bottom for PWA standalone mode */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 * {
   margin: 0;
   padding: 0;

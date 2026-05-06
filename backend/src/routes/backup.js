@@ -3,26 +3,22 @@ import archiver from 'archiver';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
-import { getDb } from '../db/index.js';
+import { queryAll } from '../db/helpers.js';
+import { authMiddleware } from '../middleware/auth.js';
+import { backupLimiter } from '../middleware/rateLimiter.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const router = Router();
 
-// Helper to run query and return results
-function queryAll(sql) {
-  const db = getDb();
-  const stmt = db.prepare(sql);
-  const results = [];
-  while (stmt.step()) {
-    results.push(stmt.getAsObject());
-  }
-  stmt.free();
-  return results;
-}
+// 所有备份路由都需要身份验证
+router.use(authMiddleware);
 
-// GET /api/backup/export - download all notes as ZIP
-router.get('/export', (req, res) => {
-  const notes = queryAll('SELECT * FROM notes ORDER BY created_at ASC');
+// GET /api/backup/export - download current user's notes as ZIP
+router.get('/export', backupLimiter, (req, res) => {
+  const notes = queryAll(
+    "SELECT * FROM notes WHERE user_id = ? AND deleted_at IS NULL ORDER BY created_at ASC",
+    [req.user.id]
+  );
 
   const date = new Date().toISOString().slice(0, 10);
   res.setHeader('Content-Type', 'application/zip');
@@ -70,9 +66,16 @@ router.get('/export', (req, res) => {
 });
 
 // GET /api/backup/download-db - download the SQLite database
-router.get('/download-db', (req, res) => {
+// ⚠️ 安全警告：此端点会暴露所有用户数据（含密码哈希）
+// 仅限于管理员在受控环境使用
+router.get('/download-db', backupLimiter, (req, res) => {
+  console.warn(`[SECURITY] User ${req.user.id} (${req.user.username}) downloaded the database at ${new Date().toISOString()}`);
   const dbPath = process.env.DB_PATH || path.join(__dirname, '..', '..', 'oner.db');
   if (fs.existsSync(dbPath)) {
+    // 禁止在非开发环境下下载完整数据库
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(403).json({ error: '生产环境禁止下载数据库', code: 403 });
+    }
     res.download(dbPath, 'oner.db');
   } else {
     res.status(404).json({ error: 'Database file not found', code: 404 });

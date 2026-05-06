@@ -39,7 +39,7 @@ export default function DesktopSettings({ isOpen, onClose }) {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
           <div className="flex items-center gap-2">
-            <Monitor size={20} className="text-blue-500" />
+            <Monitor size={20} className="text-accent-500" />
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">桌面设置</h2>
           </div>
           <button
@@ -97,8 +97,8 @@ function SettingItem({ icon: Icon, title, description, checked, onChange }) {
   return (
     <div className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
       <div className="flex items-center gap-3">
-        <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-          <Icon size={18} className="text-blue-600 dark:text-blue-400" />
+        <div className="p-2 rounded-lg bg-accent-100 dark:bg-accent-900/30">
+          <Icon size={18} className="text-accent-600 dark:text-accent-400" />
         </div>
         <div>
           <h3 className="text-sm font-medium text-gray-900 dark:text-white">{title}</h3>
@@ -110,7 +110,7 @@ function SettingItem({ icon: Icon, title, description, checked, onChange }) {
         onClick={onChange}
         className={`relative w-11 h-6 rounded-full transition-colors ${
           checked
-            ? 'bg-blue-500'
+            ? 'bg-accent-500'
             : 'bg-gray-300 dark:bg-gray-600'
         }`}
       >

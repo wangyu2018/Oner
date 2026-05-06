@@ -32,11 +32,19 @@ export async function fetchJSON(url, options = {}) {
     ...options,
   });
 
+  // 处理文件下载（返回 blob 而非 JSON）
+  if (options.responseType === 'blob') {
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: '下载失败' }));
+      throw new Error(error.error || `HTTP ${response.status}`);
+    }
+    return response.blob();
+  }
+
   const data = await response.json();
 
   // 处理 401 错误（Token 过期或未登录）
   if (response.status === 401) {
-    // 如果不在登录页，跳转到登录页
     if (!window.location.pathname.includes('/login')) {
       clearToken();
       window.location.href = '/login';
@@ -49,6 +57,31 @@ export async function fetchJSON(url, options = {}) {
   }
 
   return data;
+}
+
+// 触发文件下载（使用 Authorization header 而非 URL 参数）
+async function downloadFile(url, filename) {
+  const token = getToken();
+  const response = await fetch(`${API_BASE}${url}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: '下载失败' }));
+    throw new Error(error.error || `HTTP ${response.status}`);
+  }
+
+  const blob = await response.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = blobUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(blobUrl);
 }
 
 export const api = {
@@ -87,6 +120,9 @@ export const api = {
       if (params.order) query.set('order', params.order);
       if (params.cursor) query.set('cursor', params.cursor);
       if (params.limit) query.set('limit', params.limit);
+      if (params.parent_id) query.set('parent_id', params.parent_id);
+      if (params.category) query.set('category', params.category);
+      if (params.include_subtasks) query.set('include_subtasks', 'true');
 
       const queryStr = query.toString();
       return fetchJSON(`/notes${queryStr ? `?${queryStr}` : ''}`);
@@ -103,18 +139,44 @@ export const api = {
     delete: (id) => fetchJSON(`/notes/${id}`, {
       method: 'DELETE',
     }),
+    // 子任务
+    getSubtasks: (id) => fetchJSON(`/notes/${id}/subtasks`),
+    addSubtask: (id, data) => fetchJSON(`/notes/${id}/subtasks`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   },
 
-  // 备份相关
+  // 提醒
+  reminders: {
+    list: () => fetchJSON('/reminders'),
+  },
+
+  // 备份相关（使用 Authorization header 而非 URL 参数）
   backup: {
-    exportZip: () => {
-      const token = getToken();
-      window.location.href = `${API_BASE}/backup/export?token=${token}`;
+    async exportZip() {
+      const date = new Date().toISOString().slice(0, 10);
+      await downloadFile('/backup/export', `oner-backup-${date}.zip`);
     },
-    downloadDb: () => {
-      const token = getToken();
-      window.location.href = `${API_BASE}/backup/download-db?token=${token}`;
+    async downloadDb() {
+      await downloadFile('/backup/download-db', 'oner.db');
     },
+  },
+
+  // 分类
+  categories: {
+    list: () => fetchJSON('/categories'),
+    create: (data) => fetchJSON('/categories', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    update: (id, data) => fetchJSON(`/categories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+    delete: (id) => fetchJSON(`/categories/${id}`, {
+      method: 'DELETE',
+    }),
   },
 };
 

@@ -5,6 +5,10 @@ import MarkdownRenderer from './MarkdownRenderer';
 import StatusSelector from './StatusSelector';
 import { PrioritySelector } from './PriorityBadge';
 import DueDatePicker from './DueDatePicker';
+import SubtaskList from './SubtaskList';
+import RecurrenceSelector from './RecurrenceSelector';
+import CategorySelector from './CategorySelector';
+import { api } from '../utils/api';
 import { parseTags } from '../utils/tags';
 import { useAutoSave } from '../hooks/useAutoSave';
 
@@ -15,11 +19,14 @@ export default function NoteEditor({ note, onSave, onClose }) {
   const [status, setStatus] = useState(note?.status || 'note');
   const [priority, setPriority] = useState(note?.priority || 'normal');
   const [dueDate, setDueDate] = useState(note?.due_date || null);
+  const [recurrence, setRecurrence] = useState(note?.recurrence || '');
+  const [category, setCategory] = useState(note?.category || '');
+  const [categories, setCategories] = useState([]);
   const [showPreview, setShowPreview] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const noteId = note?.id || 'new';
-  const draftData = { title, content, tags, status, priority, dueDate };
+  const draftData = { title, content, tags, status, priority, dueDate, recurrence, category };
 
   const { clearDraft, getDraft } = useAutoSave(noteId, draftData);
 
@@ -34,8 +41,17 @@ export default function NoteEditor({ note, onSave, onClose }) {
         setStatus(draft.status || 'note');
         setPriority(draft.priority || 'normal');
         setDueDate(draft.dueDate || null);
+        setRecurrence(draft.recurrence || '');
+        setCategory(draft.category || '');
       }
     }
+  }, []);
+
+  // 加载分类列表
+  useEffect(() => {
+    api.categories.list().then(data => {
+      setCategories(data.data.categories || []);
+    }).catch(() => {});
   }, []);
 
   // Parse tags when content changes
@@ -55,6 +71,8 @@ export default function NoteEditor({ note, onSave, onClose }) {
         tags,
         status,
         priority,
+        recurrence: recurrence || undefined,
+        category: category || undefined,
         due_date: dueDate || null
       });
       clearDraft();
@@ -64,7 +82,7 @@ export default function NoteEditor({ note, onSave, onClose }) {
     } finally {
       setSaving(false);
     }
-  }, [title, content, tags, status, priority, dueDate, onSave, clearDraft, onClose]);
+  }, [title, content, tags, status, priority, dueDate, recurrence, category, onSave, clearDraft, onClose]);
 
   const handleKeyDown = useCallback((e) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 's') {
@@ -133,6 +151,16 @@ export default function NoteEditor({ note, onSave, onClose }) {
             <span className="text-xs text-gray-500 dark:text-gray-400">截止：</span>
             <DueDatePicker value={dueDate} onChange={setDueDate} />
           </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500 dark:text-gray-400">重复：</span>
+            <RecurrenceSelector value={recurrence} onChange={setRecurrence} />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500 dark:text-gray-400">分类：</span>
+            <CategorySelector categories={categories} value={category} onChange={setCategory} />
+          </div>
         </div>
 
         {/* Content */}
@@ -152,6 +180,9 @@ export default function NoteEditor({ note, onSave, onClose }) {
             />
           )}
         </div>
+
+        {/* 子任务 */}
+        {note?.id && <SubtaskList noteId={note.id} />}
 
         {/* Tags */}
         {tags.length > 0 && (

@@ -1,4 +1,4 @@
-import initSqlJs from 'sql.js';
+import { DatabaseSync } from 'node:sqlite';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -8,16 +8,20 @@ const dbPath = process.env.DB_PATH || path.join(__dirname, '..', '..', 'oner.db'
 
 let db = null;
 
-export async function initDb() {
-  const SQL = await initSqlJs();
-
-  // Load existing database or create new one
-  if (fs.existsSync(dbPath)) {
-    const buffer = fs.readFileSync(dbPath);
-    db = new SQL.Database(buffer);
-  } else {
-    db = new SQL.Database();
+export function initDb() {
+  // 确保数据库目录存在
+  const dbDir = path.dirname(dbPath);
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
   }
+
+  // 打开或创建数据库（实时文件写入，无需手动 save）
+  db = new DatabaseSync(dbPath);
+
+  // 启用 WAL 模式（更好的并发性能）
+  db.exec('PRAGMA journal_mode=WAL');
+  // 启用外键约束
+  db.exec('PRAGMA foreign_keys=ON');
 
   return db;
 }
@@ -27,19 +31,9 @@ export function getDb() {
   return db;
 }
 
-export function saveDb() {
-  if (!db) return;
-  const data = db.export();
-  const buffer = Buffer.from(data);
-  fs.writeFileSync(dbPath, buffer);
+export function closeDb() {
+  if (db) {
+    db.close();
+    db = null;
+  }
 }
-
-// Auto-save every 30 seconds
-setInterval(() => {
-  if (db) saveDb();
-}, 30000);
-
-// Save on process exit
-process.on('exit', () => saveDb());
-process.on('SIGINT', () => { saveDb(); process.exit(); });
-process.on('SIGTERM', () => { saveDb(); process.exit(); });

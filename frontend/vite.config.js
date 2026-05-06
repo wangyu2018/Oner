@@ -1,11 +1,13 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import basicSsl from '@vitejs/plugin-basic-ssl';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
   base: './',
   plugins: [
     react(),
+    basicSsl(),
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
@@ -61,6 +63,8 @@ export default defineConfig({
     })
   ],
   server: {
+    https: true,
+    host: '0.0.0.0',
     proxy: {
       '/api': {
         target: 'http://localhost:3000',

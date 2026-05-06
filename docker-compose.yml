@@ -7,11 +7,13 @@ services:
     environment:
       - PORT=${PORT:-3000}
       - DB_PATH=${DB_PATH:-/data/oner.db}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required for production deployment}
+      - NODE_ENV=${NODE_ENV:-production}
     volumes:
       - oner-data:/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/notes"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
       interval: 30s
       timeout: 5s
       retries: 3

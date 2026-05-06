@@ -4,12 +4,18 @@ import EmptyState from '../components/EmptyState';
 import CardWall from '../components/CardWall';
 import NoteEditor from '../components/NoteEditor';
 import UndoToast from '../components/UndoToast';
+import ReminderOverlay from '../components/ReminderOverlay';
+import SwipeStatusTabs from '../components/SwipeStatusTabs';
+import QuickEntryBar from '../components/QuickEntryBar';
+import VoiceInput from '../components/VoiceInput';
 import { useNotes } from '../hooks/useNotes';
 import { useUndoDelete } from '../hooks/useUndoDelete';
+import { useReminderCheck } from '../hooks/useReminderCheck';
 
 export default function Home() {
   const {
     notes,
+    allNotes,
     loading,
     error,
     activeTag,
@@ -26,12 +32,15 @@ export default function Home() {
 
   const [editingNote, setEditingNote] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [showVoiceInput, setShowVoiceInput] = useState(false);
 
   const handleDeleteSuccess = useCallback(() => {
     // Refresh notes after confirmed delete
   }, []);
 
   const { pendingDelete, countdown, startDelete, undoDelete } = useUndoDelete(handleDeleteSuccess);
+
+  const { reminders, showOverlay, dismissOverlay } = useReminderCheck();
 
   const handleCreateNote = useCallback(() => {
     setEditingNote(null);
@@ -80,6 +89,25 @@ export default function Home() {
     setActiveStatus(status);
   }, [setActiveStatus]);
 
+  // 语音输入保存
+  const handleVoiceSave = useCallback(async (data) => {
+    await createNote(data);
+  }, [createNote]);
+
+  // 快捷录入栏快速创建
+  const handleQuickCreate = useCallback(async (data) => {
+    await createNote(data);
+  }, [createNote]);
+
+  // 从提醒浮层打开笔记
+  const handleReminderNoteClick = useCallback((item) => {
+    const note = allNotes.find((n) => n.id === item.id);
+    if (note) {
+      setEditingNote(note);
+      setIsCreating(false);
+    }
+  }, [allNotes]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -117,18 +145,48 @@ export default function Home() {
         loading={loading}
       />
 
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        {notes.length === 0 && !activeTag && !activeStatus ? (
-          <EmptyState onCreateNote={handleCreateNote} />
-        ) : (
-          <CardWall
-            notes={notes}
-            onNoteClick={handleNoteClick}
-            onDelete={handleDelete}
-            onTagClick={handleTagClick}
+      <main className="max-w-7xl mx-auto px-4 py-6 pb-20">
+        {/* 桌面版: 原有 CardWall 布局 */}
+        <div className="hidden md:block">
+          {notes.length === 0 && !activeTag && !activeStatus ? (
+            <EmptyState onCreateNote={handleCreateNote} />
+          ) : (
+            <CardWall
+              notes={notes}
+              onNoteClick={handleNoteClick}
+              onDelete={handleDelete}
+              onTagClick={handleTagClick}
+            />
+          )}
+        </div>
+
+        {/* 移动版: 标签栏 + 页面指示点 + 滑动切换 */}
+        <div className="md:hidden flex flex-col" style={{ height: 'calc(100vh - 60px)' }}>
+          <div className="flex-1 min-h-0">
+            <SwipeStatusTabs
+              allNotes={allNotes}
+              activeStatus={activeStatus}
+              onStatusChange={handleStatusChange}
+              onNoteClick={handleNoteClick}
+              onDelete={handleDelete}
+              onTagClick={handleTagClick}
+              onCreateNote={handleCreateNote}
+            />
+          </div>
+          <QuickEntryBar
+            onCreateNote={handleQuickCreate}
+            onVoiceInput={() => setShowVoiceInput(true)}
           />
-        )}
+        </div>
       </main>
+
+      {/* 桌面版快捷录入栏 - 全宽固定底部 */}
+      <div className="hidden md:block fixed bottom-0 left-0 right-0 z-30">
+        <QuickEntryBar
+          onCreateNote={handleQuickCreate}
+          onVoiceInput={() => setShowVoiceInput(true)}
+        />
+      </div>
 
       {(isCreating || editingNote) && (
         <NoteEditor
@@ -138,11 +196,26 @@ export default function Home() {
         />
       )}
 
+      {showVoiceInput && (
+        <VoiceInput
+          onSave={handleVoiceSave}
+          onClose={() => setShowVoiceInput(false)}
+        />
+      )}
+
       <UndoToast
         note={pendingDelete}
         countdown={countdown}
         onUndo={handleUndo}
       />
+
+      {showOverlay && (
+        <ReminderOverlay
+          reminders={reminders}
+          onClose={dismissOverlay}
+          onNoteClick={handleReminderNoteClick}
+        />
+      )}
     </div>
   );
 }

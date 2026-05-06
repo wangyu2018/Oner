@@ -1,17 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus, User, LogOut, Settings, ChevronDown, Monitor } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Plus, User, LogOut, Settings, Monitor, LayoutGrid, Kanban, Tags } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import BackupMenu from './BackupMenu';
 import DesktopSettings from './DesktopSettings';
 import SyncStatus from './SyncStatus';
+import CategoryManager from './CategoryManager';
+import Logo from './Logo';
 import { useAuthContext } from '../App';
 
 export default function Toolbar({ onCreateNote, activeTag, onClearTag, activeStatus, onStatusChange, lastSync, onRefresh, loading }) {
   const { user, logout } = useAuthContext();
   const navigate = useNavigate();
+  const location = useLocation();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showDesktopSettings, setShowDesktopSettings] = useState(false);
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [isElectron, setIsElectron] = useState(false);
   const menuRef = useRef(null);
 
@@ -53,29 +57,27 @@ export default function Toolbar({ onCreateNote, activeTag, onClearTag, activeSta
         border-b border-gray-200 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-              Oner
-            </h1>
+            <Logo size={28} showText={true} />
             {activeTag && (
               <button
                 onClick={onClearTag}
-                className="text-xs px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900/50
-                  text-blue-800 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900"
+                className="text-xs px-2 py-1 rounded-full bg-accent-100 dark:bg-accent-900/50
+                  text-accent-800 dark:text-accent-300 hover:bg-accent-200 dark:hover:bg-accent-900"
               >
                 #{activeTag} ×
               </button>
             )}
 
-            {/* 状态筛选 */}
+            {/* 状态筛选 (桌面端) */}
             {onStatusChange && (
-              <div className="hidden sm:flex items-center gap-1 ml-2">
+              <div className="hidden md:flex items-center gap-1 ml-2">
                 {statusOptions.map(option => (
                   <button
                     key={option.value}
                     onClick={() => onStatusChange(option.value)}
                     className={`px-2.5 py-1 text-xs rounded-full transition-colors ${
                       activeStatus === option.value
-                        ? 'bg-blue-500 text-white'
+                        ? 'bg-accent-500 text-white'
                         : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                     }`}
                   >
@@ -97,6 +99,22 @@ export default function Toolbar({ onCreateNote, activeTag, onClearTag, activeSta
               <span className="hidden sm:inline">新建备忘</span>
             </button>
             <BackupMenu />
+            {/* 分类管理 */}
+            <button
+              onClick={() => setShowCategoryManager(true)}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors"
+              title="分类管理"
+            >
+              <Tags size={18} />
+            </button>
+            {/* 视图切换 */}
+            <button
+              onClick={() => navigate(location.pathname === '/board' ? '/' : '/board')}
+              className="hidden sm:inline-flex p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors"
+              title={location.pathname === '/board' ? '网格视图' : '看板视图'}
+            >
+              {location.pathname === '/board' ? <LayoutGrid size={18} /> : <Kanban size={18} />}
+            </button>
             <ThemeToggle />
 
             {/* 桌面设置（仅 Electron 环境显示） */}
@@ -123,16 +141,15 @@ export default function Toolbar({ onCreateNote, activeTag, onClearTag, activeSta
                     className="w-7 h-7 rounded-full object-cover"
                   />
                 ) : (
-                  <div className="w-7 h-7 rounded-full bg-blue-500 flex items-center justify-center">
+                  <div className="w-7 h-7 rounded-full bg-accent-500 flex items-center justify-center">
                     <span className="text-white text-xs font-medium">
                       {user?.username?.charAt(0).toUpperCase()}
                     </span>
                   </div>
                 )}
-                <span className="hidden sm:inline text-sm text-gray-700 dark:text-gray-300">
+                <span className="hidden md:inline text-sm text-gray-700 dark:text-gray-300">
                   {user?.username}
                 </span>
-                <ChevronDown size={14} className="text-gray-400" />
               </button>
 
               {/* 下拉菜单 */}
@@ -175,6 +192,12 @@ export default function Toolbar({ onCreateNote, activeTag, onClearTag, activeSta
       <DesktopSettings
         isOpen={showDesktopSettings}
         onClose={() => setShowDesktopSettings(false)}
+      />
+
+      {/* 分类管理弹窗 */}
+      <CategoryManager
+        isOpen={showCategoryManager}
+        onClose={() => setShowCategoryManager(false)}
       />
     </>
   );

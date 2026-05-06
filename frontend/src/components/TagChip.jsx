@@ -12,8 +12,8 @@ export default function TagChip({ tag, onClick, size = 'sm' }) {
     <span
       onClick={onClick}
       className={`inline-flex items-center gap-1 rounded-full font-medium
-        bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300
-        ${onClick ? 'cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-900' : ''}
+        bg-accent-100 text-accent-800 dark:bg-accent-900/50 dark:text-accent-300
+        ${onClick ? 'cursor-pointer hover:bg-accent-200 dark:hover:bg-accent-900' : ''}
         ${sizeClasses[size]}`}
     >
       <Hash size={size === 'xs' ? 10 : 12} />

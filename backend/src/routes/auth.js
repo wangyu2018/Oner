@@ -1,52 +1,33 @@
 import { Router } from 'express';
-import { getDb, saveDb } from '../db/index.js';
+import crypto from 'crypto';
+import { queryAll, queryOne, runQuery } from '../db/helpers.js';
 import { hashPassword, comparePassword } from '../utils/crypto.js';
 import { generateToken, authMiddleware } from '../middleware/auth.js';
+import { loginLimiter, registerLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
 
-// 辅助函数
-function queryAll(sql, params = []) {
-  const db = getDb();
-  const stmt = db.prepare(sql);
-  if (params.length) stmt.bind(params);
-
-  const results = [];
-  while (stmt.step()) {
-    results.push(stmt.getAsObject());
-  }
-  stmt.free();
-  return results;
-}
-
-function queryOne(sql, params = []) {
-  const db = getDb();
-  const stmt = db.prepare(sql);
-  if (params.length) stmt.bind(params);
-
-  let result = null;
-  if (stmt.step()) {
-    result = stmt.getAsObject();
-  }
-  stmt.free();
-  return result;
-}
-
-function runQuery(sql, params = []) {
-  const db = getDb();
-  db.run(sql, params);
-  saveDb();
-}
-
-// 生成随机 ID
+// 使用 crypto.randomUUID 生成安全的随机 ID
 function generateId() {
-  return Array.from({ length: 16 }, () =>
-    Math.floor(Math.random() * 16).toString(16)
-  ).join('');
+  return crypto.randomUUID().replace(/-/g, '').slice(0, 16);
+}
+
+// 邮箱格式验证
+function isValidEmail(email) {
+  if (!email) return true; // 邮箱可选
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email) && email.length <= 254;
+}
+
+// 从 Authorization header 安全提取 token
+function extractToken(req) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+  return authHeader.slice(7);
 }
 
 // POST /api/auth/register - 用户注册
-router.post('/register', async (req, res) => {
+router.post('/register', registerLimiter, async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
@@ -68,11 +49,29 @@ router.post('/register', async (req, res) => {
       });
     }
 
+    // 验证用户名只包含允许的字符
+    if (!/^[a-zA-Z0-9_\-\u4e00-\u9fa5]+$/.test(username)) {
+      return res.status(400).json({
+        success: false,
+        error: '用户名只能包含字母、数字、下划线、连字符和中文',
+        code: 400
+      });
+    }
+
     // 验证密码长度
     if (password.length < 6) {
       return res.status(400).json({
         success: false,
         error: '密码长度至少 6 个字符',
+        code: 400
+      });
+    }
+
+    // 验证邮箱格式
+    if (email && !isValidEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        error: '邮箱格式不正确',
         code: 400
       });
     }
@@ -141,7 +140,7 @@ router.post('/register', async (req, res) => {
 });
 
 // POST /api/auth/login - 用户登录
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   try {
     const { username, password } = req.body;
 
@@ -180,7 +179,7 @@ router.post('/login', async (req, res) => {
 
     // 检查设备数量限制（最多 5 个）
     const sessions = queryAll(
-      'SELECT * FROM sessions WHERE user_id = ? AND expires_at > datetime(\'now\')',
+      "SELECT * FROM sessions WHERE user_id = ? AND expires_at > datetime('now')",
       [user.id]
     );
 
@@ -202,7 +201,7 @@ router.post('/login', async (req, res) => {
       [sessionId, user.id, device, req.ip, token, expiresAt]
     );
 
-    // 返回用户信息
+    // 返回用户信息（不返回密码）
     const { password: _, ...userInfo } = user;
 
     res.json({
@@ -225,8 +224,10 @@ router.post('/login', async (req, res) => {
 // POST /api/auth/logout - 注销当前设备
 router.post('/logout', authMiddleware, (req, res) => {
   try {
-    const token = req.headers.authorization.substring(7);
-    runQuery('DELETE FROM sessions WHERE token = ?', [token]);
+    const token = extractToken(req);
+    if (token) {
+      runQuery('DELETE FROM sessions WHERE token = ?', [token]);
+    }
 
     res.json({
       success: true,
@@ -259,8 +260,10 @@ router.get('/sessions', authMiddleware, (req, res) => {
     );
 
     // 标记当前设备
-    const currentToken = req.headers.authorization.substring(7);
-    const currentSession = queryOne('SELECT id FROM sessions WHERE token = ?', [currentToken]);
+    const currentToken = extractToken(req);
+    const currentSession = currentToken
+      ? queryOne('SELECT id FROM sessions WHERE token = ?', [currentToken])
+      : null;
 
     const sessionsWithCurrent = sessions.map(s => ({
       ...s,
@@ -301,8 +304,8 @@ router.delete('/sessions/:id', authMiddleware, (req, res) => {
     }
 
     // 不能踢出当前设备
-    const currentToken = req.headers.authorization.substring(7);
-    if (session.token === currentToken) {
+    const currentToken = extractToken(req);
+    if (currentToken && session.token === currentToken) {
       return res.status(400).json({
         success: false,
         error: '不能踢出当前设备，请使用注销功能',
@@ -363,12 +366,19 @@ router.put('/profile', authMiddleware, async (req, res) => {
       }
 
       const hashedPassword = await hashPassword(newPassword);
-      runQuery('UPDATE users SET password = ?, updated_at = datetime(\'now\') WHERE id = ?',
+      runQuery("UPDATE users SET password = ?, updated_at = datetime('now') WHERE id = ?",
         [hashedPassword, userId]);
     }
 
     // 更新邮箱
     if (email !== undefined) {
+      if (email && !isValidEmail(email)) {
+        return res.status(400).json({
+          success: false,
+          error: '邮箱格式不正确',
+          code: 400
+        });
+      }
       if (email && email !== user.email) {
         const existingEmail = queryOne('SELECT id FROM users WHERE email = ? AND id != ?', [email, userId]);
         if (existingEmail) {
@@ -379,13 +389,13 @@ router.put('/profile', authMiddleware, async (req, res) => {
           });
         }
       }
-      runQuery('UPDATE users SET email = ?, updated_at = datetime(\'now\') WHERE id = ?',
+      runQuery("UPDATE users SET email = ?, updated_at = datetime('now') WHERE id = ?",
         [email || null, userId]);
     }
 
     // 更新头像
     if (avatar !== undefined) {
-      runQuery('UPDATE users SET avatar = ?, updated_at = datetime(\'now\') WHERE id = ?',
+      runQuery("UPDATE users SET avatar = ?, updated_at = datetime('now') WHERE id = ?",
         [avatar, userId]);
     }
 

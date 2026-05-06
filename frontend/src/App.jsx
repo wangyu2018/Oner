@@ -1,8 +1,11 @@
 import React, { createContext, useContext } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useTheme } from './hooks/useTheme';
+import { useCustomTheme } from './hooks/useCustomTheme';
 import { useAuth } from './hooks/useAuth';
 import Home from './pages/Home';
+import BoardPage from './pages/BoardPage';
+import ErrorBoundary from './components/ErrorBoundary';
 import ViewNote from './pages/ViewNote';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -22,10 +25,11 @@ export function useAuthContext() {
 
 export default function App() {
   const theme = useTheme();
+  const customTheme = useCustomTheme(theme.isDark);
   const auth = useAuth();
 
   return (
-    <ThemeContext.Provider value={theme}>
+    <ThemeContext.Provider value={{ ...theme, customTheme }}>
       <AuthContext.Provider value={auth}>
         <BrowserRouter>
           <Routes>
@@ -38,7 +42,19 @@ export default function App() {
               path="/"
               element={
                 <AuthGuard>
-                  <Home />
+                  <ErrorBoundary>
+                    <Home />
+                  </ErrorBoundary>
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/board"
+              element={
+                <AuthGuard>
+                  <ErrorBoundary>
+                    <BoardPage />
+                  </ErrorBoundary>
                 </AuthGuard>
               }
             />

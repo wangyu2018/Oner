@@ -29,7 +29,8 @@ export default function UndoToast({ note, countdown, onUndo }) {
             cy="12"
             r={radius}
             fill="none"
-            stroke="#3b82f6"
+            stroke="currentColor"
+            className="text-accent-500"
             strokeWidth="2"
             strokeDasharray={circumference}
             strokeDashoffset={circumference - progress}

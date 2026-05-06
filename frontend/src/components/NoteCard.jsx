@@ -2,6 +2,8 @@ import React from 'react';
 import { Trash2, Calendar } from 'lucide-react';
 import TagChip from './TagChip';
 import PriorityBadge from './PriorityBadge';
+import { RecurrenceBadge } from './RecurrenceSelector';
+import { CategoryBadge } from './CategorySelector';
 import { STATUS_CONFIG } from './StatusSelector';
 import { getContentPreview, extractFirstLine } from '../utils/tags';
 
@@ -71,6 +73,8 @@ export default function NoteCard({ note, onClick, onDelete, onTagClick }) {
         {note.priority !== 'normal' && (
           <PriorityBadge priority={note.priority} size="xs" showLabel={false} />
         )}
+        <RecurrenceBadge recurrence={note.recurrence} size="xs" />
+        <CategoryBadge category={note.category} size="xs" />
       </div>
 
       <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-2 pr-8 line-clamp-2">
@@ -98,6 +102,19 @@ export default function NoteCard({ note, onClick, onDelete, onTagClick }) {
           <span>{formatDueDate()}</span>
           {dueDateStatus === 'overdue' && <span className="font-medium">(已过期)</span>}
           {dueDateStatus === 'today' && <span className="font-medium">(今天)</span>}
+        </div>
+      )}
+
+      {/* 子任务进度 */}
+      {note.subtask_total > 0 && (
+        <div className="flex items-center gap-2 mb-3">
+          <div className="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-accent rounded-full transition-all"
+              style={{ width: `${(note.subtask_done / note.subtask_total) * 100}%` }}
+            />
+          </div>
+          <span className="text-xs text-gray-400">{note.subtask_done}/{note.subtask_total}</span>
         </div>
       )}
 
