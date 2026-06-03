@@ -329,6 +329,46 @@ router.delete('/sessions/:id', authMiddleware, (req, res) => {
   }
 });
 
+// POST /api/auth/verify-vault-pin - 验证密码库 PIN（二次认证）
+router.post('/verify-vault-pin', authMiddleware, async (req, res) => {
+  try {
+    const { pin } = req.body;
+    if (!pin || typeof pin !== 'string' || pin.length < 4 || pin.length > 20) {
+      return res.status(400).json({ success: false, error: 'PIN 码格式无效', code: 400 });
+    }
+
+    // 读取存储的 PIN hash
+    const row = queryOne(
+      'SELECT settings FROM user_settings WHERE user_id = ?',
+      [req.user.id]
+    );
+    const settings = row ? JSON.parse(row.settings) : {};
+    const vaultPinHash = settings.vault_pin_hash;
+
+    if (!vaultPinHash) {
+      return res.status(400).json({ success: false, error: '未设置密码库 PIN', code: 400 });
+    }
+
+    const isValid = await comparePassword(pin, vaultPinHash);
+    if (!isValid) {
+      return res.status(401).json({ success: false, error: 'PIN 码错误', code: 401 });
+    }
+
+    // 生成短时效的 vault token（5 分钟）
+    const device = req.headers['user-agent'] || '';
+    const vaultToken = generateToken(`vault:${req.user.id}`, device);
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+
+    res.json({
+      success: true,
+      data: { vault_token: vaultToken, expires_at: expiresAt }
+    });
+  } catch (err) {
+    console.error('Verify vault pin error:', err);
+    res.status(500).json({ success: false, error: '验证失败', code: 500 });
+  }
+});
+
 // PUT /api/auth/profile - 更新用户资料
 router.put('/profile', authMiddleware, async (req, res) => {
   try {
@@ -397,6 +437,36 @@ router.put('/profile', authMiddleware, async (req, res) => {
     if (avatar !== undefined) {
       runQuery("UPDATE users SET avatar = ?, updated_at = datetime('now') WHERE id = ?",
         [avatar, userId]);
+    }
+
+    // 设置密码库 PIN（存储在 user_settings 中）
+    if (req.body.vault_pin !== undefined) {
+      const pin = String(req.body.vault_pin).trim();
+      if (pin && pin.length < 4) {
+        return res.status(400).json({ success: false, error: 'PIN 码至少 4 位', code: 400 });
+      }
+      if (pin && pin.length > 20) {
+        return res.status(400).json({ success: false, error: 'PIN 码不能超过 20 位', code: 400 });
+      }
+      // 读取现有设置
+      const existing = queryOne(
+        'SELECT settings FROM user_settings WHERE user_id = ?',
+        [userId]
+      );
+      const existingSettings = existing ? JSON.parse(existing.settings) : {};
+      
+      if (pin) {
+        const pinHash = await hashPassword(pin);
+        existingSettings.vault_pin_hash = pinHash;
+      } else {
+        delete existingSettings.vault_pin_hash;
+      }
+      
+      runQuery(
+        `INSERT INTO user_settings (user_id, settings, updated_at) VALUES (?, ?, datetime('now'))
+         ON CONFLICT(user_id) DO UPDATE SET settings = ?, updated_at = datetime('now')`,
+        [userId, JSON.stringify(existingSettings), JSON.stringify(existingSettings)]
+      );
     }
 
     // 返回更新后的用户信息

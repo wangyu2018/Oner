@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import path from 'path';
 import { initDb, closeDb } from './src/db/index.js';
 import { migrate } from './src/db/migrate.js';
 import { errorHandler } from './src/middleware/errorHandler.js';
@@ -11,6 +12,10 @@ import backupRouter from './src/routes/backup.js';
 import authRouter from './src/routes/auth.js';
 import remindersRouter from './src/routes/reminders.js';
 import categoriesRouter from './src/routes/categories.js';
+import searchRouter from './src/routes/search.js';
+import settingsRouter from './src/routes/settings.js';
+import passwordsRouter from './src/routes/passwords.js';
+import filesRouter from './src/routes/files.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -69,6 +74,14 @@ app.use('/api/notes', notesRouter);
 app.use('/api/backup', backupRouter);
 app.use('/api/reminders', remindersRouter);
 app.use('/api/categories', categoriesRouter);
+app.use('/api/search', searchRouter);
+app.use('/api/settings', settingsRouter);
+app.use('/api/passwords', passwordsRouter);
+app.use('/api/files', filesRouter);
+
+// 静态文件服务（上传文件访问）
+const uploadsDir = path.resolve(process.env.UPLOAD_DIR || path.join(import.meta.dirname, 'uploads'));
+app.use('/uploads', express.static(uploadsDir));
 
 // Health check
 app.get('/api/health', (req, res) => {

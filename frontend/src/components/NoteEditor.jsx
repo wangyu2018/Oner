@@ -8,6 +8,7 @@ import DueDatePicker from './DueDatePicker';
 import SubtaskList from './SubtaskList';
 import RecurrenceSelector from './RecurrenceSelector';
 import CategorySelector from './CategorySelector';
+import FileAttachments from './FileAttachments';
 import { api } from '../utils/api';
 import { parseTags } from '../utils/tags';
 import { useAutoSave } from '../hooks/useAutoSave';
@@ -183,6 +184,13 @@ export default function NoteEditor({ note, onSave, onClose }) {
 
         {/* 子任务 */}
         {note?.id && <SubtaskList noteId={note.id} />}
+
+        {/* 文件附件 */}
+        {note?.id && (
+          <div className="px-4 py-2 border-t border-gray-100 dark:border-gray-800">
+            <FileAttachments noteId={note.id} />
+          </div>
+        )}
 
         {/* Tags */}
         {tags.length > 0 && (

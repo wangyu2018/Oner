@@ -6,13 +6,11 @@ import NoteEditor from '../components/NoteEditor';
 import UndoToast from '../components/UndoToast';
 import ReminderOverlay from '../components/ReminderOverlay';
 import SwipeStatusTabs from '../components/SwipeStatusTabs';
-import QuickEntryBar from '../components/QuickEntryBar';
-import VoiceInput from '../components/VoiceInput';
 import { useNotes } from '../hooks/useNotes';
 import { useUndoDelete } from '../hooks/useUndoDelete';
 import { useReminderCheck } from '../hooks/useReminderCheck';
 
-export default function Home() {
+export default function Home({ categories = [], onVoiceInput }) {
   const {
     notes,
     allNotes,
@@ -32,7 +30,6 @@ export default function Home() {
 
   const [editingNote, setEditingNote] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [showVoiceInput, setShowVoiceInput] = useState(false);
 
   const handleDeleteSuccess = useCallback(() => {
     // Refresh notes after confirmed delete
@@ -89,14 +86,13 @@ export default function Home() {
     setActiveStatus(status);
   }, [setActiveStatus]);
 
-  // 语音输入保存
-  const handleVoiceSave = useCallback(async (data) => {
-    await createNote(data);
-  }, [createNote]);
-
-  // 快捷录入栏快速创建
-  const handleQuickCreate = useCallback(async (data) => {
-    await createNote(data);
+  // 全局快速创建笔记（来自 Toolbar 输入栏）
+  const handleQuickCreate = useCallback(async (noteData) => {
+    try {
+      await createNote(noteData);
+    } catch (err) {
+      console.error('Quick create error:', err);
+    }
   }, [createNote]);
 
   // 从提醒浮层打开笔记
@@ -143,9 +139,13 @@ export default function Home() {
         lastSync={lastSync}
         onRefresh={refresh}
         loading={loading}
+        onQuickCreate={handleQuickCreate}
+        onVoiceInput={onVoiceInput}
+        categories={categories}
+        activeCategory={null}
       />
 
-      <main className="max-w-7xl mx-auto px-4 py-6 pb-20">
+      <main className="max-w-7xl mx-auto px-4 py-6">
         {/* 桌面版: 原有 CardWall 布局 */}
         <div className="hidden md:block">
           {notes.length === 0 && !activeTag && !activeStatus ? (
@@ -161,7 +161,7 @@ export default function Home() {
         </div>
 
         {/* 移动版: 标签栏 + 页面指示点 + 滑动切换 */}
-        <div className="md:hidden flex flex-col" style={{ height: 'calc(100vh - 60px)' }}>
+        <div className="md:hidden flex flex-col" style={{ height: 'calc(100vh - 50px)' }}>
           <div className="flex-1 min-h-0">
             <SwipeStatusTabs
               allNotes={allNotes}
@@ -173,33 +173,14 @@ export default function Home() {
               onCreateNote={handleCreateNote}
             />
           </div>
-          <QuickEntryBar
-            onCreateNote={handleQuickCreate}
-            onVoiceInput={() => setShowVoiceInput(true)}
-          />
         </div>
       </main>
-
-      {/* 桌面版快捷录入栏 - 全宽固定底部 */}
-      <div className="hidden md:block fixed bottom-0 left-0 right-0 z-30">
-        <QuickEntryBar
-          onCreateNote={handleQuickCreate}
-          onVoiceInput={() => setShowVoiceInput(true)}
-        />
-      </div>
 
       {(isCreating || editingNote) && (
         <NoteEditor
           note={editingNote}
           onSave={handleSave}
           onClose={handleCloseEditor}
-        />
-      )}
-
-      {showVoiceInput && (
-        <VoiceInput
-          onSave={handleVoiceSave}
-          onClose={() => setShowVoiceInput(false)}
         />
       )}
 

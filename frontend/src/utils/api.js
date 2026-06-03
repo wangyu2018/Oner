@@ -107,6 +107,10 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
+    verifyVaultPin: (pin) => fetchJSON('/auth/verify-vault-pin', {
+      method: 'POST',
+      body: JSON.stringify({ pin }),
+    }),
   },
 
   // 笔记相关
@@ -176,6 +180,66 @@ export const api = {
     }),
     delete: (id) => fetchJSON(`/categories/${id}`, {
       method: 'DELETE',
+    }),
+  },
+
+  // 搜索
+  search: {
+    query: (q, params = {}) => {
+      const query = new URLSearchParams({ q, ...params });
+      return fetchJSON(`/search?${query}`);
+    },
+  },
+
+  // 密码备忘
+  passwords: {
+    list: (params = {}) => {
+      const query = new URLSearchParams(params);
+      return fetchJSON(`/passwords?${query}`);
+    },
+    get: (id) => fetchJSON(`/passwords/${id}`),
+    create: (data) => fetchJSON('/passwords', {
+      method: 'POST', body: JSON.stringify(data),
+    }),
+    update: (id, data) => fetchJSON(`/passwords/${id}`, {
+      method: 'PUT', body: JSON.stringify(data),
+    }),
+    delete: (id) => fetchJSON(`/passwords/${id}`, {
+      method: 'DELETE',
+    }),
+    decrypt: (id) => fetchJSON(`/passwords/${id}/decrypt`),
+    updateSettings: (id, data) => fetchJSON(`/passwords/${id}/settings`, {
+      method: 'PATCH', body: JSON.stringify(data),
+    }),
+  },
+
+  // 文件上传
+  files: {
+    list: (noteId) => fetchJSON(`/files?note_id=${noteId || ''}`),
+    async upload(noteId, file) {
+      const token = getToken();
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await fetch(`${API_BASE}/files/upload?note_id=${noteId || ''}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: '上传失败' }));
+        throw new Error(err.error || `HTTP ${response.status}`);
+      }
+      return response.json();
+    },
+    download: (id) => downloadFile(`/files/${id}/download`, 'file'),
+    delete: (id) => fetchJSON(`/files/${id}`, { method: 'DELETE' }),
+  },
+
+  // 设置
+  settings: {
+    get: () => fetchJSON('/settings'),
+    update: (data) => fetchJSON('/settings', {
+      method: 'PUT', body: JSON.stringify(data),
     }),
   },
 };

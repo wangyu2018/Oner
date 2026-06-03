@@ -41,6 +41,34 @@ html[data-wallpaper="true"] body::before {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* Search overlay slide-up animation */
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up {
+  animation: slide-up 0.15s ease-out;
+}
+
+/* Search overlay slide-down animation */
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-down {
+  animation: slide-down 0.15s ease-out;
+}
+
+/* Loading progress bar */
+@keyframes progress-bar {
+  0%   { transform: translateX(-100%); }
+  50%  { transform: translateX(0%); }
+  100% { transform: translateX(100%); }
+}
+.animate-progress-bar {
+  animation: progress-bar 1.5s ease-in-out infinite;
+}
+
 * {
   margin: 0;
   padding: 0;

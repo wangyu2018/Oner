@@ -19,9 +19,10 @@ import { CategoryBadge } from '../components/CategorySelector';
 import CategoryManager from '../components/CategoryManager';
 import { STATUS_CONFIG } from '../components/StatusSelector';
 import { getContentPreview, extractFirstLine } from '../utils/tags';
+import { useCommandPalette } from '../App';
 import {
   Trash2, Calendar, Archive, RotateCcw,
-  Plus, Tag, Settings2, ListTodo
+  ListTodo
 } from 'lucide-react';
 import { useReminderCheck } from '../hooks/useReminderCheck';
 
@@ -32,19 +33,13 @@ const COLUMNS = [
   { id: 'done', title: '已完成', color: 'bg-green-500' },
 ];
 
-// 可拖拽排序的笔记卡片（含合并放置区）
-function SortableNoteCard({ note, onClick, onDelete, onTagClick }) {
+// 可拖拽排序的笔记卡片
+function SortableNoteCard({ note, onClick, onDelete, onTagClick, isMergeTarget = false, isChild = false, actionType = null }) {
   const {
     attributes, listeners, setNodeRef, transform, transition, isDragging
   } = useSortable({
     id: note.id,
     data: { note, type: 'note' },
-  });
-
-  // 合并子任务的放置区
-  const { setNodeRef: setMergeRef, isOver: isMergeOver } = useDroppable({
-    id: `merge-${note.id}`,
-    data: { type: 'merge', targetId: note.id },
   });
 
   const style = {
@@ -72,12 +67,16 @@ function SortableNoteCard({ note, onClick, onDelete, onTagClick }) {
     <div
       ref={setNodeRef}
       style={style}
+      data-note-id={note.id}
       {...listeners}
       {...attributes}
       onClick={() => onClick(note)}
-      className="group relative p-3 bg-white dark:bg-gray-800 rounded-lg border
-        border-gray-200 dark:border-gray-700 hover:border-accent
-        hover:shadow-sm transition-all cursor-grab active:cursor-grabbing"
+      className={`group relative p-3 bg-white dark:bg-gray-800 rounded-lg border
+        transition-all cursor-grab active:cursor-grabbing ${
+        isMergeTarget
+          ? 'border-accent ring-2 ring-accent/30 shadow-lg'
+          : 'border-gray-200 dark:border-gray-700 hover:border-accent hover:shadow-sm'
+      }`}
     >
       {/* 删除按钮 */}
       <button
@@ -152,29 +151,52 @@ function SortableNoteCard({ note, onClick, onDelete, onTagClick }) {
         <span className="text-[10px] text-gray-400">{date}</span>
       </div>
 
-      {/* 合并放置区 */}
-      <div
-        ref={setMergeRef}
-        className={`mt-2 rounded-md border-2 border-dashed text-[10px] text-center py-1
-          transition-colors ${isMergeOver
-            ? 'border-accent bg-accent/10 text-accent font-medium'
-            : 'border-transparent text-gray-300 dark:text-gray-600 group-hover:border-gray-300 dark:group-hover:border-gray-600 group-hover:text-gray-400'
-          }`}
-      >
-        {isMergeOver ? '释放以合并为子任务' : '拖拽到此处合并'}
-      </div>
+      {/* 合并为子任务的拖入框 */}
+      {actionType === 'merge' && (
+        <div className="absolute inset-x-0 bottom-0 h-10 z-10
+          bg-accent/10 border-2 border-dashed border-accent rounded-b-lg
+          flex items-center justify-center pointer-events-none">
+          <span className="text-accent text-xs font-medium">↓ 置为子任务</span>
+        </div>
+      )}
+
+      {/* 置为主任务提示虚线 */}
+      {actionType === 'promote' && (
+        <>
+          <div className="absolute -top-[5px] left-2 right-2 z-10 pointer-events-none">
+            <div className="border-t-2 border-dashed border-emerald-400 w-full" />
+          </div>
+          <div className="absolute -top-3 right-3 z-20 pointer-events-none
+            bg-emerald-500 text-white text-[10px] font-medium
+            px-2 py-0.5 rounded-full shadow-lg whitespace-nowrap">
+            置为主任务 ↑
+          </div>
+        </>
+      )}
+
+      {/* 跨列状态变更提示虚线 */}
+      {actionType === 'change-status' && (
+        <div className="absolute -top-[5px] left-2 right-2 z-10 pointer-events-none">
+          <div className="border-t-2 border-dashed border-blue-400 w-full" />
+        </div>
+      )}
     </div>
   );
 }
 
-// 可放置的列
-function KanbanColumn({ column, notes, onNoteClick, onDelete, onTagClick, onCreateNote }) {
+// 可放置的列（支持层级缩进+连线）
+function KanbanColumn({ column, items, onNoteClick, onDelete, onTagClick, onCreateNote, mergeTargetId, dragAction }) {
   const { setNodeRef, isOver } = useDroppable({
     id: column.id,
     data: { type: 'column', columnId: column.id },
   });
 
-  const noteIds = useMemo(() => notes.map(n => n.id), [notes]);
+  const noteIds = useMemo(() => items.map(i => i.note.id), [items]);
+
+  // 检查是否有子任务出现在这个列中（用于画连线）
+  const hasSiblingAfter = (idx) => {
+    return idx + 1 < items.length && items[idx + 1].depth === items[idx].depth;
+  };
 
   return (
     <div
@@ -189,25 +211,52 @@ function KanbanColumn({ column, notes, onNoteClick, onDelete, onTagClick, onCrea
       <div className="flex items-center gap-2 px-3 py-3 border-b border-gray-200 dark:border-gray-700">
         <div className={`w-2.5 h-2.5 rounded-full ${column.color}`} />
         <h3 className="font-medium text-sm text-gray-700 dark:text-gray-300">{column.title}</h3>
-        <span className="ml-auto text-xs text-gray-400">{notes.length}</span>
+        <span className="ml-auto text-xs text-gray-400">{items.length}</span>
       </div>
 
-      {/* 卡片列表（含排序） */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-1 min-h-[120px] max-h-[calc(100vh-220px)]">
+      {/* 卡片列表（含层级） */}
+      <div className="flex-1 overflow-y-auto p-2 space-y-1 min-h-[120px] max-h-[calc(100vh-240px)] md:max-h-[calc(100vh-300px)]">
         <SortableContext items={noteIds} strategy={verticalListSortingStrategy}>
-          {notes.map((note) => (
-            <SortableNoteCard
-              key={note.id}
-              note={note}
-              onClick={onNoteClick}
-              onDelete={onDelete}
-              onTagClick={onTagClick}
-            />
+          {items.map((item, idx) => (
+            <div key={item.note.id} className="relative">
+              {/* 子任务层级连接线 */}
+              {item.depth > 0 && (
+                <div className="absolute left-[-12px] top-0 bottom-0 w-px
+                  bg-gray-300 dark:bg-gray-600 hidden md:block"
+                  style={{ height: hasSiblingAfter(idx) ? '100%' : '50%' }}
+                />
+              )}
+              {item.depth > 0 && (
+                <div className="absolute left-[-12px] top-[50%] w-3 h-px
+                  bg-gray-300 dark:bg-gray-600 hidden md:block" />
+              )}
+              {item.depth > 0 && (
+                <div className="absolute left-[-8px] top-[calc(50%-3px)]
+                  w-0 h-0 hidden md:block
+                  border-t-[4px] border-b-[4px] border-l-[6px]
+                  border-transparent border-l-gray-300 dark:border-l-gray-600"
+                />
+              )}
+
+              <div className={item.depth > 0 ? 'ml-6 md:ml-8' : ''}>
+                <SortableNoteCard
+                  note={item.note}
+                  onClick={onNoteClick}
+                  onDelete={onDelete}
+                  onTagClick={onTagClick}
+                  isMergeTarget={mergeTargetId === item.note.id}
+                  isChild={item.depth > 0}
+                  actionType={dragAction?.type}
+                />
+              </div>
+            </div>
           ))}
         </SortableContext>
-        {notes.length === 0 && (
+        {items.length === 0 && (
           <div className="text-center py-8 text-gray-400 text-xs">
-            {isOver ? '释放以放入' : '拖拽笔记到此处'}
+            {isOver
+              ? (dragAction ? dragAction.label : '释放以放入')
+              : '拖拽笔记到此处'}
           </div>
         )}
       </div>
@@ -215,8 +264,9 @@ function KanbanColumn({ column, notes, onNoteClick, onDelete, onTagClick, onCrea
   );
 }
 
-export default function BoardPage() {
+export default function BoardPage({ onVoiceInput }) {
   const [notes, setNotes] = useState([]);
+  const { openPalette } = useCommandPalette();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTag, setActiveTag] = useState(null);
@@ -225,11 +275,14 @@ export default function BoardPage() {
   const [editingNote, setEditingNote] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
   const [activeDragNote, setActiveDragNote] = useState(null);
+  const [mergeTargetId, setMergeTargetId] = useState(null);
+  const [dragAction, setDragAction] = useState(null); // { type:'merge'|'promote'|'change-status', label:string } | null
   const [showArchived, setShowArchived] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [categories, setCategories] = useState([]);
   const intervalRef = useRef(null);
   const isMountedRef = useRef(true);
+  const dragStartYRef = useRef(0);
 
   const { reminders, showOverlay, dismissOverlay } = useReminderCheck();
 
@@ -250,7 +303,7 @@ export default function BoardPage() {
 
   useEffect(() => { loadCategories(); }, [loadCategories]);
 
-  // 分组（按状态 + 排序）
+  // 分组（按状态 + 排序 + 父子层级）
   const groupedColumns = useMemo(() => {
     const grouped = {};
     COLUMNS.forEach((col) => { grouped[col.id] = []; });
@@ -267,17 +320,35 @@ export default function BoardPage() {
       filtered = filtered.filter((n) => n.status !== 'archived');
     }
 
+    // 按状态分组
+    const byStatus = {};
     filtered.forEach((note) => {
-      if (grouped[note.status] !== undefined) {
-        grouped[note.status].push(note);
-      } else {
-        grouped.archived.push(note);
-      }
+      const key = note.status;
+      if (!byStatus[key]) byStatus[key] = [];
+      byStatus[key].push(note);
     });
 
-    // 按 position 排序
-    Object.keys(grouped).forEach((key) => {
-      grouped[key].sort((a, b) => (a.position || 0) - (b.position || 0));
+    // 构建层级结构
+    Object.keys(byStatus).forEach((key) => {
+      const colNotes = byStatus[key];
+      const parents = colNotes.filter(n => !n.parent_id)
+        .sort((a, b) => (a.position || 0) - (b.position || 0));
+
+      const result = [];
+      parents.forEach((parent) => {
+        result.push({ note: parent, depth: 0 });
+        const children = colNotes.filter(n => n.parent_id === parent.id)
+          .sort((a, b) => (a.position || 0) - (b.position || 0));
+        children.forEach((child) => {
+          result.push({ note: child, depth: 1 });
+        });
+      });
+
+      if (grouped[key] !== undefined) {
+        grouped[key] = result;
+      } else {
+        grouped.archived = result;
+      }
     });
 
     return grouped;
@@ -314,105 +385,290 @@ export default function BoardPage() {
   const handleDragStart = useCallback((event) => {
     const note = event.active.data.current?.note;
     setActiveDragNote(note || null);
+    setMergeTargetId(null);
+    setDragAction(null);
+    if (event.activatorEvent) {
+      dragStartYRef.current = event.activatorEvent.clientY || 0;
+    }
   }, []);
+
+  // 检测拖拽动作类型（共用于 onDragOver 和 onDragMove）
+  const detectDragAction = useCallback((active, over, deltaY) => {
+    if (!over) return null;
+
+    const overData = over.data.current;
+    const activeNote = active.data.current?.note;
+    if (!activeNote) return null;
+
+    if (overData?.type === 'note') {
+      const targetNote = overData.note;
+      if (targetNote.id === activeNote.id) return null;
+
+      const el = document.querySelector(`[data-note-id="${targetNote.id}"]`);
+      if (!el) return null;
+
+      const rect = el.getBoundingClientRect();
+      const clientY = dragStartYRef.current + deltaY;
+      const relativeY = (clientY - rect.top) / rect.height;
+      const threshold = window.innerWidth < 768 ? 0.4 : 0.3;
+
+      // 底部区域 → 合并为子任务
+      if (relativeY > threshold) {
+        return { type: 'merge', mergeId: targetNote.id, label: '↓ 置为子任务' };
+      }
+
+      // 顶部区域
+      if (activeNote.parent_id) {
+        return { type: 'promote', mergeId: null, label: '↑ 置为主任务' };
+      }
+      if (activeNote.status !== targetNote.status) {
+        const statusLabel = STATUS_CONFIG[targetNote.status]?.label || targetNote.status;
+        return { type: 'change-status', mergeId: null, label: `→ 置为${statusLabel}` };
+      }
+      return null;
+    }
+
+    if (overData?.type === 'column') {
+      const colId = overData.columnId;
+      if (activeNote.parent_id) {
+        return { type: 'promote', mergeId: null, label: '↑ 置为主任务' };
+      }
+      if (activeNote.status !== colId) {
+        const statusLabel = STATUS_CONFIG[colId]?.label || colId;
+        return { type: 'change-status', mergeId: null, label: `→ 置为${statusLabel}` };
+      }
+      return null;
+    }
+
+    return null;
+  }, []);
+
+  // 拖拽移动中 - 连续检测（onDragMove 每次指针移动都触发）
+  const handleDragMove = useCallback((event) => {
+    const { active, over, delta } = event;
+    const action = detectDragAction(active, over, delta?.y || 0);
+    if (action) {
+      setMergeTargetId(action.mergeId);
+      setDragAction({ type: action.type, label: action.label });
+    } else {
+      setMergeTargetId(null);
+      setDragAction(null);
+    }
+  }, [detectDragAction]);
+
+  // 拖拽中 - over 变化时检测
+  const handleDragOver = useCallback((event) => {
+    handleDragMove(event);
+  }, [handleDragMove]);
 
   // 拖拽结束 - 处理排序/合并/状态变更
   const handleDragEnd = useCallback(async (event) => {
     setActiveDragNote(null);
+    setMergeTargetId(null);
+    setDragAction(null);
+
     const { active, over } = event;
     if (!over) return;
 
     const note = active.data.current?.note;
     if (!note) return;
 
-    const overType = over.data.current?.type;
-
-    // 情况1: 合并为子任务
-    if (overType === 'merge') {
-      const targetId = over.data.current.targetId;
-      if (targetId === note.id) return; // 不能合并到自己
-      // 乐观更新：从当前列移除
+    // 情况1: 合并为子任务（底部区域检测）
+    if (mergeTargetId && mergeTargetId !== note.id) {
+      const targetId = mergeTargetId;
+      const targetNote = notes.find(n => n.id === targetId);
+      const newStatus = targetNote?.status || note.status;
+      const oldStatus = note.status;
+      const oldParentId = note.parent_id;
       setNotes((prev) =>
-        prev.map((n) => (n.id === note.id ? { ...n, parent_id: targetId } : n))
+        prev.map((n) => {
+          if (n.id === note.id) {
+            return { ...n, parent_id: targetId, status: newStatus };
+          }
+          // 被拖拽的笔记如果是父任务 → 提升其子任务（避免消失）
+          if (n.parent_id === note.id) {
+            return { ...n, parent_id: null };
+          }
+          return n;
+        })
       );
       try {
-        await api.notes.update(note.id, { parent_id: targetId });
+        await api.notes.update(note.id, { parent_id: targetId, status: newStatus });
       } catch {
         setNotes((prev) =>
-          prev.map((n) => (n.id === note.id ? { ...n, parent_id: note.parent_id } : n))
+          prev.map((n) => {
+            if (n.id === note.id) return { ...n, parent_id: oldParentId, status: oldStatus };
+            if (n.parent_id === null && oldParentId !== null && prev.find(p => p.id === note.id)?.parent_id === targetId) {
+              return { ...n, parent_id: note.id };
+            }
+            return n;
+          })
         );
       }
       return;
     }
 
-    // 情况2: 放到列上（提升或改变状态）
+    const overType = over.data.current?.type;
+
+    // 情况2: 放到列上（改变状态并放到列末尾）
     if (overType === 'column') {
       const newStatus = over.data.current.columnId;
       const oldStatus = note.status;
+      const maxPos = notes
+        .filter(n => n.status === newStatus)
+        .reduce((max, n) => Math.max(max, n.position || 0), 0);
+
       setNotes((prev) =>
-        prev.map((n) => (n.id === note.id ? { ...n, status: newStatus, parent_id: null } : n))
+        prev.map((n) => {
+          if (n.id === note.id) {
+            return { ...n, status: newStatus, parent_id: null, position: maxPos + 1000 };
+          }
+          // 父任务移走 → 子任务提升为主任务（避免消失）
+          if (n.parent_id === note.id) {
+            return { ...n, parent_id: null };
+          }
+          return n;
+        })
       );
       try {
-        await api.notes.update(note.id, { status: newStatus, parent_id: null });
+        await api.notes.update(note.id, { status: newStatus, parent_id: null, position: maxPos + 1000 });
       } catch {
         setNotes((prev) =>
-          prev.map((n) => (n.id === note.id ? { ...n, status: oldStatus, parent_id: note.parent_id } : n))
+          prev.map((n) => {
+            if (n.id === note.id) return { ...n, status: oldStatus, parent_id: note.parent_id, position: note.position };
+            // 回滚子任务提升
+            if (n.parent_id === null && prev.find(p => p.id === note.id)?.parent_id === note.id) {
+              return { ...n, parent_id: note.id };
+            }
+            return n;
+          })
         );
       }
       return;
     }
 
-    // 情况3: 放到另一张卡片上或同列排序
+    // 情况3: 放到另一张卡片上
     if (overType === 'note') {
       const targetNote = over.data.current.note;
       if (!targetNote || targetNote.id === note.id) return;
 
       if (note.status === targetNote.status) {
-        // 同列：交换 position 实现排序
-        const notePos = note.position || 0;
+        // 同列重排序
+
+        // 子任务拖到目标卡片顶部 → 先提升为主任务
+        if (note.parent_id) {
+          const oldParentId = note.parent_id;
+          setNotes((prev) =>
+            prev.map((n) => (n.id === note.id ? { ...n, parent_id: null } : n))
+          );
+          try {
+            await api.notes.update(note.id, { parent_id: null });
+          } catch {
+            setNotes((prev) =>
+              prev.map((n) => (n.id === note.id ? { ...n, parent_id: oldParentId } : n))
+            );
+            return;
+          }
+        }
+
+        // 构建层级列表 → 移动拖拽项到目标位置 → 重新分配 position
+        const updates = []; // { id, position }[]
+        setNotes((prev) => {
+          const colNotes = prev.filter(n => n.status === note.status);
+
+          // 构建扁平的层级列表（与 groupedColumns 逻辑一致）
+          const parents = colNotes.filter(n => !n.parent_id)
+            .sort((a, b) => (a.position || 0) - (b.position || 0));
+          const items = [];
+          parents.forEach((p) => {
+            items.push(p.id);
+            colNotes.filter(n => n.parent_id === p.id)
+              .sort((a, b) => (a.position || 0) - (b.position || 0))
+              .forEach(c => items.push(c.id));
+          });
+
+          const fromIdx = items.indexOf(note.id);
+          const toIdx = items.indexOf(targetNote.id);
+          if (fromIdx === -1 || toIdx === -1) return prev;
+
+          // 拖动项从原位移除，插入到目标位置
+          const newItems = [...items];
+          const [movedId] = newItems.splice(fromIdx, 1);
+          newItems.splice(fromIdx < toIdx ? toIdx : toIdx, 0, movedId);
+
+          // 给所有项分配新 position
+          const posMap = {};
+          newItems.forEach((id, idx) => { posMap[id] = idx * 1000; });
+
+          // 记录 API 需要更新的项
+          newItems.forEach((id, idx) => {
+            const oldNote = colNotes.find(n => n.id === id);
+            if (oldNote && (oldNote.position || 0) !== idx * 1000) {
+              updates.push({ id, position: idx * 1000 });
+            }
+          });
+
+          return prev.map(n =>
+            posMap[n.id] !== undefined ? { ...n, position: posMap[n.id] } : n
+          );
+        });
+
+        // API: 批量更新 position（只更新拖动的卡片）
+        try {
+          await api.notes.update(note.id, { position: targetNote.position || 0 });
+          await api.notes.update(targetNote.id, { position: note.position || 0 });
+        } catch {}
+      } else {
+        // 不同列：移动到目标卡片所在列 + 子任务提升
+        const oldStatus = note.status;
+        const oldParentId = note.parent_id;
+        const oldPosition = note.position;
         const targetPos = targetNote.position || 0;
         setNotes((prev) =>
           prev.map((n) => {
-            if (n.id === note.id) return { ...n, position: targetPos };
-            if (n.id === targetNote.id) return { ...n, position: notePos };
+            if (n.id === note.id) {
+              return { ...n, status: targetNote.status, parent_id: null, position: targetPos + 1 };
+            }
+            // 父任务移走 → 子任务提升为主任务
+            if (n.parent_id === note.id) {
+              return { ...n, parent_id: null };
+            }
             return n;
           })
         );
         try {
-          await api.notes.update(note.id, { position: targetPos });
-          await api.notes.update(targetNote.id, { position: notePos });
+          await api.notes.update(note.id, { status: targetNote.status, parent_id: null, position: targetPos + 1 });
         } catch {
-          // 失败回退
           setNotes((prev) =>
             prev.map((n) => {
-              if (n.id === note.id) return { ...n, position: notePos };
-              if (n.id === targetNote.id) return { ...n, position: targetPos };
+              if (n.id === note.id) return { ...n, status: oldStatus, parent_id: oldParentId, position: oldPosition };
+              // 回滚子任务提升
+              if (n.parent_id === null && prev.find(p => p.id === note.id)?.parent_id === note.id) {
+                return { ...n, parent_id: note.id };
+              }
               return n;
             })
-          );
-        }
-      } else {
-        // 不同列：移动到目标卡片所在列 + 提升
-        const oldStatus = note.status;
-        setNotes((prev) =>
-          prev.map((n) => (n.id === note.id ? { ...n, status: targetNote.status, parent_id: null } : n))
-        );
-        try {
-          await api.notes.update(note.id, { status: targetNote.status, parent_id: null });
-        } catch {
-          setNotes((prev) =>
-            prev.map((n) => (n.id === note.id ? { ...n, status: oldStatus, parent_id: note.parent_id } : n))
           );
         }
       }
       return;
     }
-  }, []);
+  }, [mergeTargetId, notes]);
 
   // 创建/编辑/删除
   const handleCreateNote = useCallback(() => {
     setEditingNote(null);
     setIsCreating(true);
+  }, []);
+
+  // 全局快速创建笔记（来自 Toolbar 输入栏）
+  const handleQuickCreate = useCallback(async (noteData) => {
+    try {
+      const created = await api.notes.create(noteData);
+      setNotes((prev) => [created.data.note, ...prev]);
+    } catch (err) {
+      console.error('Quick create error:', err);
+    }
   }, []);
 
   const handleNoteClick = useCallback((note) => {
@@ -444,7 +700,8 @@ export default function BoardPage() {
   const handleCloseEditor = useCallback(() => {
     setEditingNote(null);
     setIsCreating(false);
-  }, []);
+    fetchNotes(false); // 刷新获取SubtaskList新增的子任务
+  }, [fetchNotes]);
 
   const handleTagClick = useCallback((tag) => {
     setActiveTag((prev) => (prev === tag ? null : tag));
@@ -455,7 +712,7 @@ export default function BoardPage() {
   }, []);
 
   const handleCategoryClick = useCallback((catName) => {
-    setActiveCategory((prev) => (prev === catName ? null : catName));
+    setActiveCategory((prev) => prev === catName ? null : catName);
   }, []);
 
   // 从提醒浮层打开笔记
@@ -497,6 +754,14 @@ export default function BoardPage() {
         lastSync={lastSync}
         onRefresh={() => fetchNotes(true)}
         loading={loading}
+        onOpenPalette={openPalette}
+        onQuickCreate={handleQuickCreate}
+        onVoiceInput={onVoiceInput}
+        categories={categories}
+        activeCategory={activeCategory}
+        showCategoryPills={true}
+        categoryPills={categories}
+        onCategoryClick={handleCategoryClick}
       />
 
       <main className="px-4 py-4">
@@ -504,38 +769,6 @@ export default function BoardPage() {
         <div className="flex items-center gap-2 mb-4 flex-wrap">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">看板</h2>
           <div className="flex-1" />
-
-          {/* 分类筛选 */}
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => handleCategoryClick(cat.name)}
-              className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-all ${
-                activeCategory === cat.name
-                  ? 'ring-2 ring-offset-1 dark:ring-offset-gray-950 text-white'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-              }`}
-              style={activeCategory === cat.name ? { backgroundColor: cat.color } : {}}
-            >
-              <Tag size={10} />
-              {cat.name}
-              {activeCategory === cat.name && (
-                <span className="ml-0.5 opacity-70" onClick={(e) => { e.stopPropagation(); setActiveCategory(null); }}>×</span>
-              )}
-            </button>
-          ))}
-
-          {/* 分类管理按钮 */}
-          <button
-            onClick={() => setShowCategoryManager(true)}
-            className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium
-              bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400
-              hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-            title="管理分类"
-          >
-            <Settings2 size={12} />
-            分类
-          </button>
 
           {activeTag && (
             <button
@@ -566,19 +799,23 @@ export default function BoardPage() {
           <DndContext
             sensors={sensors}
             onDragStart={handleDragStart}
+            onDragMove={handleDragMove}
+            onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
             collisionDetection={closestCorners}
           >
-            <div className="flex gap-4 overflow-x-auto pb-4" style={{ minHeight: 'calc(100vh - 180px)' }}>
+            <div className="flex gap-4 overflow-x-auto pb-4" style={{ minHeight: 'calc(100vh - 200px)' }}>
               {COLUMNS.map((col) => (
                 <KanbanColumn
                   key={col.id}
                   column={col}
-                  notes={groupedColumns[col.id] || []}
+                  items={groupedColumns[col.id] || []}
                   onNoteClick={handleNoteClick}
                   onDelete={handleDelete}
                   onTagClick={handleTagClick}
                   onCreateNote={handleCreateNote}
+                  mergeTargetId={mergeTargetId}
+                  dragAction={dragAction}
                 />
               ))}
 
@@ -586,18 +823,31 @@ export default function BoardPage() {
               {showArchived && (
                 <KanbanColumn
                   column={{ id: 'archived', title: '已归档', color: 'bg-gray-400' }}
-                  notes={groupedColumns.archived || []}
+                  items={groupedColumns.archived || []}
                   onNoteClick={handleNoteClick}
                   onDelete={handleDelete}
                   onTagClick={handleTagClick}
                   onCreateNote={handleCreateNote}
+                  mergeTargetId={mergeTargetId}
+                  dragAction={dragAction}
                 />
               )}
             </div>
 
             <DragOverlay>
               {activeDragNote ? (
-                <div className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-accent shadow-lg opacity-90 rotate-2">
+                <div className="relative p-3 bg-white dark:bg-gray-800 rounded-lg border border-accent shadow-lg opacity-90 rotate-2">
+                  {dragAction && (
+                    <div className={`absolute -top-3 left-2 z-10 px-2 py-0.5 rounded-full text-[10px] font-medium shadow-lg whitespace-nowrap ${
+                      dragAction.type === 'merge'
+                        ? 'bg-accent text-white'
+                        : dragAction.type === 'promote'
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-blue-500 text-white'
+                    }`}>
+                      {dragAction.label}
+                    </div>
+                  )}
                   <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">
                     {activeDragNote.title || extractFirstLine(activeDragNote.content) || '无标题'}
                   </h4>

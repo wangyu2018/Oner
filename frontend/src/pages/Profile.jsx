@@ -1,9 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Lock, Monitor, LogOut, Save, Trash2, ArrowLeft, Palette } from 'lucide-react';
+import { User, Mail, Lock, Monitor, LogOut, Save, Trash2, ArrowLeft, Palette, Keyboard, KeyRound } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../utils/api';
 import ThemeCustomizer from '../components/ThemeCustomizer';
+
+const DEFAULT_SHORTCUTS = {
+  commandPalette: { key: 'k', ctrl: true, shift: false, meta: true, label: '打开命令面板' },
+  voiceInput: { key: 'v', ctrl: true, shift: true, meta: true, label: '语音录入' },
+  newNote: { key: 'n', ctrl: true, shift: true, meta: true, label: '新建笔记' },
+};
 
 export default function Profile() {
   const { user, logout, updateUser } = useAuth();
@@ -26,6 +32,19 @@ export default function Profile() {
   // 设备列表
   const [sessions, setSessions] = useState([]);
 
+  // 快捷键
+  const [shortcuts, setShortcuts] = useState(null);
+  const [editingShortcutId, setEditingShortcutId] = useState(null);
+  const recordingRef = useRef(null);
+
+  // 密码库 PIN
+  const [vaultPin, setVaultPin] = useState('');
+  const [vaultPinConfirm, setVaultPinConfirm] = useState('');
+  const [hasVaultPin, setHasVaultPin] = useState(false);
+
+  // 密码设置
+  const [passwordIncludeInSearch, setPasswordIncludeInSearch] = useState(false);
+
   useEffect(() => {
     if (user) {
       setEmail(user.email || '');
@@ -37,6 +56,12 @@ export default function Profile() {
     if (activeTab === 'devices') {
       loadSessions();
     }
+    if (activeTab === 'shortcuts' || activeTab === 'password-settings') {
+      loadSettings();
+    }
+    if (activeTab === 'vault-pin') {
+      checkVaultPin();
+    }
   }, [activeTab]);
 
   const loadSessions = async () => {
@@ -45,6 +70,127 @@ export default function Profile() {
       setSessions(data.sessions);
     } catch (err) {
       console.error('Load sessions error:', err);
+    }
+  };
+
+  // 加载设置（快捷键+密码设置）
+  const loadSettings = async () => {
+    try {
+      const res = await api.settings.get();
+      const settings = res.data || {};
+      setShortcuts(settings.shortcuts || DEFAULT_SHORTCUTS);
+      setPasswordIncludeInSearch(settings.passwordDefaults?.includeInSearch ?? false);
+    } catch (err) {
+      console.error('Load settings error:', err);
+    }
+  };
+
+  // 检查是否已设置密码库 PIN
+  const checkVaultPin = async () => {
+    try {
+      const res = await api.settings.get();
+      const settings = res.data || {};
+      setHasVaultPin(!!settings.vault_pin_hash);
+      setVaultPin('');
+      setVaultPinConfirm('');
+    } catch {}
+  };
+
+  // 保存密码库 PIN
+  const handleSaveVaultPin = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (!vaultPin) {
+      setError('请输入 PIN 码');
+      return;
+    }
+    if (vaultPin.length < 4) {
+      setError('PIN 码至少 4 位');
+      return;
+    }
+    if (vaultPin !== vaultPinConfirm) {
+      setError('两次输入的 PIN 码不一致');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // 将 PIN 明文发给后端，后端 hash 存储
+      const res = await api.auth.updateProfile({
+        vault_pin: vaultPin,
+      });
+      setHasVaultPin(true);
+      setSuccess('密码库 PIN 已设置');
+      setVaultPin('');
+      setVaultPinConfirm('');
+    } catch (err) {
+      setError(err.message || '设置失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 捕获按键绑定
+  useEffect(() => {
+    if (!editingShortcutId) return;
+    const handler = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.key === 'Escape') {
+        setEditingShortcutId(null);
+        return;
+      }
+      setShortcuts(prev => ({
+        ...prev,
+        [editingShortcutId]: {
+          ...prev[editingShortcutId],
+          key: e.key.toLowerCase(),
+          ctrl: e.ctrlKey || e.metaKey,
+          shift: e.shiftKey,
+          meta: e.metaKey,
+        }
+      }));
+      setEditingShortcutId(null);
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [editingShortcutId]);
+
+  // 格式化快捷键显示
+  const formatShortcut = (sc) => {
+    const parts = [];
+    if (sc.meta) parts.push('⌘');
+    else if (sc.ctrl) parts.push('Ctrl');
+    if (sc.shift) parts.push('Shift');
+    parts.push(sc.key.toUpperCase());
+    return parts.join('+');
+  };
+
+  // 保存快捷键
+  const handleSaveShortcuts = async () => {
+    setError('');
+    setSuccess('');
+    try {
+      await api.settings.update({ shortcuts });
+      setSuccess('快捷键已保存');
+    } catch (err) {
+      setError(err.message || '保存失败');
+    }
+  };
+
+  // 保存密码设置
+  const handleSavePasswordSettings = async () => {
+    setError('');
+    setSuccess('');
+    try {
+      await api.settings.update({
+        passwordDefaults: { includeInSearch: passwordIncludeInSearch }
+      });
+      setSuccess('密码设置已保存');
+    } catch (err) {
+      setError(err.message || '保存失败');
     }
   };
 
@@ -154,6 +300,9 @@ export default function Profile() {
   const tabs = [
     { id: 'profile', label: '个人资料', icon: User },
     { id: 'password', label: '修改密码', icon: Lock },
+    { id: 'shortcuts', label: '快捷键', icon: Keyboard },
+    { id: 'vault-pin', label: '密码库PIN', icon: KeyRound },
+    { id: 'password-settings', label: '密码设置', icon: Lock },
     { id: 'appearance', label: '外观', icon: Palette },
     { id: 'devices', label: '设备管理', icon: Monitor },
   ];
@@ -396,6 +545,177 @@ export default function Profile() {
                       暂无登录设备
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* 快捷键设置 */}
+            {activeTab === 'shortcuts' && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">快捷键</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                  点击快捷键组合进行修改，按 Esc 取消
+                </p>
+
+                {!shortcuts ? (
+                  <div className="text-center py-8 text-gray-400">加载中...</div>
+                ) : (
+                  <div className="space-y-3">
+                    {Object.entries(shortcuts).map(([id, sc]) => (
+                      <div key={id}
+                        className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
+                      >
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">
+                          {sc.label}
+                        </span>
+                        <button
+                          onClick={() => setEditingShortcutId(editingShortcutId === id ? null : id)}
+                          className={`px-3 py-1.5 text-sm font-mono rounded-lg border transition-all ${
+                            editingShortcutId === id
+                              ? 'border-accent-500 bg-accent-50 dark:bg-accent-900/30 text-accent-600 dark:text-accent-400 animate-pulse'
+                              : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-accent-400 hover:text-accent-500'
+                          }`}
+                        >
+                          {editingShortcutId === id ? '按下快捷键...' : formatShortcut(sc)}
+                        </button>
+                      </div>
+                    ))}
+
+                    <div className="pt-4">
+                      <button
+                        onClick={handleSaveShortcuts}
+                        className="px-6 py-2.5 bg-accent-500 hover:bg-accent-600 text-white font-medium rounded-lg transition-colors inline-flex items-center gap-2"
+                      >
+                        <Save size={18} />
+                        保存快捷键
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 密码库 PIN */}
+            {activeTab === 'vault-pin' && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">密码库 PIN</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                  设置 PIN 码后，访问密码库时需要二次认证（PIN 仅在当前会话有效，关闭浏览器后需重新输入）
+                </p>
+
+                <form onSubmit={handleSaveVaultPin} className="space-y-4">
+                  {hasVaultPin && (
+                    <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                      <p className="text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-green-500" />
+                        已设置 PIN 码保护
+                      </p>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      {hasVaultPin ? '新 PIN 码' : 'PIN 码'}
+                    </label>
+                    <input
+                      type="password"
+                      value={vaultPin}
+                      onChange={(e) => setVaultPin(e.target.value)}
+                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      placeholder="至少 4 位数字或字母"
+                      maxLength={20}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      确认 PIN 码
+                    </label>
+                    <input
+                      type="password"
+                      value={vaultPinConfirm}
+                      onChange={(e) => setVaultPinConfirm(e.target.value)}
+                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      placeholder="再次输入 PIN 码"
+                      maxLength={20}
+                    />
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="px-6 py-2.5 bg-accent-500 hover:bg-accent-600 disabled:bg-accent-400 text-white font-medium rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      {loading ? (
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      ) : (
+                        <>
+                          <Save size={18} />
+                          {hasVaultPin ? '更新 PIN' : '设置 PIN'}
+                        </>
+                      )}
+                    </button>
+
+                    {hasVaultPin && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!confirm('确定清除密码库 PIN 保护？')) return;
+                          setLoading(true);
+                          try {
+                            await api.auth.updateProfile({ vault_pin: '' });
+                            setHasVaultPin(false);
+                            setVaultPin('');
+                            setVaultPinConfirm('');
+                            setSuccess('密码库 PIN 已清除');
+                          } catch (err) {
+                            setError(err.message || '清除失败');
+                          } finally {
+                            setLoading(false);
+                          }
+                        }}
+                        className="px-6 py-2.5 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-colors"
+                      >
+                        清除 PIN
+                      </button>
+                    )}
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* 密码设置 */}
+            {activeTab === 'password-settings' && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">密码设置</h2>
+
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">全局搜索包含密码</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        开启后，在命令面板搜索时也会匹配密码条目标题和网址
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={passwordIncludeInSearch}
+                        onChange={(e) => setPasswordIncludeInSearch(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent-300 dark:peer-focus:ring-accent-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-accent-500"></div>
+                    </label>
+                  </div>
+
+                  <button
+                    onClick={handleSavePasswordSettings}
+                    className="px-6 py-2.5 bg-accent-500 hover:bg-accent-600 text-white font-medium rounded-lg transition-colors inline-flex items-center gap-2"
+                  >
+                    <Save size={18} />
+                    保存设置
+                  </button>
                 </div>
               </div>
             )}

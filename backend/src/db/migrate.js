@@ -157,6 +157,66 @@ export function migrate() {
       console.warn('FTS5 not available (non-critical):', ftsErr.message);
     }
 
+    // 创建 password_entries 表
+    const pwTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='password_entries'").get();
+    if (!pwTable) {
+      db.exec(`
+        CREATE TABLE password_entries (
+          id                  TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+          user_id             TEXT NOT NULL,
+          title               TEXT NOT NULL DEFAULT '',
+          url                 TEXT DEFAULT '',
+          username            TEXT DEFAULT '',
+          encrypted_password  TEXT NOT NULL,
+          notes               TEXT DEFAULT '',
+          category            TEXT DEFAULT '',
+          include_in_search   INTEGER NOT NULL DEFAULT 0,
+          created_at          TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at          TEXT NOT NULL DEFAULT (datetime('now')),
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+      `);
+      db.exec("CREATE INDEX IF NOT EXISTS idx_password_entries_user_id ON password_entries(user_id)");
+      db.exec("CREATE INDEX IF NOT EXISTS idx_password_entries_category ON password_entries(category)");
+      console.log('Created password_entries table');
+    }
+
+    // 创建 file_attachments 表
+    const faTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='file_attachments'").get();
+    if (!faTable) {
+      db.exec(`
+        CREATE TABLE file_attachments (
+          id              TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+          user_id         TEXT NOT NULL,
+          note_id         TEXT,
+          filename        TEXT NOT NULL,
+          original_name   TEXT NOT NULL,
+          mime_type       TEXT NOT NULL DEFAULT 'application/octet-stream',
+          size            INTEGER NOT NULL DEFAULT 0,
+          created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+          FOREIGN KEY (note_id) REFERENCES notes(id) ON DELETE SET NULL
+        )
+      `);
+      db.exec("CREATE INDEX IF NOT EXISTS idx_file_attachments_user_id ON file_attachments(user_id)");
+      db.exec("CREATE INDEX IF NOT EXISTS idx_file_attachments_note_id ON file_attachments(note_id)");
+      console.log('Created file_attachments table');
+    }
+
+    // 创建 user_settings 表
+    const usTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='user_settings'").get();
+    if (!usTable) {
+      db.exec(`
+        CREATE TABLE user_settings (
+          user_id     TEXT PRIMARY KEY,
+          settings    TEXT NOT NULL DEFAULT '{}',
+          updated_at  TEXT NOT NULL DEFAULT (datetime('now')),
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+      `);
+      console.log('Created user_settings table');
+    }
+
     console.log('Migration completed successfully');
 
   } catch (err) {
