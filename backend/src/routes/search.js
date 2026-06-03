@@ -19,37 +19,58 @@ router.get('/', (req, res) => {
       return res.json({ success: true, data: { results: [] } });
     }
 
-    // LIKE 转义
-    const escaped = q.replace(/[%_]/g, '\\$&');
-    const pattern = `%${escaped}%`;
-
-    const results = [];
-
-    // 搜索笔记（title + content），可选按分类过滤
-    const noteParams = [userId, pattern, pattern];
+    // FTS5 trigram 搜索笔记
+    const ftsQuery = `"${q.replace(/"/g, '""')}"`;
+    const noteParams = [userId, ftsQuery];
     let categoryClause = '';
     if (category) {
-      categoryClause = ' AND category = ?';
+      categoryClause = ' AND n.category = ?';
       noteParams.push(category);
     }
-    noteParams.push(`${escaped}%`, limit);
+    noteParams.push(limit);
 
-    const notes = queryAll(
-      `SELECT id, title, content, status, priority, category, tags, due_date, updated_at,
-              'note' as result_type
-       FROM notes
-       WHERE user_id = ? AND deleted_at IS NULL
-         AND (title LIKE ? ESCAPE '\\' OR content LIKE ? ESCAPE '\\')${categoryClause}
-       ORDER BY
-         CASE WHEN title LIKE ? ESCAPE '\\' THEN 0 ELSE 1 END,
-         updated_at DESC
-       LIMIT ?`,
-      noteParams
-    );
-    results.push(...notes);
+    let notes = [];
+    try {
+      notes = queryAll(
+        `SELECT n.id, n.title, n.content, n.status, n.priority, n.category, n.tags, n.due_date, n.updated_at,
+                'note' as result_type
+         FROM notes_fts fts
+         JOIN notes n ON n.rowid = fts.rowid
+         WHERE fts.notes_fts MATCH ?
+           AND n.user_id = ? AND n.deleted_at IS NULL${categoryClause}
+         ORDER BY rank
+         LIMIT ?`,
+        noteParams
+      );
+    } catch (matchErr) {
+      // FTS查询失败时回退到LIKE
+      const escaped = q.replace(/[%_]/g, '\\$&');
+      const pattern = `%${escaped}%`;
+      const likeParams = [userId, pattern, pattern];
+      let likeCategoryClause = '';
+      if (category) {
+        likeCategoryClause = ' AND category = ?';
+        likeParams.push(category);
+      }
+      likeParams.push(limit);
+      notes = queryAll(
+        `SELECT id, title, content, status, priority, category, tags, due_date, updated_at,
+                'note' as result_type
+         FROM notes
+         WHERE user_id = ? AND deleted_at IS NULL
+           AND (title LIKE ? ESCAPE '\\' OR content LIKE ? ESCAPE '\\')${likeCategoryClause}
+         ORDER BY updated_at DESC
+         LIMIT ?`,
+        likeParams
+      );
+    }
 
-    // 搜索密码条目（仅在开启时）
+    const results = [...notes];
+
+    // 搜索密码条目（保持LIKE，数据量小）
     if (includePasswords) {
+      const escaped = q.replace(/[%_]/g, '\\$&');
+      const pattern = `%${escaped}%`;
       const passwords = queryAll(
         `SELECT id, title, url, username, category, created_at, updated_at,
                 'password_entry' as result_type
@@ -60,7 +81,7 @@ router.get('/', (req, res) => {
            CASE WHEN title LIKE ? ESCAPE '\\' THEN 0 ELSE 1 END,
            updated_at DESC
          LIMIT ?`,
-        [userId, pattern, pattern, pattern, `${escaped}%`, limit]
+        [userId, pattern, pattern, pattern, `${q.replace(/[%_]/g, '\\$&')}%`, limit]
       );
       results.push(...passwords);
     }
@@ -73,7 +94,6 @@ router.get('/', (req, res) => {
       return new Date(b.updated_at) - new Date(a.updated_at);
     });
 
-    // 截断到 limit
     const limited = results.slice(0, limit);
 
     res.json({ success: true, data: { results: limited } });

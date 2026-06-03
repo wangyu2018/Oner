@@ -8,9 +8,11 @@ services:
       - PORT=${PORT:-3000}
       - DB_PATH=${DB_PATH:-/data/oner.db}
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required for production deployment}
+      - PASSWORD_VAULT_KEY=${PASSWORD_VAULT_KEY:-}
       - NODE_ENV=${NODE_ENV:-production}
     volumes:
       - oner-data:/data
+      - oner-uploads:/app/uploads
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
@@ -39,3 +41,4 @@ services:
 
 volumes:
   oner-data:
+  oner-uploads:

@@ -169,6 +169,16 @@ router.put('/:id', notesWriteLimiter, (req, res) => {
   const existing = queryOne('SELECT * FROM notes WHERE id = ? AND user_id = ? AND deleted_at IS NULL', [req.params.id, userId]);
   if (!existing) return res.status(404).json({ success: false, error: '笔记不存在', code: 404 });
 
+  // 版本冲突检测
+  if (req.body.version !== undefined && req.body.version !== (existing.version || 1)) {
+    return res.status(409).json({
+      success: false,
+      error: '笔记已被其他设备修改，请刷新后重试',
+      code: 409,
+      data: { serverVersion: existing.version, clientVersion: req.body.version }
+    });
+  }
+
   const title = (req.body.title !== undefined ? req.body.title : existing.title) || '';
   const content = (req.body.content !== undefined ? req.body.content : existing.content) || '';
 

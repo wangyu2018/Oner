@@ -124,12 +124,23 @@ export function migrate() {
 
     // 创建 FTS5 全文搜索虚拟表
     try {
+      // 检查是否需要重建FTS（tokenizer变更时）
+      const existingFts = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='notes_fts'").get();
+      if (existingFts && existingFts.sql && !existingFts.sql.includes('trigram')) {
+        // tokenizer变更，重建FTS表
+        db.exec('DROP TRIGGER IF EXISTS notes_ai');
+        db.exec('DROP TRIGGER IF EXISTS notes_ad');
+        db.exec('DROP TRIGGER IF EXISTS notes_au');
+        db.exec('DROP TABLE IF EXISTS notes_fts');
+        console.log('Rebuilding FTS5 index with trigram tokenizer...');
+      }
+
       db.exec(`
         CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
           title, content,
           content=notes,
           content_rowid=rowid,
-          tokenize='unicode61'
+          tokenize='trigram'
         )
       `);
 
@@ -151,7 +162,13 @@ export function migrate() {
         END
       `);
 
-      console.log('Created FTS5 full-text search indexes');
+      // 重建FTS索引（确保数据同步）
+      if (!existingFts || (existingFts.sql && !existingFts.sql.includes('trigram'))) {
+        db.exec("INSERT INTO notes_fts(notes_fts) VALUES('rebuild')");
+        console.log('FTS5 index rebuilt successfully');
+      }
+
+      console.log('Created FTS5 full-text search indexes (trigram tokenizer)');
     } catch (ftsErr) {
       // FTS5 可能在某些环境中不可用，但不影响核心功能
       console.warn('FTS5 not available (non-critical):', ftsErr.message);

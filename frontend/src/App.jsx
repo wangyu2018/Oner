@@ -13,6 +13,7 @@ import Register from './pages/Register';
 import Profile from './pages/Profile';
 import PasswordVault from './pages/PasswordVault';
 import AuthGuard from './components/AuthGuard';
+import BottomNav from './components/BottomNav';
 import CommandPalette from './components/CommandPalette';
 import VoiceInput from './components/VoiceInput';
 import { api } from './utils/api';
@@ -115,7 +116,9 @@ export default function App() {
                 path="/note/:id"
                 element={
                   <AuthGuard>
-                    <ViewNote />
+                    <ErrorBoundary>
+                      <ViewNote />
+                    </ErrorBoundary>
                   </AuthGuard>
                 }
               />
@@ -123,7 +126,9 @@ export default function App() {
                 path="/profile"
                 element={
                   <AuthGuard>
-                    <Profile />
+                    <ErrorBoundary>
+                      <Profile />
+                    </ErrorBoundary>
                   </AuthGuard>
                 }
               />
@@ -131,7 +136,9 @@ export default function App() {
                 path="/passwords"
                 element={
                   <AuthGuard>
-                    <PasswordVault />
+                    <ErrorBoundary>
+                      <PasswordVault />
+                    </ErrorBoundary>
                   </AuthGuard>
                 }
               />
@@ -152,6 +159,9 @@ export default function App() {
                 onSave={handleVoiceSave}
               />
             )}
+
+            {/* 移动端底部导航 */}
+            {isLoggedIn && <BottomNav />}
           </BrowserRouter>
         </CommandPaletteContext.Provider>
       </AuthContext.Provider>

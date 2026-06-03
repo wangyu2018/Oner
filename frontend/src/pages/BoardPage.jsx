@@ -12,6 +12,7 @@ import Toolbar from '../components/Toolbar';
 import NoteEditor from '../components/NoteEditor';
 import EmptyState from '../components/EmptyState';
 import ReminderOverlay from '../components/ReminderOverlay';
+import SwipeStatusTabs from '../components/SwipeStatusTabs';
 import TagChip from '../components/TagChip';
 import PriorityBadge from '../components/PriorityBadge';
 import { RecurrenceBadge } from '../components/RecurrenceSelector';
@@ -22,7 +23,7 @@ import { getContentPreview, extractFirstLine } from '../utils/tags';
 import { useCommandPalette } from '../App';
 import {
   Trash2, Calendar, Archive, RotateCcw,
-  ListTodo
+  ListTodo, Plus
 } from 'lucide-react';
 import { useReminderCheck } from '../hooks/useReminderCheck';
 
@@ -766,7 +767,7 @@ export default function BoardPage({ onVoiceInput }) {
 
       <main className="px-4 py-4">
         {/* 操作栏 */}
-        <div className="flex items-center gap-2 mb-4 flex-wrap">
+        <div className="hidden md:flex items-center gap-2 mb-4 flex-wrap">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">看板</h2>
           <div className="flex-1" />
 
@@ -792,70 +793,86 @@ export default function BoardPage({ onVoiceInput }) {
           </button>
         </div>
 
-        {/* 看板 */}
-        {notes.length === 0 && !activeTag && !activeCategory ? (
-          <EmptyState onCreateNote={handleCreateNote} />
-        ) : (
-          <DndContext
-            sensors={sensors}
-            onDragStart={handleDragStart}
-            onDragMove={handleDragMove}
-            onDragOver={handleDragOver}
-            onDragEnd={handleDragEnd}
-            collisionDetection={closestCorners}
-          >
-            <div className="flex gap-4 overflow-x-auto pb-4" style={{ minHeight: 'calc(100vh - 200px)' }}>
-              {COLUMNS.map((col) => (
-                <KanbanColumn
-                  key={col.id}
-                  column={col}
-                  items={groupedColumns[col.id] || []}
-                  onNoteClick={handleNoteClick}
-                  onDelete={handleDelete}
-                  onTagClick={handleTagClick}
-                  onCreateNote={handleCreateNote}
-                  mergeTargetId={mergeTargetId}
-                  dragAction={dragAction}
-                />
-              ))}
+        {/* 桌面版: 看板 */}
+        <div className="hidden md:block">
+          {notes.length === 0 && !activeTag && !activeCategory ? (
+            <EmptyState onCreateNote={handleCreateNote} />
+          ) : (
+            <DndContext
+              sensors={sensors}
+              onDragStart={handleDragStart}
+              onDragMove={handleDragMove}
+              onDragOver={handleDragOver}
+              onDragEnd={handleDragEnd}
+              collisionDetection={closestCorners}
+            >
+              <div className="flex gap-4 overflow-x-auto pb-4" style={{ minHeight: 'calc(100vh - 200px)' }}>
+                {COLUMNS.map((col) => (
+                  <KanbanColumn
+                    key={col.id}
+                    column={col}
+                    items={groupedColumns[col.id] || []}
+                    onNoteClick={handleNoteClick}
+                    onDelete={handleDelete}
+                    onTagClick={handleTagClick}
+                    onCreateNote={handleCreateNote}
+                    mergeTargetId={mergeTargetId}
+                    dragAction={dragAction}
+                  />
+                ))}
 
-              {/* 归档列 */}
-              {showArchived && (
-                <KanbanColumn
-                  column={{ id: 'archived', title: '已归档', color: 'bg-gray-400' }}
-                  items={groupedColumns.archived || []}
-                  onNoteClick={handleNoteClick}
-                  onDelete={handleDelete}
-                  onTagClick={handleTagClick}
-                  onCreateNote={handleCreateNote}
-                  mergeTargetId={mergeTargetId}
-                  dragAction={dragAction}
-                />
-              )}
-            </div>
+                {/* 归档列 */}
+                {showArchived && (
+                  <KanbanColumn
+                    column={{ id: 'archived', title: '已归档', color: 'bg-gray-400' }}
+                    items={groupedColumns.archived || []}
+                    onNoteClick={handleNoteClick}
+                    onDelete={handleDelete}
+                    onTagClick={handleTagClick}
+                    onCreateNote={handleCreateNote}
+                    mergeTargetId={mergeTargetId}
+                    dragAction={dragAction}
+                  />
+                )}
+              </div>
 
-            <DragOverlay>
-              {activeDragNote ? (
-                <div className="relative p-3 bg-white dark:bg-gray-800 rounded-lg border border-accent shadow-lg opacity-90 rotate-2">
-                  {dragAction && (
-                    <div className={`absolute -top-3 left-2 z-10 px-2 py-0.5 rounded-full text-[10px] font-medium shadow-lg whitespace-nowrap ${
-                      dragAction.type === 'merge'
-                        ? 'bg-accent text-white'
-                        : dragAction.type === 'promote'
-                        ? 'bg-emerald-500 text-white'
-                        : 'bg-blue-500 text-white'
-                    }`}>
-                      {dragAction.label}
-                    </div>
-                  )}
-                  <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    {activeDragNote.title || extractFirstLine(activeDragNote.content) || '无标题'}
-                  </h4>
-                </div>
-              ) : null}
-            </DragOverlay>
-          </DndContext>
-        )}
+              <DragOverlay>
+                {activeDragNote ? (
+                  <div className="relative p-3 bg-white dark:bg-gray-800 rounded-lg border border-accent shadow-lg opacity-90 rotate-2">
+                    {dragAction && (
+                      <div className={`absolute -top-3 left-2 z-10 px-2 py-0.5 rounded-full text-[10px] font-medium shadow-lg whitespace-nowrap ${
+                        dragAction.type === 'merge'
+                          ? 'bg-accent text-white'
+                          : dragAction.type === 'promote'
+                          ? 'bg-emerald-500 text-white'
+                          : 'bg-blue-500 text-white'
+                      }`}>
+                        {dragAction.label}
+                      </div>
+                    )}
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {activeDragNote.title || extractFirstLine(activeDragNote.content) || '无标题'}
+                    </h4>
+                  </div>
+                ) : null}
+              </DragOverlay>
+            </DndContext>
+          )}
+        </div>
+
+        {/* 移动版: SwipeStatusTabs */}
+        <div className="md:hidden flex flex-col" style={{ height: 'calc(100vh - 50px - 56px)' }}>
+          <div className="flex-1 min-h-0">
+            <SwipeStatusTabs
+              allNotes={notes}
+              activeStatus={activeTag ? undefined : 'note'}
+              onNoteClick={handleNoteClick}
+              onDelete={handleDelete}
+              onTagClick={handleTagClick}
+              onCreateNote={handleCreateNote}
+            />
+          </div>
+        </div>
       </main>
 
       {(isCreating || editingNote) && (
@@ -880,6 +897,15 @@ export default function BoardPage({ onVoiceInput }) {
         onClose={() => { setShowCategoryManager(false); loadCategories(); }}
         onCategoryChange={loadCategories}
       />
+
+      {/* 移动端 FAB 创建按钮 */}
+      <button
+        onClick={handleCreateNote}
+        className="fixed bottom-20 right-4 md:hidden z-40 w-14 h-14 rounded-full bg-accent text-white shadow-lg
+          flex items-center justify-center active:scale-90 transition-transform"
+      >
+        <Plus size={28} />
+      </button>
     </div>
   );
 }

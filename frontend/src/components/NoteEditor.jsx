@@ -25,6 +25,8 @@ export default function NoteEditor({ note, onSave, onClose }) {
   const [categories, setCategories] = useState([]);
   const [showPreview, setShowPreview] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showMoreOptions, setShowMoreOptions] = useState(false);
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   const noteId = note?.id || 'new';
   const draftData = { title, content, tags, status, priority, dueDate, recurrence, category };
@@ -97,12 +99,12 @@ export default function NoteEditor({ note, onSave, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center md:p-4"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-3xl max-h-[90vh] bg-white dark:bg-gray-900 rounded-2xl
-          shadow-2xl flex flex-col overflow-hidden"
+        className="w-full h-full md:h-auto md:max-w-3xl md:max-h-[90vh] md:rounded-2xl bg-white dark:bg-gray-900
+          md:shadow-2xl flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
@@ -148,20 +150,48 @@ export default function NoteEditor({ note, onSave, onClose }) {
             <PrioritySelector value={priority} onChange={setPriority} />
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500 dark:text-gray-400">截止：</span>
-            <DueDatePicker value={dueDate} onChange={setDueDate} />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500 dark:text-gray-400">重复：</span>
-            <RecurrenceSelector value={recurrence} onChange={setRecurrence} />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500 dark:text-gray-400">分类：</span>
-            <CategorySelector categories={categories} value={category} onChange={setCategory} />
-          </div>
+          {/* 移动端：更多选项折叠 */}
+          {isMobile ? (
+            <>
+              <button
+                onClick={() => setShowMoreOptions(!showMoreOptions)}
+                className="text-xs text-accent underline"
+              >
+                {showMoreOptions ? '收起' : '更多选项'}
+              </button>
+              {showMoreOptions && (
+                <>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">截止：</span>
+                    <DueDatePicker value={dueDate} onChange={setDueDate} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">重复：</span>
+                    <RecurrenceSelector value={recurrence} onChange={setRecurrence} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">分类：</span>
+                    <CategorySelector categories={categories} value={category} onChange={setCategory} />
+                  </div>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500 dark:text-gray-400">截止：</span>
+                <DueDatePicker value={dueDate} onChange={setDueDate} />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500 dark:text-gray-400">重复：</span>
+                <RecurrenceSelector value={recurrence} onChange={setRecurrence} />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500 dark:text-gray-400">分类：</span>
+                <CategorySelector categories={categories} value={category} onChange={setCategory} />
+              </div>
+            </>
+          )}
         </div>
 
         {/* Content */}
@@ -205,8 +235,11 @@ export default function NoteEditor({ note, onSave, onClose }) {
 
         {/* Footer */}
         <div className="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-800">
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-gray-400 hidden md:inline">
             {saving ? '保存中...' : '按 Cmd+S 保存，Esc 关闭'}
+          </span>
+          <span className="text-xs text-gray-400 md:hidden">
+            {saving ? '保存中...' : ''}
           </span>
           <button
             onClick={handleSave}

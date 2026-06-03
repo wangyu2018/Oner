@@ -364,7 +364,7 @@ export default function CommandPalette({ isOpen, onClose, categories = [], onCre
           )}
 
           {/* 底部提示 */}
-          <div className="px-4 py-2 bg-gray-50 dark:bg-gray-800/50 text-[11px] text-gray-400 flex items-center gap-3">
+          <div className="px-4 py-2 bg-gray-50 dark:bg-gray-800/50 text-[11px] text-gray-400 hidden md:flex items-center gap-3">
             <span>↑↓ 导航</span>
             <span>Enter 选择/创建</span>
             <span>Esc 关闭</span>

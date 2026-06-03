@@ -324,8 +324,31 @@ export default function Profile() {
 
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row gap-8">
-          {/* 侧边栏 */}
-          <div className="md:w-48">
+          {/* 移动端: 横向滚动tab */}
+          <div className="md:hidden overflow-x-auto scrollbar-none -mx-4 px-4">
+            <div className="flex gap-1 pb-3">
+              {tabs.map(tab => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
+                      activeTab === tab.id
+                        ? 'bg-accent text-white'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                    }`}
+                  >
+                    <Icon size={14} />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 桌面端: 侧边栏 */}
+          <div className="hidden md:block md:w-48">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
               {tabs.map(tab => {
                 const Icon = tab.icon;

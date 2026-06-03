@@ -80,6 +80,24 @@ html {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Mobile touch improvements */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  overscroll-behavior: none;
+}
+
+/* ========== Scrollbar hiding ========== */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* Scrollbar styling for dark mode */
 .dark ::-webkit-scrollbar {
   width: 8px;

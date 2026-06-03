@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { Plus } from 'lucide-react';
 import Toolbar from '../components/Toolbar';
 import EmptyState from '../components/EmptyState';
 import CardWall from '../components/CardWall';
@@ -161,7 +162,7 @@ export default function Home({ categories = [], onVoiceInput }) {
         </div>
 
         {/* 移动版: 标签栏 + 页面指示点 + 滑动切换 */}
-        <div className="md:hidden flex flex-col" style={{ height: 'calc(100vh - 50px)' }}>
+        <div className="md:hidden flex flex-col" style={{ height: 'calc(100vh - 50px - 56px)' }}>
           <div className="flex-1 min-h-0">
             <SwipeStatusTabs
               allNotes={allNotes}
@@ -197,6 +198,15 @@ export default function Home({ categories = [], onVoiceInput }) {
           onNoteClick={handleReminderNoteClick}
         />
       )}
+
+      {/* 移动端 FAB 创建按钮 */}
+      <button
+        onClick={handleCreateNote}
+        className="fixed bottom-20 right-4 md:hidden z-40 w-14 h-14 rounded-full bg-accent text-white shadow-lg
+          flex items-center justify-center active:scale-90 transition-transform"
+      >
+        <Plus size={28} />
+      </button>
     </div>
   );
 }

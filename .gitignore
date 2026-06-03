@@ -10,3 +10,5 @@ nul
 *.log
 .DS_Store
 Thumbs.db
+backend/uploads/*
+!backend/uploads/.gitkeep

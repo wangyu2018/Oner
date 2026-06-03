@@ -57,9 +57,10 @@ export default function NoteCard({ note, onClick, onDelete, onTagClick }) {
     >
       <button
         onClick={handleDelete}
-        className="absolute top-3 right-3 p-1.5 rounded-lg opacity-0
-          group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-900/30
+        className="absolute top-3 right-3 p-2 rounded-lg
+          md:opacity-0 md:group-hover:opacity-100 md:hover:bg-red-50 md:dark:hover:bg-red-900/30
           text-gray-400 hover:text-red-500 transition-all"
+        style={{ minWidth: 44, minHeight: 44 }}
       >
         <Trash2 size={16} />
       </button>

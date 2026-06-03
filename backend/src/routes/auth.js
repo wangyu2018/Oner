@@ -177,6 +177,9 @@ router.post('/login', loginLimiter, async (req, res) => {
       });
     }
 
+    // 清理过期 session
+    runQuery("DELETE FROM sessions WHERE user_id = ? AND expires_at <= datetime('now')", [user.id]);
+
     // 检查设备数量限制（最多 5 个）
     const sessions = queryAll(
       "SELECT * FROM sessions WHERE user_id = ? AND expires_at > datetime('now')",
