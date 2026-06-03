@@ -242,6 +242,58 @@ export const api = {
       method: 'PUT', body: JSON.stringify(data),
     }),
   },
+
+  // AI
+  ai: {
+    chat: (data) => fetchJSON('/ai/chat', {
+      method: 'POST', body: JSON.stringify(data),
+    }),
+    chatStream: async (data, onChunk, onDone) => {
+      const token = getToken();
+      const response = await fetch(`${API_BASE}/ai/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ ...data, stream: true }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${response.status}`);
+      }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n').filter(l => l.startsWith('data: '));
+        for (const line of lines) {
+          const d = line.slice(6).trim();
+          if (d === '[DONE]') { onDone?.(); return; }
+          try {
+            const parsed = JSON.parse(d);
+            if (parsed.content) onChunk(parsed.content);
+          } catch {}
+        }
+      }
+      onDone?.();
+    },
+    analyze: (data) => fetchJSON('/ai/analyze', {
+      method: 'POST', body: JSON.stringify(data),
+    }),
+    summarize: (data) => fetchJSON('/ai/summarize', {
+      method: 'POST', body: JSON.stringify(data),
+    }),
+    conversations: () => fetchJSON('/ai/conversations'),
+    getConversation: (id) => fetchJSON(`/ai/conversations/${id}`),
+    deleteConversation: (id) => fetchJSON(`/ai/conversations/${id}`, { method: 'DELETE' }),
+    providers: () => fetchJSON('/ai/providers'),
+    testConnection: (data) => fetchJSON('/ai/test', {
+      method: 'POST', body: JSON.stringify(data),
+    }),
+  },
 };
 
 export { getToken, setToken, clearToken };

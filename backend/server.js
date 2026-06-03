@@ -16,6 +16,7 @@ import searchRouter from './src/routes/search.js';
 import settingsRouter from './src/routes/settings.js';
 import passwordsRouter from './src/routes/passwords.js';
 import filesRouter from './src/routes/files.js';
+import aiRouter from './src/routes/ai.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -78,6 +79,7 @@ app.use('/api/search', searchRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/passwords', passwordsRouter);
 app.use('/api/files', filesRouter);
+app.use('/api/ai', aiRouter);
 
 // 静态文件服务（上传文件访问）
 const uploadsDir = path.resolve(process.env.UPLOAD_DIR || path.join(import.meta.dirname, 'uploads'));

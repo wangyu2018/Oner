@@ -12,6 +12,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
 import PasswordVault from './pages/PasswordVault';
+import AIChat from './pages/AIChat';
 import AuthGuard from './components/AuthGuard';
 import BottomNav from './components/BottomNav';
 import CommandPalette from './components/CommandPalette';
@@ -138,6 +139,16 @@ export default function App() {
                   <AuthGuard>
                     <ErrorBoundary>
                       <PasswordVault />
+                    </ErrorBoundary>
+                  </AuthGuard>
+                }
+              />
+              <Route
+                path="/ai"
+                element={
+                  <AuthGuard>
+                    <ErrorBoundary>
+                      <AIChat />
                     </ErrorBoundary>
                   </AuthGuard>
                 }

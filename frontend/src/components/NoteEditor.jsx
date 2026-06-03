@@ -9,6 +9,7 @@ import SubtaskList from './SubtaskList';
 import RecurrenceSelector from './RecurrenceSelector';
 import CategorySelector from './CategorySelector';
 import FileAttachments from './FileAttachments';
+import AIAssistant from './AIAssistant';
 import { api } from '../utils/api';
 import { parseTags } from '../utils/tags';
 import { useAutoSave } from '../hooks/useAutoSave';
@@ -214,6 +215,9 @@ export default function NoteEditor({ note, onSave, onClose }) {
 
         {/* 子任务 */}
         {note?.id && <SubtaskList noteId={note.id} />}
+
+        {/* AI 助手 */}
+        {note?.id && <AIAssistant noteId={note.id} content={content} title={title} />}
 
         {/* 文件附件 */}
         {note?.id && (

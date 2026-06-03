@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Lock, Monitor, LogOut, Save, Trash2, ArrowLeft, Palette, Keyboard, KeyRound } from 'lucide-react';
+import { User, Mail, Lock, Monitor, LogOut, Save, Trash2, ArrowLeft, Palette, Keyboard, KeyRound, Brain, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../utils/api';
 import ThemeCustomizer from '../components/ThemeCustomizer';
@@ -45,6 +45,16 @@ export default function Profile() {
   // 密码设置
   const [passwordIncludeInSearch, setPasswordIncludeInSearch] = useState(false);
 
+  // AI设置
+  const [aiProvider, setAiProvider] = useState('deepseek');
+  const [aiApiKey, setAiApiKey] = useState('');
+  const [aiModel, setAiModel] = useState('');
+  const [aiBaseURL, setAiBaseURL] = useState('');
+  const [showAiApiKey, setShowAiApiKey] = useState(false);
+  const [aiTestResult, setAiTestResult] = useState(null);
+  const [aiTesting, setAiTesting] = useState(false);
+  const [aiSaving, setAiSaving] = useState(false);
+
   useEffect(() => {
     if (user) {
       setEmail(user.email || '');
@@ -56,7 +66,7 @@ export default function Profile() {
     if (activeTab === 'devices') {
       loadSessions();
     }
-    if (activeTab === 'shortcuts' || activeTab === 'password-settings') {
+    if (activeTab === 'shortcuts' || activeTab === 'password-settings' || activeTab === 'ai') {
       loadSettings();
     }
     if (activeTab === 'vault-pin') {
@@ -80,6 +90,12 @@ export default function Profile() {
       const settings = res.data || {};
       setShortcuts(settings.shortcuts || DEFAULT_SHORTCUTS);
       setPasswordIncludeInSearch(settings.passwordDefaults?.includeInSearch ?? false);
+      if (settings.ai) {
+        setAiProvider(settings.ai.provider || 'deepseek');
+        setAiModel(settings.ai.model || '');
+        setAiBaseURL(settings.ai.baseURL || '');
+        setAiApiKey(settings.ai.hasKey ? '********' : '');
+      }
     } catch (err) {
       console.error('Load settings error:', err);
     }
@@ -277,6 +293,47 @@ export default function Profile() {
     navigate('/login', { replace: true });
   };
 
+  // 保存AI设置
+  const handleSaveAI = async () => {
+    setAiSaving(true);
+    setError('');
+    setSuccess('');
+    try {
+      await api.settings.update({
+        ai: {
+          provider: aiProvider,
+          apiKey: aiApiKey === '********' ? undefined : aiApiKey,
+          model: aiModel,
+          baseURL: aiBaseURL,
+        },
+      });
+      setSuccess('AI设置已保存');
+    } catch (err) {
+      setError(err.message || '保存失败');
+    } finally {
+      setAiSaving(false);
+    }
+  };
+
+  // 测试AI连接
+  const handleTestAI = async () => {
+    setAiTesting(true);
+    setAiTestResult(null);
+    try {
+      const res = await api.ai.testConnection({
+        provider: aiProvider,
+        apiKey: aiApiKey === '********' ? undefined : aiApiKey,
+        model: aiModel,
+        baseURL: aiBaseURL,
+      });
+      setAiTestResult(res.data);
+    } catch (err) {
+      setAiTestResult({ success: false, message: err.message });
+    } finally {
+      setAiTesting(false);
+    }
+  };
+
   // 格式化设备信息
   const formatDevice = (deviceStr) => {
     if (!deviceStr) return '未知设备';
@@ -300,6 +357,7 @@ export default function Profile() {
   const tabs = [
     { id: 'profile', label: '个人资料', icon: User },
     { id: 'password', label: '修改密码', icon: Lock },
+    { id: 'ai', label: 'AI设置', icon: Brain },
     { id: 'shortcuts', label: '快捷键', icon: Keyboard },
     { id: 'vault-pin', label: '密码库PIN', icon: KeyRound },
     { id: 'password-settings', label: '密码设置', icon: Lock },
@@ -739,6 +797,102 @@ export default function Profile() {
                     <Save size={18} />
                     保存设置
                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* AI 设置 */}
+            {activeTab === 'ai' && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">AI 设置</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                  配置AI模型提供商和API密钥，用于笔记分析、任务拆解和智能对话
+                </p>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">模型提供商</label>
+                    <select
+                      value={aiProvider}
+                      onChange={(e) => { setAiProvider(e.target.value); setAiTestResult(null); }}
+                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    >
+                      <option value="deepseek">DeepSeek</option>
+                      <option value="mimo">MiMo (小米)</option>
+                      <option value="openai">OpenAI</option>
+                      <option value="custom">自定义</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">API Key</label>
+                    <div className="relative">
+                      <input
+                        type={showAiApiKey ? 'text' : 'password'}
+                        value={aiApiKey}
+                        onChange={(e) => { setAiApiKey(e.target.value); setAiTestResult(null); }}
+                        className="w-full px-4 py-2.5 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="输入你的 API Key"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowAiApiKey(!showAiApiKey)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        {showAiApiKey ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">模型名称</label>
+                    <input
+                      type="text"
+                      value={aiModel}
+                      onChange={(e) => setAiModel(e.target.value)}
+                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      placeholder={aiProvider === 'deepseek' ? 'deep-chat' : aiProvider === 'openai' ? 'gpt-4o-mini' : '模型名称'}
+                    />
+                  </div>
+
+                  {aiProvider === 'custom' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Base URL</label>
+                      <input
+                        type="text"
+                        value={aiBaseURL}
+                        onChange={(e) => setAiBaseURL(e.target.value)}
+                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="https://your-api.com/v1"
+                      />
+                    </div>
+                  )}
+
+                  {aiTestResult && (
+                    <div className={`p-3 rounded-lg ${aiTestResult.success ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'}`}>
+                      <p className={`text-sm ${aiTestResult.success ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
+                        {aiTestResult.success ? '连接成功' : '连接失败'}：{aiTestResult.message}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleTestAI}
+                      disabled={aiTesting || !aiApiKey || aiApiKey === '********'}
+                      className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                    >
+                      {aiTesting ? '测试中...' : '测试连接'}
+                    </button>
+                    <button
+                      onClick={handleSaveAI}
+                      disabled={aiSaving}
+                      className="flex items-center gap-2 px-4 py-2.5 bg-accent text-white rounded-lg hover:bg-accent-600 transition-colors disabled:opacity-50"
+                    >
+                      <Save size={16} />
+                      {aiSaving ? '保存中...' : '保存设置'}
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

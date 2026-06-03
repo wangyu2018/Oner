@@ -234,6 +234,26 @@ export function migrate() {
       console.log('Created user_settings table');
     }
 
+    // 创建 AI 对话历史表
+    const aiTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='ai_conversations'").get();
+    if (!aiTable) {
+      db.exec(`
+        CREATE TABLE ai_conversations (
+          id           TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+          user_id      TEXT NOT NULL,
+          context_type TEXT NOT NULL DEFAULT 'global',
+          context_id   TEXT,
+          title        TEXT DEFAULT '',
+          messages     TEXT NOT NULL DEFAULT '[]',
+          created_at   TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at   TEXT NOT NULL DEFAULT (datetime('now')),
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+      `);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_ai_conv_user ON ai_conversations(user_id)');
+      console.log('Created ai_conversations table');
+    }
+
     console.log('Migration completed successfully');
 
   } catch (err) {
