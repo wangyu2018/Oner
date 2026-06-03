@@ -2,9 +2,17 @@
 
 记录此刻，轻如空气。
 
-一个自托管的全栈个人备忘录和任务管理应用，支持 PWA、移动端优化、密码保险库和 Docker 部署。
+一个自托管的全栈个人备忘录和任务管理应用，支持 PWA、移动端优化、AI智能助手、密码保险库和 Docker 部署。
 
 ## 功能特性
+
+### AI 智能助手
+- **笔记AI面板**：打开笔记即可拆解任务、推荐行动、扩展内容、自由问答
+- **全局AI对话**：独立对话页，选择分类带入上下文，流式逐字回复
+- **分类总结**：一键总结某分类下所有笔记的关键信息和趋势
+- **多模型支持**：DeepSeek / MiMo / OpenAI / 自定义OpenAI兼容API
+- **在线配置**：设置页配置提供商、API Key、模型，测试连接
+- **API Key加密**：AES-256-GCM加密存储，安全可靠
 
 ### 笔记与任务管理
 - **Markdown 编辑器**：实时预览，支持完整 Markdown 语法
@@ -41,7 +49,7 @@
 - 个人资料编辑
 
 ### 移动端优化
-- **底部导航栏**：首页/看板/密码/我的
+- **底部导航栏**：首页 / AI / 看板 / 密码 / 我的
 - **FAB 悬浮按钮**：一键创建笔记
 - **滑动切换**：状态标签页左右滑动
 - **全屏编辑器**：移动端自动全屏
@@ -195,6 +203,18 @@ docker-compose down
 | GET/PUT | /api/settings | 用户设置 |
 | GET | /api/reminders | 待办提醒 |
 
+### AI 智能助手
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | /api/ai/chat | AI对话（支持SSE流式） |
+| POST | /api/ai/analyze | 笔记分析（拆解/推荐/扩展） |
+| POST | /api/ai/summarize | 分类总结 |
+| GET | /api/ai/conversations | 对话历史列表 |
+| GET | /api/ai/conversations/:id | 对话详情 |
+| DELETE | /api/ai/conversations/:id | 删除对话 |
+| GET | /api/ai/providers | 支持的AI提供商列表 |
+| POST | /api/ai/test | 测试AI连接 |
+
 ### 备份
 | 方法 | 路径 | 说明 |
 |------|------|------|
@@ -220,15 +240,15 @@ oner/
 │   ├── src/
 │   │   ├── db/          # 数据库（迁移、helpers）
 │   │   ├── middleware/   # 认证中间件
-│   │   ├── routes/       # API 路由（auth/notes/search/passwords/files/settings/backup）
-│   │   └── utils/        # 工具（crypto、ID生成）
+│   │   ├── routes/       # API 路由（auth/notes/search/passwords/files/settings/backup/ai）
+│   │   └── utils/        # 工具（crypto、aiProvider）
 │   ├── server.js
 │   └── package.json
 ├── frontend/
 │   ├── src/
 │   │   ├── components/   # UI 组件（NoteEditor/CardWall/SwipeStatusTabs/CommandPalette/BottomNav...）
 │   │   ├── hooks/        # 自定义 Hooks（useNotes/useAuth/usePasswords/useShortcuts...）
-│   │   ├── pages/        # 页面（Home/BoardPage/Profile/PasswordVault）
+│   │   ├── pages/        # 页面（Home/BoardPage/Profile/PasswordVault/AIChat）
 │   │   ├── utils/        # 工具（api、tags、keywordMatcher）
 │   │   └── styles/       # 全局样式
 │   ├── public/
