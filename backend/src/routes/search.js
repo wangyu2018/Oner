@@ -19,31 +19,34 @@ router.get('/', (req, res) => {
       return res.json({ success: true, data: { results: [] } });
     }
 
-    // FTS5 trigram 搜索笔记
+    // 搜索笔记：FTS5优先，无结果时回退LIKE（兼容中文）
     const ftsQuery = `"${q.replace(/"/g, '""')}"`;
-    const noteParams = [userId, ftsQuery];
-    let categoryClause = '';
-    if (category) {
-      categoryClause = ' AND n.category = ?';
-      noteParams.push(category);
-    }
-    noteParams.push(limit);
-
     let notes = [];
+
+    // FTS5 MATCH
     try {
+      const ftsParams = [ftsQuery, userId];
+      let ftsCategoryClause = '';
+      if (category) {
+        ftsCategoryClause = ' AND n.category = ?';
+        ftsParams.push(category);
+      }
+      ftsParams.push(limit);
       notes = queryAll(
         `SELECT n.id, n.title, n.content, n.status, n.priority, n.category, n.tags, n.due_date, n.updated_at,
                 'note' as result_type
          FROM notes_fts fts
          JOIN notes n ON n.rowid = fts.rowid
          WHERE fts.notes_fts MATCH ?
-           AND n.user_id = ? AND n.deleted_at IS NULL${categoryClause}
+           AND n.user_id = ? AND n.deleted_at IS NULL${ftsCategoryClause}
          ORDER BY rank
          LIMIT ?`,
-        noteParams
+        ftsParams
       );
-    } catch (matchErr) {
-      // FTS查询失败时回退到LIKE
+    } catch (_) {}
+
+    // FTS无结果时回退LIKE
+    if (notes.length === 0) {
       const escaped = q.replace(/[%_]/g, '\\$&');
       const pattern = `%${escaped}%`;
       const likeParams = [userId, pattern, pattern];
@@ -52,16 +55,17 @@ router.get('/', (req, res) => {
         likeCategoryClause = ' AND category = ?';
         likeParams.push(category);
       }
-      likeParams.push(limit);
       notes = queryAll(
         `SELECT id, title, content, status, priority, category, tags, due_date, updated_at,
                 'note' as result_type
          FROM notes
          WHERE user_id = ? AND deleted_at IS NULL
            AND (title LIKE ? ESCAPE '\\' OR content LIKE ? ESCAPE '\\')${likeCategoryClause}
-         ORDER BY updated_at DESC
+         ORDER BY
+           CASE WHEN title LIKE ? ESCAPE '\\' THEN 0 ELSE 1 END,
+           updated_at DESC
          LIMIT ?`,
-        likeParams
+        [...likeParams, `${escaped}%`, limit]
       );
     }
 

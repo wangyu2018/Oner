@@ -2,54 +2,71 @@
 
 记录此刻，轻如空气。
 
+一个自托管的全栈个人备忘录和任务管理应用，支持 PWA、移动端优化、密码保险库和 Docker 部署。
+
 ## 功能特性
 
-### 核心功能
-- **Markdown 编辑器**：支持 Markdown 语法编写
-- **标签系统**：使用 #标签 组织笔记
-- **暗色/亮色模式**：自动跟随系统偏好
-- **PWA 支持**：可安装为桌面/移动应用
-- **自动保存**：草稿自动保存到本地
-- **撤销删除**：5 秒窗口内可撤销删除
-- **数据备份**：导出 ZIP 或下载数据库
+### 笔记与任务管理
+- **Markdown 编辑器**：实时预览，支持完整 Markdown 语法
+- **状态流转**：备忘 → 待办 → 进行中 → 已完成 → 已归档
+- **优先级**：低、普通、高、紧急四级
+- **截止日期**：过期检测，每日/明日提醒
+- **重复任务**：每日、工作日、每周、每两周、每月、每年，完成后自动创建下一周期
+- **子任务**：层级关系，进度条显示
+- **标签系统**：内容中 `#标签` 自动提取
+- **分类管理**：自定义分类 + 颜色标记
+- **看板视图**：4列拖拽看板，支持合并子任务、提升子任务
+- **撤销删除**：5 秒窗口内可撤销
 
-### 用户系统（新增）
-- **用户注册/登录**：支持用户名/邮箱登录
-- **多端同步**：最多 5 个设备同时在线
-- **设备管理**：查看和踢出登录设备
-- **个人资料**：修改邮箱、头像、密码
+### 全局搜索与命令面板
+- **全文搜索**：FTS5 引擎，支持中文子串匹配
+- **命令面板**：`Cmd/Ctrl+K` 唤起，Spotlight 风格
+- **自然语言解析**：识别"今天"、"待办"、"紧急"等关键词自动创建笔记
+- **语音输入**：Web Speech API 中文语音转文字
 
-### 备忘状态（新增）
-- **状态管理**：备忘、待办、进行中、已完成、已归档
-- **优先级**：低、普通、高、紧急四级优先级
-- **截止日期**：设置截止日期，显示过期状态
-- **状态筛选**：按状态筛选笔记
+### 密码保险库
+- **AES-256-GCM 加密**存储
+- **PIN 双因素认证**：独立 PIN 保护保险库访问
+- 分类筛选、搜索、一键复制
 
-### 桌面应用（新增）
-- **Electron 桌面版**：Windows/macOS/Linux 原生应用
-- **系统托盘**：最小化到托盘，快速访问
-- **全局快捷键**：Ctrl+Shift+O 显示/隐藏，Ctrl+Shift+N 新建备忘
+### 文件附件
+- 单文件最大 10MB
+- 关联到具体笔记
+- 上传/下载/删除
+
+### 用户系统
+- 注册/登录（用户名或邮箱）
+- 多端同步，最多 5 个设备
+- 设备管理：查看/踢出设备
+- 个人资料编辑
+
+### 移动端优化
+- **底部导航栏**：首页/看板/密码/我的
+- **FAB 悬浮按钮**：一键创建笔记
+- **滑动切换**：状态标签页左右滑动
+- **全屏编辑器**：移动端自动全屏
+- **触摸优化**：44px 最小触摸目标，消除 300ms 延迟
+
+### PWA 支持
+- iPhone/Android "添加到主屏幕" 像原生 App 运行
+- Service Worker 缓存静态资源
+- 离线可访问已缓存页面
+
+### 桌面应用
+- Electron 原生应用（Windows/macOS/Linux）
+- 系统托盘 + 全局快捷键
+
+### 其他
+- 深色/浅色模式，自动跟随系统
+- 自定义主题色和壁纸
+- 自定义键盘快捷键
+- 数据备份导出 ZIP
+- Docker + Nginx 部署
 
 ## 快速开始
 
 ### 开发模式
 
-**Windows：**
-```bash
-# 启动 Web 版
-start-dev.bat
-
-# 启动桌面版
-start-electron-dev.bat
-```
-
-**Linux/Mac：**
-```bash
-chmod +x start-dev.sh
-./start-dev.sh
-```
-
-**手动启动：**
 ```bash
 # 终端 1 - 后端
 cd backend
@@ -60,11 +77,6 @@ npm start
 cd frontend
 npm install
 npm run dev
-
-# 终端 3 - Electron（可选）
-cd electron
-npm install
-npm run dev
 ```
 
 浏览器访问 http://localhost:5173
@@ -72,124 +84,162 @@ npm run dev
 ### Docker 部署
 
 ```bash
-docker compose up --build
+cp .env.example .env
+# 编辑 .env，设置 JWT_SECRET（必填）
+docker-compose up -d --build
 ```
 
 浏览器访问 http://localhost:8080
 
-### 构建桌面应用
+### 飞牛 NAS 部署
 
+1. SSH 登录 NAS
 ```bash
-# Windows 安装程序
-build-electron.bat
-
-# 或手动构建
-cd electron
-npm install
-npm run build:win
+ssh 用户名@NAS内网IP
 ```
 
-构建完成后，安装程序位于 `electron/dist/` 目录。
+2. 克隆项目
+```bash
+cd /vol1/docker
+git clone https://github.com/wangyu2018/Oner.git
+cd Oner
+```
 
-## 快捷键说明
+3. 创建配置
+```bash
+cp .env.example .env
+vi .env
+```
+修改 `JWT_SECRET` 为一个随机长字符串，`APP_PORT` 改为你想要的端口（默认 8080）。
 
-### 全局快捷键（桌面版）
-| 快捷键 | 功能 |
-|--------|------|
-| `Ctrl+Shift+O` | 显示/隐藏主窗口 |
-| `Ctrl+Shift+N` | 快速新建备忘 |
+4. 构建启动
+```bash
+docker-compose up -d --build
+```
 
-### 应用内快捷键
-| 快捷键 | 功能 |
-|--------|------|
-| `Ctrl+N` | 新建备忘 |
-| `Ctrl+S` | 保存备忘 |
-| `Esc` | 关闭编辑器 |
+5. 查看状态
+```bash
+docker-compose ps
+docker-compose logs -f
+```
 
-## API 接口
+看到 `Server running on port 3000` 即成功。
 
-### 认证接口
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | /api/auth/register | 用户注册 |
-| POST | /api/auth/login | 用户登录 |
-| POST | /api/auth/logout | 注销登录 |
-| GET | /api/auth/me | 获取用户信息 |
-| GET | /api/auth/sessions | 获取设备列表 |
-| DELETE | /api/auth/sessions/:id | 踢出设备 |
-| PUT | /api/auth/profile | 更新资料 |
+6. 访问
+- 局域网：`http://NAS内网IP:8080`
+- 远程：在飞牛管理后台开启 fnConnect 远程访问
 
-### 笔记接口
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | /api/notes | 获取笔记列表 |
-| POST | /api/notes | 创建笔记 |
-| GET | /api/notes/:id | 获取笔记 |
-| PUT | /api/notes/:id | 更新笔记 |
-| DELETE | /api/notes/:id | 删除笔记 |
+7. iPhone 添加到主屏幕
+- Safari 打开地址 → 注册登录 → 分享按钮 → "添加到主屏幕"
 
-### 查询参数
-- `tag` - 按标签筛选
-- `status` - 按状态筛选（note/todo/in_progress/done/archived）
-- `priority` - 按优先级筛选（low/normal/high/urgent）
-- `sort` - 排序字段（created_at/updated_at/due_date/priority）
-- `order` - 排序方向（asc/desc）
-- `cursor` - 游标分页
-- `limit` - 每页数量
+### 日常维护
 
-### 备份接口
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | /api/backup/export | 导出 ZIP |
-| GET | /api/backup/download-db | 下载数据库 |
+```bash
+# 更新代码
+git pull origin main
+docker-compose up -d --build
+
+# 查看日志
+docker-compose logs -f backend
+
+# 重启
+docker-compose restart
+
+# 停止
+docker-compose down
+```
 
 ## 技术栈
 
-### 前端
-- React 18
-- Vite 6
-- TailwindCSS 3
-- React Router 6
-- react-markdown
-- Lucide React
+| 层级 | 技术 |
+|------|------|
+| 前端 | React 18, Vite 6, TailwindCSS 3, React Router 6, @dnd-kit, Lucide React |
+| 后端 | Node.js 20, Express 4, node:sqlite (原生), bcryptjs, jsonwebtoken, multer |
+| 桌面端 | Electron 28, electron-builder |
+| 部署 | Docker Compose, Nginx 反向代理 |
+| 搜索 | SQLite FTS5 (trigram tokenizer, 支持中文) |
+| 加密 | AES-256-GCM (密码保险库) |
 
-### 后端
-- Node.js 20
-- Express 4
-- sql.js (SQLite)
-- bcryptjs (密码加密)
-- jsonwebtoken (JWT 认证)
+## API 接口
 
-### 桌面应用
-- Electron 28
-- electron-builder
+### 认证
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | /api/auth/register | 注册 |
+| POST | /api/auth/login | 登录 |
+| POST | /api/auth/logout | 注销 |
+| GET | /api/auth/me | 当前用户 |
+| GET | /api/auth/sessions | 设备列表 |
+| DELETE | /api/auth/sessions/:id | 踢出设备 |
+| PUT | /api/auth/profile | 更新资料 |
+| POST | /api/auth/verify-vault-pin | 验证保险库 PIN |
 
-### 部署
-- Docker + Nginx 反向代理
+### 笔记
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /api/notes | 列表（支持 tag/status/priority/sort/cursor/limit） |
+| POST | /api/notes | 创建 |
+| GET | /api/notes/:id | 详情 |
+| PUT | /api/notes/:id | 更新（支持版本冲突检测） |
+| DELETE | /api/notes/:id | 软删除 |
+| POST | /api/notes/:id/subtasks | 创建子任务 |
+| GET | /api/notes/:id/subtasks | 子任务列表 |
+
+### 搜索、分类、密码、文件、设置、提醒
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /api/search?q=&category=&include_passwords= | 全文搜索 |
+| GET/POST/PUT/DELETE | /api/categories/* | 分类 CRUD |
+| GET/POST/PUT/DELETE | /api/passwords/* | 密码保险库 CRUD |
+| GET/POST/DELETE | /api/files/* | 文件附件 |
+| GET/PUT | /api/settings | 用户设置 |
+| GET | /api/reminders | 待办提醒 |
+
+### 备份
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /api/backup/export | 导出 ZIP |
+| GET | /api/backup/download-db | 下载数据库（仅开发环境） |
 
 ## 环境变量
 
-复制 `.env.example` 为 `.env` 并修改：
-
-```env
-PORT=3000                    # 后端端口
-DB_PATH=/data/oner.db        # 数据库路径
-APP_PORT=8080                # 应用端口（Docker）
-JWT_SECRET=your-secret-key   # JWT 密钥
-```
+| 变量 | 必填 | 默认值 | 说明 |
+|------|------|--------|------|
+| JWT_SECRET | 是 | - | JWT 签名密钥 |
+| PASSWORD_VAULT_KEY | 否 | JWT_SECRET | 密码保险库加密密钥 |
+| PORT | 否 | 3000 | 后端端口 |
+| DB_PATH | 否 | /data/oner.db | 数据库路径 |
+| APP_PORT | 否 | 8080 | Nginx 对外端口 |
+| NODE_ENV | 否 | production | 运行环境 |
 
 ## 目录结构
 
 ```
 oner/
-├── backend/           # 后端服务
-├── frontend/          # 前端应用
-├── electron/          # Electron 桌面应用
-├── nginx/             # Nginx 配置
-├── docker-compose.yml # Docker 编排
-├── start-dev.bat      # Windows 开发启动
-├── start-electron-dev.bat  # 桌面版开发启动
-├── build-electron.bat      # 桌面版构建
+├── backend/
+│   ├── src/
+│   │   ├── db/          # 数据库（迁移、helpers）
+│   │   ├── middleware/   # 认证中间件
+│   │   ├── routes/       # API 路由（auth/notes/search/passwords/files/settings/backup）
+│   │   └── utils/        # 工具（crypto、ID生成）
+│   ├── server.js
+│   └── package.json
+├── frontend/
+│   ├── src/
+│   │   ├── components/   # UI 组件（NoteEditor/CardWall/SwipeStatusTabs/CommandPalette/BottomNav...）
+│   │   ├── hooks/        # 自定义 Hooks（useNotes/useAuth/usePasswords/useShortcuts...）
+│   │   ├── pages/        # 页面（Home/BoardPage/Profile/PasswordVault）
+│   │   ├── utils/        # 工具（api、tags、keywordMatcher）
+│   │   └── styles/       # 全局样式
+│   ├── public/
+│   │   ├── manifest.json  # PWA 配置
+│   │   ├── sw.js          # Service Worker
+│   │   └── icons/         # 应用图标
+│   └── package.json
+├── electron/              # Electron 桌面应用
+├── nginx/nginx.conf       # Nginx 配置
+├── docker-compose.yml     # Docker 编排
+├── .env.example           # 环境变量模板
 └── README.md
 ```
 
