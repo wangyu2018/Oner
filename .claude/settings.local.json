@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh auth *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(git rm *)",
+      "Bash(npm start *)",
+      "Bash(curl -s http://localhost:3000/api/health)",
+      "Bash(npx vite *)",
+      "Bash(curl *)",
+      "Bash(node *)",
+      "Bash(taskkill //F //IM node.exe)",
+      "Bash(ping -n 2 github.com)",
+      "Bash(git -c http.lowSpeedLimit=1 -c http.lowSpeedTime=60 push origin main)",
+      "Bash(tasklist)"
+    ]
+  }
+}
