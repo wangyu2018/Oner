@@ -17,6 +17,7 @@ import AuthGuard from './components/AuthGuard';
 import BottomNav from './components/BottomNav';
 import CommandPalette from './components/CommandPalette';
 import VoiceInput from './components/VoiceInput';
+import FloatingQuickEntry from './components/FloatingQuickEntry';
 import { api } from './utils/api';
 
 const ThemeContext = createContext();
@@ -62,6 +63,15 @@ export default function App() {
       await api.notes.create(noteData);
     } catch (err) {
       console.error('Quick create error:', err);
+    }
+  }, []);
+
+  // 浮动输入框创建笔记
+  const handleFloatingCreate = useCallback(async (noteData) => {
+    try {
+      await api.notes.create(noteData);
+    } catch (err) {
+      console.error('Floating create error:', err);
     }
   }, []);
 
@@ -168,6 +178,14 @@ export default function App() {
               <VoiceInput
                 onClose={() => setShowVoiceInput(false)}
                 onSave={handleVoiceSave}
+              />
+            )}
+
+            {/* 全局浮动输入框 */}
+            {isLoggedIn && (
+              <FloatingQuickEntry
+                onCreateNote={handleFloatingCreate}
+                onVoiceInput={handleOpenVoiceInput}
               />
             )}
 

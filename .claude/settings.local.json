@@ -14,7 +14,9 @@
       "Bash(taskkill //F //IM node.exe)",
       "Bash(ping -n 2 github.com)",
       "Bash(git -c http.lowSpeedLimit=1 -c http.lowSpeedTime=60 push origin main)",
-      "Bash(tasklist)"
+      "Bash(tasklist)",
+      "Bash(npm run *)",
+      "Bash(git status *)"
     ]
   }
 }

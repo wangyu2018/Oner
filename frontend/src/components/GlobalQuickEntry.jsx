@@ -1,10 +1,10 @@
 import React, { useState, useRef, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mic, ArrowUp, X, FileText, Circle, Loader2 } from 'lucide-react';
+import { Mic, ArrowUp, X, FileText, Circle, Loader2, Sparkles } from 'lucide-react';
 import { matchKeywords, HIGHLIGHT_STYLES } from '../utils/keywordMatcher';
 import { api } from '../utils/api';
 
-export default forwardRef(function GlobalQuickEntry({ onCreateNote, onVoiceInput, categories = [], activeCategory = null, compact = false }, ref) {
+export default forwardRef(function GlobalQuickEntry({ onCreateNote, onVoiceInput, categories = [], activeCategory = null, compact = false, aiMode = false, onAISubmit }, ref) {
   const navigate = useNavigate();
   const [text, setText] = useState('');
   const [status, setStatus] = useState('note');
@@ -86,7 +86,6 @@ export default forwardRef(function GlobalQuickEntry({ onCreateNote, onVoiceInput
     const trimmed = text.trim();
     if (!trimmed || creatingRef.current) return;
 
-    // 读取当前状态，立即清空输入（不等 API 返回，感觉更快）
     const data = {
       content: trimmed,
       status: keywords?.status || status,
@@ -102,7 +101,11 @@ export default forwardRef(function GlobalQuickEntry({ onCreateNote, onVoiceInput
     creatingRef.current = true;
     setCreating(true);
     try {
-      await onCreateNote(data);
+      if (aiMode && onAISubmit) {
+        await onAISubmit(data);
+      } else {
+        await onCreateNote(data);
+      }
       inputRef.current?.focus();
     } catch {
       // 错误由上层处理
@@ -110,7 +113,7 @@ export default forwardRef(function GlobalQuickEntry({ onCreateNote, onVoiceInput
       creatingRef.current = false;
       setCreating(false);
     }
-  }, [text, status, keywords, onCreateNote, activeCategory]);
+  }, [text, status, keywords, onCreateNote, activeCategory, aiMode, onAISubmit]);
 
   // 键盘导航（搜索选择 + 创建）
   const handleKeyDown = useCallback((e) => {
@@ -269,8 +272,8 @@ export default forwardRef(function GlobalQuickEntry({ onCreateNote, onVoiceInput
         </div>
       )}
 
-      {/* 关键词标签（检测到时显示） */}
-      {!compact && keywordChips.length > 0 && (
+      {/* 关键词标签（AI 模式下隐藏） */}
+      {!compact && !aiMode && keywordChips.length > 0 && (
         <div className="flex items-center gap-1.5 px-3 pt-2 pb-1 overflow-x-auto scrollbar-none">
           {keywordChips.map((chip, i) => (
             <span
@@ -324,7 +327,7 @@ export default forwardRef(function GlobalQuickEntry({ onCreateNote, onVoiceInput
               onKeyDown={handleKeyDown}
               onCompositionStart={handleCompositionStart}
               onCompositionEnd={handleCompositionEnd}
-              placeholder={creating ? '创建中...' : (activeCategory ? `在「${activeCategory}」中搜索...` : '写点什么... 支持自然语言')}
+              placeholder={creating ? '创建中...' : aiMode ? 'AI 帮你记录...' : (activeCategory ? `在「${activeCategory}」中搜索...` : '写点什么... 支持自然语言')}
               className={`w-full bg-gray-100/90 dark:bg-gray-800/90
                 text-sm text-gray-900 dark:text-gray-100
                 placeholder-gray-400 dark:placeholder-gray-500
@@ -347,6 +350,14 @@ export default forwardRef(function GlobalQuickEntry({ onCreateNote, onVoiceInput
               </button>
             )}
           </div>
+
+          {/* AI mode indicator */}
+          {aiMode && !creating && (
+            <div className="flex-shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-accent/10 text-accent text-[10px] font-medium">
+              <Sparkles size={12} />
+              AI
+            </div>
+          )}
 
           {/* Voice / Send / Loading */}
           {creating ? (

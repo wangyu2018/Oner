@@ -242,6 +242,53 @@ router.post('/summarize', async (req, res) => {
   }
 });
 
+// POST /api/ai/classify - AI 自动分类
+router.post('/classify', async (req, res) => {
+  try {
+    const config = getAIConfig(req.user.id);
+    if (!config) return res.status(400).json({ success: false, error: '请先在设置中配置AI', code: 400 });
+
+    const { content } = req.body;
+    if (!content) return res.status(400).json({ success: false, error: '内容不能为空', code: 400 });
+
+    // 获取用户所有分类
+    const categories = queryAll(
+      'SELECT name, color FROM categories WHERE user_id = ? ORDER BY position ASC, created_at ASC',
+      [req.user.id]
+    );
+
+    const categoryNames = categories.map(c => c.name);
+    if (categoryNames.length === 0) {
+      return res.json({ success: true, data: { category: null, message: '暂无可用的分类' } });
+    }
+
+    const prompt = `请分析以下内容，从现有分类中选择最匹配的一个。
+
+现有分类：${categoryNames.join('、')}
+
+内容：${content}
+
+请只返回分类名称（必须从现有分类中选择），如果无法匹配则返回"无匹配"。不要返回其他文字。`;
+
+    const reply = await chatCompletion({
+      ...config,
+      messages: [
+        { role: 'system', content: '你是一个智能分类助手。只返回分类名称，不要其他文字。' },
+        { role: 'user', content: prompt },
+      ],
+      stream: false,
+    });
+
+    const trimmed = reply.trim();
+    const matched = categoryNames.includes(trimmed) ? trimmed : null;
+
+    res.json({ success: true, data: { category: matched, raw: trimmed } });
+  } catch (err) {
+    console.error('AI classify error:', err);
+    res.status(500).json({ success: false, error: err.message || 'AI分类失败', code: 500 });
+  }
+});
+
 // GET /api/ai/conversations - 对话列表
 router.get('/conversations', (req, res) => {
   const conversations = queryAll(

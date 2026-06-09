@@ -286,6 +286,9 @@ export const api = {
     summarize: (data) => fetchJSON('/ai/summarize', {
       method: 'POST', body: JSON.stringify(data),
     }),
+    classify: (data) => fetchJSON('/ai/classify', {
+      method: 'POST', body: JSON.stringify(data),
+    }),
     conversations: () => fetchJSON('/ai/conversations'),
     getConversation: (id) => fetchJSON(`/ai/conversations/${id}`),
     deleteConversation: (id) => fetchJSON(`/ai/conversations/${id}`, { method: 'DELETE' }),

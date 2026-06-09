@@ -814,35 +814,53 @@ export default function Profile() {
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">模型提供商</label>
                     <select
                       value={aiProvider}
-                      onChange={(e) => { setAiProvider(e.target.value); setAiTestResult(null); }}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setAiProvider(val);
+                        setAiTestResult(null);
+                        // 本地提供商自动填充默认值
+                        if (val === 'ollama') {
+                          setAiModel('qwen2.5');
+                          setAiBaseURL('http://localhost:11434/v1');
+                        } else if (val === 'lmstudio') {
+                          setAiModel('llama-3.2-3b');
+                          setAiBaseURL('http://localhost:1234/v1');
+                        } else if (val === 'deepseek' || val === 'openai') {
+                          setAiBaseURL('');
+                        }
+                      }}
                       className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     >
                       <option value="deepseek">DeepSeek</option>
                       <option value="mimo">MiMo (小米)</option>
                       <option value="openai">OpenAI</option>
+                      <option value="ollama">Ollama (本地)</option>
+                      <option value="lmstudio">LM Studio (本地)</option>
                       <option value="custom">自定义</option>
                     </select>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">API Key</label>
-                    <div className="relative">
-                      <input
-                        type={showAiApiKey ? 'text' : 'password'}
-                        value={aiApiKey}
-                        onChange={(e) => { setAiApiKey(e.target.value); setAiTestResult(null); }}
-                        className="w-full px-4 py-2.5 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                        placeholder="输入你的 API Key"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowAiApiKey(!showAiApiKey)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                      >
-                        {showAiApiKey ? <EyeOff size={18} /> : <Eye size={18} />}
-                      </button>
+                  {aiProvider !== 'ollama' && aiProvider !== 'lmstudio' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">API Key</label>
+                      <div className="relative">
+                        <input
+                          type={showAiApiKey ? 'text' : 'password'}
+                          value={aiApiKey}
+                          onChange={(e) => { setAiApiKey(e.target.value); setAiTestResult(null); }}
+                          className="w-full px-4 py-2.5 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          placeholder="输入你的 API Key"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowAiApiKey(!showAiApiKey)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          {showAiApiKey ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">模型名称</label>
@@ -851,11 +869,11 @@ export default function Profile() {
                       value={aiModel}
                       onChange={(e) => setAiModel(e.target.value)}
                       className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      placeholder={aiProvider === 'deepseek' ? 'deep-chat' : aiProvider === 'openai' ? 'gpt-4o-mini' : '模型名称'}
+                      placeholder={aiProvider === 'deepseek' ? 'deepseek-chat' : aiProvider === 'openai' ? 'gpt-4o-mini' : aiProvider === 'ollama' ? 'qwen2.5' : aiProvider === 'lmstudio' ? 'llama-3.2-3b' : '模型名称'}
                     />
                   </div>
 
-                  {aiProvider === 'custom' && (
+                  {(aiProvider === 'custom' || aiProvider === 'ollama' || aiProvider === 'lmstudio') && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Base URL</label>
                       <input
@@ -863,7 +881,7 @@ export default function Profile() {
                         value={aiBaseURL}
                         onChange={(e) => setAiBaseURL(e.target.value)}
                         className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                        placeholder="https://your-api.com/v1"
+                        placeholder={aiProvider === 'ollama' ? 'http://localhost:11434/v1' : aiProvider === 'lmstudio' ? 'http://localhost:1234/v1' : 'https://your-api.com/v1'}
                       />
                     </div>
                   )}
@@ -879,7 +897,7 @@ export default function Profile() {
                   <div className="flex gap-3">
                     <button
                       onClick={handleTestAI}
-                      disabled={aiTesting || !aiApiKey || aiApiKey === '********'}
+                      disabled={aiTesting || (aiProvider !== 'ollama' && aiProvider !== 'lmstudio' && (!aiApiKey || aiApiKey === '********'))}
                       className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
                     >
                       {aiTesting ? '测试中...' : '测试连接'}

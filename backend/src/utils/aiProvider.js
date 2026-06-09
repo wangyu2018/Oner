@@ -20,6 +20,18 @@ const PROVIDERS = {
     models: ['gpt-4o', 'gpt-4o-mini', 'gpt-3.5-turbo'],
     defaultModel: 'gpt-4o-mini',
   },
+  ollama: {
+    name: 'Ollama (本地)',
+    baseURL: 'http://localhost:11434/v1',
+    models: ['qwen2.5', 'llama3.2', 'mistral', 'codellama', 'deepseek-r1:8b'],
+    defaultModel: 'qwen2.5',
+  },
+  lmstudio: {
+    name: 'LM Studio (本地)',
+    baseURL: 'http://localhost:1234/v1',
+    models: [],
+    defaultModel: 'llama-3.2-3b',
+  },
   custom: {
     name: '自定义',
     baseURL: '',

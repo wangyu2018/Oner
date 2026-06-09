@@ -6,7 +6,7 @@ import BackupMenu from './BackupMenu';
 import DesktopSettings from './DesktopSettings';
 import SyncStatus from './SyncStatus';
 import CategoryManager from './CategoryManager';
-import GlobalQuickEntry from './GlobalQuickEntry';
+
 import Logo from './Logo';
 import { useAuthContext } from '../App';
 
@@ -98,20 +98,6 @@ export default function Toolbar({
                 ))}
               </div>
             )}
-          </div>
-
-          {/* Spacer to push input center */}
-          <div className="flex-1" />
-
-          {/* Input bar ~1/5 width */}
-          <div className="w-1/5 max-w-xs min-w-[150px]">
-            <GlobalQuickEntry
-              compact
-              onCreateNote={onQuickCreate}
-              onVoiceInput={onVoiceInput}
-              categories={categories}
-              activeCategory={activeCategory}
-            />
           </div>
 
           {/* Spacer */}
