@@ -1,11 +1,12 @@
 import React, { useState, useRef, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Mic, ArrowUp, X, FileText, Circle, Loader2, Sparkles } from 'lucide-react';
-import { matchKeywords, HIGHLIGHT_STYLES } from '../utils/keywordMatcher';
+import { Mic, ArrowUp, X, FileText, Circle, Loader2, Sparkles, Pencil, Trash2, Check } from 'lucide-react';
+import { matchKeywords, HIGHLIGHT_STYLES, stripKeywords } from '../utils/keywordMatcher';
 import { api } from '../utils/api';
 
-export default forwardRef(function GlobalQuickEntry({ onCreateNote, onVoiceInput, categories = [], activeCategory = null, compact = false, aiMode = false, onAISubmit }, ref) {
-  const navigate = useNavigate();
+export default forwardRef(function GlobalQuickEntry({
+  onCreateNote, onVoiceInput, categories = [], activeCategory = null,
+  compact = false, aiMode = false, onAISubmit, onNoteSelect
+}, ref) {
   const [text, setText] = useState('');
   const [status, setStatus] = useState('note');
   const [creating, setCreating] = useState(false);
@@ -16,28 +17,26 @@ export default forwardRef(function GlobalQuickEntry({ onCreateNote, onVoiceInput
   const creatingRef = useRef(false);
   const debounceRef = useRef(null);
 
-  // 搜索蒙版状态
+  // 搜索蒙版
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [showOverlay, setShowOverlay] = useState(false);
 
+  // 润色预览卡片
+  const [polishPreview, setPolishPreview] = useState(null); // { text, keywords }
+  const [editingNote, setEditingNote] = useState(null); // 内联编辑的笔记
+
   const keywords = text.trim() ? matchKeywords(text, categories) : null;
 
   useImperativeHandle(ref, () => ({
-    focus: () => {
-      inputRef.current?.focus();
-      inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    },
-    clear: () => {
-      setText('');
-      setStatus('note');
-    },
+    focus: () => { inputRef.current?.focus(); },
+    clear: () => { setText(''); setStatus('note'); setPolishPreview(null); },
   }));
 
-  // 防抖搜索（输入时自动检索）
+  // 防抖搜索
   useEffect(() => {
-    if (!text.trim()) {
+    if (!text.trim() || polishPreview) {
       setSearchResults([]);
       setSelectedIndex(-1);
       setShowOverlay(false);
@@ -53,16 +52,12 @@ export default forwardRef(function GlobalQuickEntry({ onCreateNote, onVoiceInput
         const res = await api.search.query(text.trim(), params);
         setSearchResults(res.data.results || []);
         setSelectedIndex(-1);
-      } catch {
-        setSearchResults([]);
-      } finally {
-        setSearchLoading(false);
-      }
+      } catch { setSearchResults([]); }
+      finally { setSearchLoading(false); }
     }, 300);
     return () => clearTimeout(debounceRef.current);
-  }, [text, activeCategory]);
+  }, [text, activeCategory, polishPreview]);
 
-  // 点击外部关闭蒙版
   useEffect(() => {
     if (!showOverlay) return;
     const handler = (e) => {
@@ -74,30 +69,63 @@ export default forwardRef(function GlobalQuickEntry({ onCreateNote, onVoiceInput
     return () => document.removeEventListener('mousedown', handler);
   }, [showOverlay]);
 
-  // 导航到搜索结果
-  const handleSelectResult = useCallback((result) => {
+  // 搜索结果点击 → 内联编辑（不跳转）
+  const handleSelectResult = useCallback(async (result) => {
     if (result.result_type === 'note') {
-      navigate(`/note/${result.id}`);
+      try {
+        const res = await api.notes.get(result.id);
+        setEditingNote(res.data);
+      } catch {
+        // 如果获取详情失败，fallback
+      }
     }
     setShowOverlay(false);
-  }, [navigate]);
+    setText('');
+  }, []);
+
+  // 保存内联编辑
+  const handleSaveEdit = useCallback(async () => {
+    if (!editingNote) return;
+    try {
+      await api.notes.update(editingNote.id, {
+        title: editingNote.title,
+        content: editingNote.content,
+        status: editingNote.status,
+        category: editingNote.category,
+      });
+      setEditingNote(null);
+    } catch { /* silent */ }
+  }, [editingNote]);
+
+  // 删除内联笔记
+  const handleDeleteEdit = useCallback(async () => {
+    if (!editingNote) return;
+    try {
+      await api.notes.delete(editingNote.id);
+      setEditingNote(null);
+    } catch { /* silent */ }
+  }, [editingNote]);
 
   // 创建笔记
-  const handleSubmit = useCallback(async () => {
-    const trimmed = text.trim();
+  const handleSubmit = useCallback(async (contentOverride) => {
+    const trimmed = (contentOverride || text).trim();
     if (!trimmed || creatingRef.current) return;
 
+    const kw = contentOverride ? matchKeywords(trimmed, categories) : keywords;
+    // 浅层润色：去除已提取的关键词，避免正文冗余
+    const cleanedContent = stripKeywords(trimmed, kw, categories);
     const data = {
-      content: trimmed,
-      status: keywords?.status || status,
-      title: trimmed.length > 50 ? trimmed.slice(0, 50) + '...' : trimmed,
-      due_date: keywords?.date || undefined,
-      priority: keywords?.priority || undefined,
-      category: keywords?.category || activeCategory || undefined,
+      content: cleanedContent,
+      status: kw?.status || status,
+      title: cleanedContent.length > 50 ? cleanedContent.slice(0, 50) + '...' : cleanedContent,
+      due_date: kw?.date || undefined,
+      priority: kw?.priority || undefined,
+      category: kw?.category || activeCategory || undefined,
     };
     setText('');
     setStatus('note');
     setShowOverlay(false);
+    setPolishPreview(null);
 
     creatingRef.current = true;
     setCreating(true);
@@ -108,84 +136,251 @@ export default forwardRef(function GlobalQuickEntry({ onCreateNote, onVoiceInput
         await onCreateNote(data);
       }
       inputRef.current?.focus();
-    } catch {
-      // 错误由上层处理
-    } finally {
+    } catch { /* */ }
+    finally {
       creatingRef.current = false;
       setCreating(false);
     }
-  }, [text, status, keywords, onCreateNote, activeCategory, aiMode, onAISubmit]);
+  }, [text, status, keywords, onCreateNote, activeCategory, aiMode, onAISubmit, categories]);
 
-  // 键盘导航（搜索选择 + 创建）
+  // 润色 → 打开预览卡片
+  const handlePolish = useCallback(async () => {
+    if (polishing || !text.trim()) return;
+    setPolishing(true);
+    try {
+      const res = await api.ai.analyze({ action: 'polish', content: text.trim() });
+      const polished = res.data?.result?.trim();
+      if (polished) {
+        const kw = matchKeywords(polished, categories);
+        setPolishPreview({ text: polished, keywords: kw });
+      }
+    } catch { /* 润色失败保持原文 */ }
+    finally { setPolishing(false); }
+  }, [polishing, text, categories]);
+
+  // 键盘
   const handleKeyDown = useCallback((e) => {
     if (isComposing.current) return;
-
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      // 有搜索结果 → 选择（导航），无结果 → 创建
       if (showOverlay && searchResults.length > 0) {
-        if (selectedIndex >= 0) {
-          handleSelectResult(searchResults[selectedIndex]);
-        } else {
-          handleSelectResult(searchResults[0]);
-        }
+        if (selectedIndex >= 0) handleSelectResult(searchResults[selectedIndex]);
+        else handleSelectResult(searchResults[0]);
       } else {
         handleSubmit();
       }
     } else if (e.key === 'ArrowDown') {
       e.preventDefault();
-      if (searchResults.length > 0) {
-        setSelectedIndex(prev => Math.min(prev + 1, searchResults.length - 1));
-      }
+      if (searchResults.length > 0) setSelectedIndex(prev => Math.min(prev + 1, searchResults.length - 1));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setSelectedIndex(prev => Math.max(prev - 1, -1));
     } else if (e.key === 'Escape') {
-      setShowOverlay(false);
+      if (polishPreview) setPolishPreview(null);
+      else if (editingNote) setEditingNote(null);
+      else setShowOverlay(false);
     }
-  }, [handleSubmit, searchResults, selectedIndex, handleSelectResult, showOverlay]);
+  }, [handleSubmit, searchResults, selectedIndex, handleSelectResult, showOverlay, polishPreview, editingNote]);
 
   const handleCompositionStart = () => { isComposing.current = true; };
   const handleCompositionEnd = () => { isComposing.current = false; };
 
   const hasText = text.trim().length > 0;
 
-  // 检测到的关键词标签
+  // 关键词标签
   const keywordChips = [];
   if (keywords) {
     if (keywords.remind) {
-      const style = HIGHLIGHT_STYLES.remind;
-      keywordChips.push({ label: style.label, color: style.textColor, bg: style.bgColor });
+      const s = HIGHLIGHT_STYLES.remind;
+      keywordChips.push({ label: s.label, color: s.textColor, bg: s.bgColor });
     }
     if (keywords.status) {
-      const style = HIGHLIGHT_STYLES.status;
-      keywordChips.push({ label: keywords.status === 'todo' ? '待办' : '备忘', color: style.textColor, bg: style.bgColor });
+      const s = HIGHLIGHT_STYLES.status;
+      keywordChips.push({ label: keywords.status === 'todo' ? '待办' : '备忘', color: s.textColor, bg: s.bgColor });
     }
     if (keywords.date) {
-      const style = HIGHLIGHT_STYLES.date;
-      const dateLabel = keywords.date.replace(/-/g, '/').slice(5);
-      keywordChips.push({ label: dateLabel, color: style.textColor, bg: style.bgColor });
+      const s = HIGHLIGHT_STYLES.date;
+      keywordChips.push({ label: keywords.date.replace(/-/g, '/').slice(5), color: s.textColor, bg: s.bgColor });
     }
     if (keywords.priority) {
-      const style = HIGHLIGHT_STYLES.priority;
-      keywordChips.push({ label: keywords.priority === 'urgent' ? '紧急' : '重要', color: style.textColor, bg: style.bgColor });
+      const s = HIGHLIGHT_STYLES.priority;
+      keywordChips.push({ label: keywords.priority === 'urgent' ? '紧急' : '重要', color: s.textColor, bg: s.bgColor });
     }
     if (keywords.category) {
       keywordChips.push({ label: keywords.category, color: '#16a34a', bg: '#f0fdf4' });
     }
   }
 
+  // 润色预览的智能标签
+  const renderPolishChips = (kw) => {
+    if (!kw) return null;
+    const chips = [];
+    if (kw.status) {
+      const s = HIGHLIGHT_STYLES.status;
+      chips.push({ label: kw.status === 'todo' ? '待办' : '备忘', color: s.textColor, bg: s.bgColor });
+    }
+    if (kw.date) {
+      const s = HIGHLIGHT_STYLES.date;
+      chips.push({ label: kw.date.replace(/-/g, '/').slice(5), color: s.textColor, bg: s.bgColor });
+    }
+    if (kw.priority) {
+      const s = HIGHLIGHT_STYLES.priority;
+      chips.push({ label: kw.priority === 'urgent' ? '紧急' : '重要', color: s.textColor, bg: s.bgColor });
+    }
+    if (kw.category) {
+      chips.push({ label: kw.category, color: '#16a34a', bg: '#f0fdf4' });
+    }
+    return chips;
+  };
+
   return (
     <div ref={containerRef} className="relative w-full">
-      {/* 搜索蒙版（浮在输入栏上方） */}
-      {showOverlay && text.trim() && (
-        <div className="absolute top-full left-0 right-0 mt-2
-          bg-white dark:bg-gray-900
-          rounded-xl border border-gray-200 dark:border-gray-700
-          shadow-xl shadow-black/10 dark:shadow-black/40
-          overflow-hidden animate-slide-down">
 
-          {/* 分类指示 */}
+      {/* ====== 内联编辑面板 ====== */}
+      {editingNote && (
+        <div className="border-b border-accent/30 bg-accent/5 dark:bg-accent/10 p-3 animate-slide-down">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Pencil size={13} className="text-accent" />
+              <span className="text-[11px] font-medium text-accent">编辑笔记</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={handleDeleteEdit}
+                className="p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                title="删除"
+              >
+                <Trash2 size={13} />
+              </button>
+              <button
+                onClick={() => setEditingNote(null)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                title="关闭"
+              >
+                <X size={13} />
+              </button>
+            </div>
+          </div>
+          <input
+            value={editingNote.title || ''}
+            onChange={(e) => setEditingNote({ ...editingNote, title: e.target.value })}
+            className="w-full text-sm font-medium bg-white/70 dark:bg-gray-800/50 rounded-lg px-3 py-1.5
+              border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100
+              focus:border-accent/50 outline-none transition-colors mb-2"
+            placeholder="标题"
+          />
+          <textarea
+            value={editingNote.content || ''}
+            onChange={(e) => setEditingNote({ ...editingNote, content: e.target.value })}
+            rows={3}
+            className="w-full text-sm bg-white/70 dark:bg-gray-800/50 rounded-lg px-3 py-2
+              border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100
+              focus:border-accent/50 outline-none transition-colors resize-none"
+            placeholder="内容"
+          />
+          <div className="flex items-center justify-between mt-2">
+            <div className="flex items-center gap-1.5">
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium
+                ${editingNote.status === 'todo'
+                  ? 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400'
+                  : editingNote.status === 'done'
+                    ? 'bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400'
+                    : 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'}`}>
+                {editingNote.status === 'todo' ? '待办' : editingNote.status === 'done' ? '完成' : '备忘'}
+              </span>
+              {editingNote.category && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400">
+                  {editingNote.category}
+                </span>
+              )}
+            </div>
+            <button
+              onClick={handleSaveEdit}
+              className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium
+                bg-accent text-white hover:bg-accent/90 active:scale-95 transition-all"
+            >
+              <Check size={12} /> 保存
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ====== 润色预览卡片 ====== */}
+      {polishPreview && (
+        <div className="border-b border-violet/30 bg-violet-50/50 dark:bg-violet-900/10 p-3 animate-slide-down">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Sparkles size={13} className="text-violet-500" />
+              <span className="text-[11px] font-medium text-violet-600 dark:text-violet-400">润色预览</span>
+            </div>
+            <button
+              onClick={() => setPolishPreview(null)}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              title="取消"
+            >
+              <X size={13} />
+            </button>
+          </div>
+
+          {/* 智能标签 */}
+          {renderPolishChips(polishPreview.keywords)?.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap mb-2">
+              {renderPolishChips(polishPreview.keywords).map((chip, i) => (
+                <span
+                  key={i}
+                  className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium
+                    border border-current/10"
+                  style={{ color: chip.color, backgroundColor: chip.bg }}
+                >
+                  {chip.label}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* 可编辑内容 */}
+          <textarea
+            value={polishPreview.text}
+            onChange={(e) => {
+              const newText = e.target.value;
+              const kw = matchKeywords(newText, categories);
+              setPolishPreview({ text: newText, keywords: kw });
+            }}
+            rows={3}
+            className="w-full text-sm bg-white/70 dark:bg-gray-800/50 rounded-lg px-3 py-2
+              border border-violet-200 dark:border-violet-800/50
+              text-gray-900 dark:text-gray-100
+              focus:border-violet-400 outline-none transition-colors resize-none"
+          />
+
+          {/* 操作按钮 */}
+          <div className="flex items-center justify-between mt-2">
+            <button
+              onClick={() => { setText(polishPreview.text); setPolishPreview(null); }}
+              className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+            >
+              返回编辑
+            </button>
+            <button
+              onClick={() => handleSubmit(polishPreview.text)}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium
+                bg-violet-500 text-white hover:bg-violet-600 active:scale-95 transition-all"
+            >
+              <ArrowUp size={12} />
+              {(polishPreview.keywords?.status || status) === 'todo' ? '创建待办' : '创建备忘'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ====== 搜索蒙版 ====== */}
+      {showOverlay && text.trim() && !polishPreview && !editingNote && (
+        <div className="absolute top-full left-0 right-0 mt-2
+          bg-white dark:bg-gray-900 rounded-xl
+          border border-gray-200 dark:border-gray-700
+          shadow-xl shadow-black/10 dark:shadow-black/40
+          overflow-hidden animate-slide-down z-10">
+
           {activeCategory && (
             <div className="px-3 py-1.5 bg-green-50 dark:bg-green-900/20 border-b border-gray-100 dark:border-gray-800">
               <span className="text-[11px] font-medium text-green-700 dark:text-green-300">
@@ -194,15 +389,12 @@ export default forwardRef(function GlobalQuickEntry({ onCreateNote, onVoiceInput
             </div>
           )}
 
-          {/* 加载中 */}
           {searchLoading && (
             <div className="flex items-center justify-center py-5 text-gray-400 text-sm">
-              <Loader2 size={16} className="animate-spin mr-2" />
-              搜索中...
+              <Loader2 size={16} className="animate-spin mr-2" />搜索中...
             </div>
           )}
 
-          {/* 搜索结果 */}
           {!searchLoading && searchResults.length > 0 && (
             <div className="max-h-60 overflow-y-auto">
               {searchResults.map((item, index) => (
@@ -230,7 +422,7 @@ export default forwardRef(function GlobalQuickEntry({ onCreateNote, onVoiceInput
                       {item.title || '(无标题)'}
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                      {item.content?.slice(0, 60) || item.url || ''}
+                      {item.content?.slice(0, 60) || ''}
                     </div>
                   </div>
                   {item.category && (
@@ -243,7 +435,6 @@ export default forwardRef(function GlobalQuickEntry({ onCreateNote, onVoiceInput
             </div>
           )}
 
-          {/* 无结果 → 新建笔记提示 */}
           {!searchLoading && searchResults.length === 0 && (
             <button
               onClick={handleSubmit}
@@ -255,72 +446,66 @@ export default forwardRef(function GlobalQuickEntry({ onCreateNote, onVoiceInput
                   <ArrowUp size={14} className="text-accent" />
                 </div>
                 <span className="text-sm text-gray-600 dark:text-gray-300">
-                  未找到匹配任务，点击新建笔记
+                  未找到匹配，点击新建
                 </span>
               </div>
               <span className="text-[11px] text-gray-400">↵ 创建</span>
             </button>
           )}
 
-          {/* 分类未选择时提示全量搜索 */}
-          {!searchLoading && !activeCategory && searchResults.length > 0 && (
-            <div className="px-3 py-1.5 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
-              <span className="text-[10px] text-gray-400">
-                ↑↓ 导航 · Enter 打开 · Esc 关闭 · 发送按钮直接创建笔记
-              </span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* 实时预览区域：关键词标签 + 笔记预览 */}
-      {!compact && hasText && keywordChips.length > 0 && (
-        <div className="px-3 pt-2 pb-1 border-b border-gray-100 dark:border-gray-800/50
-          bg-gradient-to-r from-gray-50/50 to-transparent dark:from-gray-800/20">
-          {/* 智能分类标签 */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {keywordChips.map((chip, i) => (
-              <span
-                key={i}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium whitespace-nowrap
-                  border border-current/10"
-                style={{ color: chip.color, backgroundColor: chip.bg }}
-              >
-                {chip.label}
-              </span>
-            ))}
-            {/* 实时状态指示 */}
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium
-              ${(keywords?.status || status) === 'todo'
-                ? 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400'
-                : 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
-              }`}>
-              {(keywords?.status || status) === 'todo' ? '待办' : '备忘'}
+          <div className="px-3 py-1.5 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
+            <span className="text-[10px] text-gray-400">
+              ↑↓ 导航 · Enter 打开编辑 · Esc 关闭
             </span>
           </div>
-          {/* 笔记预览卡片 */}
-          <div className="mt-1.5 p-2 rounded-lg bg-white/70 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50">
-            <p className="text-xs text-gray-700 dark:text-gray-300 line-clamp-2 leading-relaxed">
-              {text.trim()}
-            </p>
-            {keywords?.category && (
-              <span className="mt-1 inline-flex items-center gap-0.5 text-[10px] text-green-600 dark:text-green-400">
-                📂 {keywords.category}
-              </span>
-            )}
-          </div>
         </div>
       )}
 
-      {/* 主输入栏 */}
-      <div className={`w-full bg-white/85 dark:bg-gray-900/85
-        backdrop-blur-xl
+      {/* ====== 主输入栏 ====== */}
+      <div className="w-full bg-white/85 dark:bg-gray-900/85 backdrop-blur-xl
         border-t md:border md:border-gray-200/60 md:dark:border-gray-700/60
         border-gray-200/70 dark:border-gray-800/70
-        ${compact ? 'md:rounded-xl md:shadow-sm' : 'md:rounded-2xl md:shadow-lg md:shadow-black/10'}
-        transition-all duration-200`}>
-        <div className={`flex items-center gap-1.5 ${compact ? 'px-2 py-1' : 'px-3 py-2.5'}`}>
-          {/* Text input */}
+        md:rounded-2xl md:shadow-lg md:shadow-black/10
+        transition-all duration-200">
+
+        {/* ====== 实时预览：关键词标签 + 笔记预览（在输入栏内部） ====== */}
+        {!compact && hasText && keywordChips.length > 0 && !polishPreview && !editingNote && (
+          <div className="px-3 pt-2.5 pb-1 border-b border-gray-100 dark:border-gray-800/50
+            bg-gradient-to-r from-accent/5 via-gray-50/50 to-transparent dark:from-accent/10 dark:via-gray-800/20">
+            {/* 智能标签 */}
+            <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
+              {keywordChips.map((chip, i) => (
+                <span
+                  key={i}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium
+                    whitespace-nowrap border border-current/10"
+                  style={{ color: chip.color, backgroundColor: chip.bg }}
+                >
+                  {chip.label}
+                </span>
+              ))}
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium
+                ${(keywords?.status || status) === 'todo'
+                  ? 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400'
+                  : 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'}`}>
+                {(keywords?.status || status) === 'todo' ? '待办' : '备忘'}
+              </span>
+            </div>
+            {/* 笔记内容预览 */}
+            <div className="p-2 rounded-lg bg-white/60 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700/40 mb-1">
+              <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed line-clamp-2">
+                {text.trim()}
+              </p>
+              {keywords?.category && (
+                <span className="mt-1 inline-flex items-center gap-0.5 text-[10px] text-green-600 dark:text-green-400">
+                  📂 {keywords.category}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center gap-1.5 px-3 py-2.5">
           <div className="flex-1 relative">
             <input
               ref={inputRef}
@@ -336,8 +521,14 @@ export default forwardRef(function GlobalQuickEntry({ onCreateNote, onVoiceInput
               onKeyDown={handleKeyDown}
               onCompositionStart={handleCompositionStart}
               onCompositionEnd={handleCompositionEnd}
-              placeholder={creating ? '创建中...' : polishing ? '润色中...' : aiMode ? 'AI 帮你记录...' : (activeCategory ? `在「${activeCategory}」中搜索...` : '写点什么... 支持自然语言')}
-              className={`w-full bg-gray-100/90 dark:bg-gray-800/90
+              placeholder={
+                creating ? '创建中...' :
+                polishing ? '润色中...' :
+                polishPreview ? '预览中...' :
+                aiMode ? 'AI 帮你记录...' :
+                (activeCategory ? `在「${activeCategory}」中搜索...` : '写点什么... 支持自然语言')
+              }
+              className="w-full bg-gray-100/90 dark:bg-gray-800/90
                 text-sm text-gray-900 dark:text-gray-100
                 placeholder-gray-400 dark:placeholder-gray-500
                 border border-gray-200/50 dark:border-gray-700/50
@@ -345,7 +536,7 @@ export default forwardRef(function GlobalQuickEntry({ onCreateNote, onVoiceInput
                 focus:bg-white/70 dark:focus:bg-gray-800/70
                 outline-none transition-all
                 disabled:opacity-60 disabled:cursor-not-allowed
-                ${compact ? 'px-3 py-1.5 rounded-lg' : 'px-4 py-2.5 rounded-xl'}`}
+                px-4 py-2.5 rounded-xl"
             />
             {hasText && !creating && (
               <button
@@ -363,19 +554,7 @@ export default forwardRef(function GlobalQuickEntry({ onCreateNote, onVoiceInput
           {/* AI 润色按钮 */}
           {hasText && !creating && !compact && (
             <button
-              onClick={async () => {
-                if (polishing || !text.trim()) return;
-                setPolishing(true);
-                try {
-                  const res = await api.ai.analyze({ action: 'polish', content: text.trim() });
-                  const polished = res.data?.result?.trim();
-                  if (polished) setText(polished);
-                } catch {
-                  // 润色失败时保持原文
-                } finally {
-                  setPolishing(false);
-                }
-              }}
+              onClick={handlePolish}
               disabled={polishing}
               className={`flex-shrink-0 p-2 rounded-xl transition-all
                 ${polishing
@@ -384,44 +563,40 @@ export default forwardRef(function GlobalQuickEntry({ onCreateNote, onVoiceInput
                 }`}
               title="AI 润色"
             >
-              {polishing ? <Loader2 size={compact ? 14 : 16} className="animate-spin" /> : <Sparkles size={compact ? 14 : 16} />}
+              {polishing ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
             </button>
           )}
 
-          {/* AI mode indicator */}
           {aiMode && !creating && (
             <div className="flex-shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-accent/10 text-accent text-[10px] font-medium">
-              <Sparkles size={12} />
-              AI
+              <Sparkles size={12} />AI
             </div>
           )}
 
-          {/* Voice / Send / Loading */}
           {creating ? (
-            <div className={`flex-shrink-0 ${compact ? 'w-7 h-7' : 'w-9 h-9'} rounded-xl bg-accent/70 text-white
-              flex items-center justify-center`}>
-              <Loader2 size={compact ? 14 : 18} className="animate-spin" />
+            <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-accent/70 text-white flex items-center justify-center">
+              <Loader2 size={18} className="animate-spin" />
             </div>
           ) : hasText ? (
             <button
               onClick={handleSubmit}
-              className={`flex-shrink-0 ${compact ? 'w-7 h-7' : 'w-9 h-9'} rounded-xl bg-accent text-white
+              className="flex-shrink-0 w-9 h-9 rounded-xl bg-accent text-white
                 flex items-center justify-center active:scale-90 transition-transform
-                shadow-sm shadow-accent/30 hover:bg-accent/90`}
+                shadow-sm shadow-accent/30 hover:bg-accent/90"
               aria-label="发送"
             >
-              <ArrowUp size={compact ? 14 : 18} strokeWidth={2.5} />
+              <ArrowUp size={18} strokeWidth={2.5} />
             </button>
           ) : (
             <button
               onClick={onVoiceInput}
-              className={`flex-shrink-0 ${compact ? 'w-7 h-7' : 'w-9 h-9'} rounded-xl
+              className="flex-shrink-0 w-9 h-9 rounded-xl
                 bg-gray-100/70 dark:bg-gray-800/70 text-gray-500 dark:text-gray-400
                 hover:bg-gray-200 dark:hover:bg-gray-700
-                flex items-center justify-center active:scale-90 transition-all`}
+                flex items-center justify-center active:scale-90 transition-all"
               aria-label="语音输入"
             >
-              <Mic size={compact ? 14 : 18} />
+              <Mic size={18} />
             </button>
           )}
         </div>

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
-import { FileText, Circle, Loader, CheckCircle, LayoutList } from 'lucide-react';
+import { FileText, Circle, Loader, CheckCircle, LayoutList, Archive } from 'lucide-react';
 import NoteCard from './NoteCard';
 
 const STATUS_TABS = [
@@ -8,6 +8,7 @@ const STATUS_TABS = [
   { id: 'todo',  label: '待办',     icon: Circle,       color: 'text-orange-500' },
   { id: 'in_progress', label: '进行中', icon: Loader,   color: 'text-yellow-500' },
   { id: 'done',  label: '已完成',   icon: CheckCircle,  color: 'text-green-500' },
+  { id: 'archived', label: '已归档', icon: Archive,     color: 'text-gray-400' },
 ];
 
 const SWIPE_THRESHOLD = 40;
@@ -39,7 +40,7 @@ export default function SwipeStatusTabs({
   // Filter notes per tab
   const pageNotes = useMemo(() => {
     return STATUS_TABS.map(tab => {
-      if (tab.id === '') return allNotes;
+      if (tab.id === '') return allNotes.filter(n => n.status !== 'archived');
       return allNotes.filter(n => (n.status || 'note') === tab.id);
     });
   }, [allNotes]);
@@ -208,7 +209,8 @@ export default function SwipeStatusTabs({
                      tab.id === 'note' ? '还没有备忘' :
                      tab.id === 'todo' ? '还没有待办' :
                      tab.id === 'in_progress' ? '还没有进行中的任务' :
-                     '还没有已完成的任务'}
+                     tab.id === 'done' ? '还没有已完成的任务' :
+                     '还没有已归档的内容'}
                   </p>
                   <button
                     onClick={onCreateNote}

@@ -248,7 +248,7 @@ export default function NoteEditor({ note, onSave, onClose }) {
         {note?.id && <SubtaskList noteId={note.id} />}
 
         {/* AI 助手 */}
-        {note?.id && <AIAssistant noteId={note.id} content={content} title={title} />}
+        {note?.id && <AIAssistant noteId={note.id} content={content} title={title} onContentUpdate={setContent} />}
 
         {/* 文件附件 */}
         {note?.id && (

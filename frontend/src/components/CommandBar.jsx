@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Search, User, LogOut, Settings, Monitor, Lock, LayoutGrid, Kanban, ArrowLeft } from 'lucide-react';
+import { Search, User, LogOut, Settings, Monitor, Lock, ArrowLeft } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import BackupMenu from './BackupMenu';
 import DesktopSettings from './DesktopSettings';
@@ -54,9 +54,7 @@ export default function CommandBar({
   };
 
   const handleSearchClick = () => {
-    if (onOpenPalette) {
-      onOpenPalette();
-    }
+    if (onOpenPalette) onOpenPalette();
   };
 
   return (
@@ -85,7 +83,7 @@ export default function CommandBar({
           </span>
         </div>
 
-        {/* 中间：搜索栏（居中，max-width 480px） */}
+        {/* 中间：搜索栏占位（点击打开命令面板） */}
         <div
           onClick={handleSearchClick}
           className="flex-1 max-w-[480px] mx-auto h-8 flex items-center gap-2 px-3
@@ -109,19 +107,11 @@ export default function CommandBar({
 
         {/* 右侧：操作按钮 + 头像 */}
         <div className="flex items-center gap-1 shrink-0">
-          {/* 自定义右侧内容（BoardPage 视图切换等） */}
           {rightContent}
-
-          {/* 同步状态 */}
           <SyncStatus lastSync={lastSync} onRefresh={onRefresh} loading={loading} />
-
-          {/* 备份菜单 */}
           <BackupMenu />
-
-          {/* 主题切换 */}
           <ThemeToggle />
 
-          {/* Electron 桌面设置 */}
           {isElectron && (
             <button
               onClick={() => setShowDesktopSettings(true)}
@@ -145,11 +135,8 @@ export default function CommandBar({
                 transition-all cursor-pointer"
             >
               {user?.avatar ? (
-                <img
-                  src={user.avatar}
-                  alt={user.username}
-                  className="w-full h-full rounded-full object-cover"
-                />
+                <img src={user.avatar} alt={user.username}
+                  className="w-full h-full rounded-full object-cover" />
               ) : (
                 <span className="text-white text-[11px] font-semibold select-none">
                   {user?.username?.charAt(0).toUpperCase()}

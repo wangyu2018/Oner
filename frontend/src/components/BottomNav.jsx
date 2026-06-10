@@ -1,11 +1,12 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Sparkles, LayoutDashboard, KeyRound, User } from 'lucide-react';
+import { Home, Sparkles, LayoutDashboard, KeyRound, User, FileText } from 'lucide-react';
 
 const NAV_ITEMS = [
   { path: '/', icon: Home, label: '首页' },
   { path: '/ai', icon: Sparkles, label: 'AI' },
   { path: '/board', icon: LayoutDashboard, label: '看板' },
+  { path: '/memos', icon: FileText, label: '备忘' },
   { path: '/passwords', icon: KeyRound, label: '密码' },
   { path: '/profile', icon: User, label: '我的' },
 ];

@@ -3,10 +3,10 @@ import { Sparkles, ChevronDown, ChevronUp, Lightbulb, BookOpen, PenLine, Loader2
 import { api } from '../utils/api';
 
 const QUICK_TAGS = [
-  '拆解任务', '推荐行动', '扩展内容', '总结要点', '生成标题', '翻译英文',
+  '拆解任务', '推荐行动', '扩展内容', '总结要点', '生成标题', '翻译英文', '润色表达',
 ];
 
-export default function AIAssistant({ noteId, content, title }) {
+export default function AIAssistant({ noteId, content, title, onContentUpdate }) {
   const [expanded, setExpanded] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [relatedNotes, setRelatedNotes] = useState([]);
@@ -59,9 +59,26 @@ export default function AIAssistant({ noteId, content, title }) {
         '总结要点': 'summarize',
         '生成标题': 'title',
         '翻译英文': 'translate',
+        '润色表达': 'polish',
       };
       const res = await api.ai.analyze({ noteId, action: actionMap[tag] || 'suggest' });
-      setSuggestions([`✅ ${tag}完成:`, ...(res.data?.result || '').split('\n').filter(l => l.trim()).slice(0, 4)]);
+      const result = res.data?.result || '';
+
+      // 润色/扩展/翻译 → 直接输出到编辑器
+      if (['polish', 'expand', 'translate'].includes(actionMap[tag]) && onContentUpdate) {
+        const polished = result.trim();
+        if (polished && polished.length > 10) {
+          onContentUpdate(polished);
+          setSuggestions([`✅ ${tag}已应用到编辑器`]);
+        } else {
+          setSuggestions([`⚠️ ${tag}结果太短，请重试`]);
+        }
+      } else if (actionMap[tag] === 'title' && onContentUpdate) {
+        // 生成标题不覆盖内容，只显示
+        setSuggestions([`📝 建议标题: ${result.trim()}`]);
+      } else {
+        setSuggestions([`✅ ${tag}完成:`, ...result.split('\n').filter(l => l.trim()).slice(0, 4)]);
+      }
     } catch {
       setSuggestions([`❌ ${tag}失败，请重试`]);
     } finally {
@@ -71,8 +88,10 @@ export default function AIAssistant({ noteId, content, title }) {
   };
 
   const handleContinuation = (text) => {
-    // 将续写建议追加到内容（通过回调或事件）
-    console.log('Continuation:', text);
+    // 续写建议追加到编辑器内容末尾
+    if (onContentUpdate && content) {
+      onContentUpdate(content + '\n\n' + text.replace('...', ''));
+    }
   };
 
   return (

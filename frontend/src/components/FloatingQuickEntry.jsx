@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Pin, PinOff, Sparkles } from 'lucide-react';
+import { Pen, Pin, PinOff, Sparkles, X } from 'lucide-react';
 import GlobalQuickEntry from './GlobalQuickEntry';
 
 const STORAGE_KEY_POS = 'floatingEntry_pos';
@@ -16,12 +16,13 @@ function loadJSON(key, fallback) {
 export default function FloatingQuickEntry({
   onCreateNote, onVoiceInput, categories = [], activeCategory = null
 }) {
+  const [expanded, setExpanded] = useState(false);
   const [pinned, setPinned] = useState(() => loadJSON(STORAGE_KEY_PIN, false));
   const [aiMode, setAiMode] = useState(() => loadJSON(STORAGE_KEY_AI, false));
   const [position, setPosition] = useState(() => {
     const saved = loadJSON(STORAGE_KEY_POS, null);
     if (saved) return saved;
-    return { x: window.innerWidth - 420, y: window.innerHeight - 260 };
+    return { x: window.innerWidth - 420, y: window.innerHeight - 320 };
   });
   const [dragging, setDragging] = useState(false);
   const dragRef = useRef(null);
@@ -47,9 +48,10 @@ export default function FloatingQuickEntry({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // 拖拽开始（仅在拖拽手柄上触发）
+  // 拖拽开始
   const handlePointerDown = useCallback((e) => {
     if (pinned) return;
+    if (e.target.closest('button')) return;
     e.preventDefault();
     const target = e.currentTarget;
     target.setPointerCapture(e.pointerId);
@@ -63,7 +65,6 @@ export default function FloatingQuickEntry({
     setDragging(true);
   }, [pinned, position]);
 
-  // 拖拽移动
   const handlePointerMove = useCallback((e) => {
     if (!dragRef.current) return;
     e.preventDefault();
@@ -78,7 +79,6 @@ export default function FloatingQuickEntry({
     setPosition({ x: newX, y: newY });
   }, []);
 
-  // 拖拽结束
   const handlePointerUp = useCallback(() => {
     if (dragRef.current) {
       dragRef.current = null;
@@ -94,10 +94,35 @@ export default function FloatingQuickEntry({
       if (res?.data?.category) {
         noteData.category = res.data.category;
       }
-    } catch { /* fallback to normal create */ }
+    } catch { /* fallback */ }
     await onCreateNote(noteData);
   }, [onCreateNote]);
 
+  const handleClose = () => {
+    setExpanded(false);
+  };
+
+  // 折叠态：右下角小按钮
+  if (!expanded) {
+    return (
+      <button
+        onClick={() => setExpanded(true)}
+        className="fixed z-50 bottom-6 right-6 w-14 h-14 rounded-full
+          bg-gradient-to-br from-accent-500 to-accent-600
+          text-white shadow-lg shadow-accent/30
+          hover:shadow-xl hover:shadow-accent/40 hover:scale-105
+          active:scale-95
+          flex items-center justify-center
+          transition-all duration-200 ease-out
+          ring-2 ring-white/20"
+        title="快速输入"
+      >
+        <Pen size={22} strokeWidth={2} />
+      </button>
+    );
+  }
+
+  // 展开态：可移动+固定的完整面板
   return (
     <div
       ref={containerRef}
@@ -129,7 +154,6 @@ export default function FloatingQuickEntry({
 
         {/* 右侧操作按钮 */}
         <div className="flex items-center gap-1">
-          {/* AI 模式切换 */}
           <button
             onClick={(e) => { e.stopPropagation(); setAiMode(a => !a); }}
             className={`p-1.5 rounded-md transition-colors ${
@@ -142,7 +166,6 @@ export default function FloatingQuickEntry({
             <Sparkles size={14} />
           </button>
 
-          {/* 固定/解锁切换 */}
           <button
             onClick={(e) => { e.stopPropagation(); setPinned(p => !p); }}
             className={`p-1.5 rounded-md transition-colors ${
@@ -153,6 +176,16 @@ export default function FloatingQuickEntry({
             title={pinned ? '已固定' : '未固定'}
           >
             {pinned ? <Pin size={14} /> : <PinOff size={14} />}
+          </button>
+
+          <button
+            onClick={(e) => { e.stopPropagation(); handleClose(); }}
+            className="p-1.5 rounded-md text-gray-400
+              hover:text-gray-600 dark:hover:text-gray-300
+              hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            title="收起"
+          >
+            <X size={14} />
           </button>
         </div>
       </div>

@@ -13,6 +13,7 @@ import Register from './pages/Register';
 import Profile from './pages/Profile';
 import PasswordVault from './pages/PasswordVault';
 import AIChat from './pages/AIChat';
+import MemosPage from './pages/MemosPage';
 import AuthGuard from './components/AuthGuard';
 import BottomNav from './components/BottomNav';
 import CommandPalette from './components/CommandPalette';
@@ -170,6 +171,18 @@ export default function App() {
                 }
               />
               <Route
+                path="/memos"
+                element={
+                  <AuthGuard>
+                    <ErrorBoundary>
+                      <PageTransition>
+                        <MemosPage />
+                      </PageTransition>
+                    </ErrorBoundary>
+                  </AuthGuard>
+                }
+              />
+              <Route
                 path="/ai"
                 element={
                   <AuthGuard>
@@ -207,6 +220,7 @@ export default function App() {
               <FloatingQuickEntry
                 onCreateNote={handleFloatingCreate}
                 onVoiceInput={handleOpenVoiceInput}
+                categories={categories}
               />
             )}
 

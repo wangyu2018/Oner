@@ -2,7 +2,6 @@ import React, { useState, useCallback } from 'react';
 import { Plus, Filter } from 'lucide-react';
 import CommandBar from '../components/CommandBar';
 import TodayFocus from '../components/TodayFocus';
-import TodayStrip from '../components/TodayStrip';
 import EmptyState from '../components/EmptyState';
 import CardWall from '../components/CardWall';
 import SwimlaneBoard from '../components/SwimlaneBoard';
@@ -14,7 +13,7 @@ import SwipeStatusTabs from '../components/SwipeStatusTabs';
 import { useNotes } from '../hooks/useNotes';
 import { useUndoDelete } from '../hooks/useUndoDelete';
 import { useReminderCheck } from '../hooks/useReminderCheck';
-import { useAuthContext } from '../App';
+import { useAuthContext, useCommandPalette } from '../App';
 import { api } from '../utils/api';
 
 export default function Home({ categories = [], onVoiceInput }) {
@@ -36,6 +35,7 @@ export default function Home({ categories = [], onVoiceInput }) {
   } = useNotes();
 
   const { user } = useAuthContext();
+  const commandPalette = useCommandPalette();
 
   const [editingNote, setEditingNote] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -172,14 +172,12 @@ export default function Home({ categories = [], onVoiceInput }) {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <CommandBar
         breadcrumb="首页"
-        onOpenPalette={() => {}}
+        onOpenPalette={() => commandPalette?.openPalette?.()}
         lastSync={lastSync}
         onRefresh={refresh}
         loading={loading}
         onVoiceInput={onVoiceInput}
       />
-
-      <TodayStrip notes={allNotes} onNoteClick={handleNoteClick} />
 
       <main className="max-w-7xl mx-auto px-4 py-4 space-y-6">
         {/* 今日焦点模块 */}

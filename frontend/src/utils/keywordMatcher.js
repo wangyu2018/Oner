@@ -130,6 +130,55 @@ export function getHighlightRanges(text, categories = []) {
 }
 
 /**
+ * 浅层润色：从文本中去除已被结构化提取的关键词
+ * 例如 "明天提醒我开会" → date已提取"明天" → 正文变为"开会"
+ * @param {string} text - 用户输入文本
+ * @param {Object} keywords - matchKeywords 返回的结果
+ * @param {Array} categories - 用户分类列表
+ * @returns {string} 清洗后的文本
+ */
+export function stripKeywords(text, keywords, categories = []) {
+  if (!text.trim() || !keywords) return text.trim();
+  let cleaned = text;
+
+  // 去除日期关键词
+  for (const word of Object.keys(DATE_KEYWORDS)) {
+    if (keywords.date) {
+      cleaned = cleaned.replace(word, '');
+    }
+  }
+
+  // 去除提醒关键词
+  if (keywords.remind) {
+    for (const word of REMINDER_KEYWORDS) {
+      cleaned = cleaned.replace(word, '');
+    }
+    // 去除“我”（“提醒我”→ 去掉“我”）
+    cleaned = cleaned.replace(/我(?=[\u4e00-\u9fa5])/g, '');
+  }
+
+  // 去除优先级关键词
+  for (const word of Object.keys(PRIORITY_KEYWORDS)) {
+    if (keywords.priority) {
+      cleaned = cleaned.replace(word, '');
+    }
+  }
+
+  // 去除分类名
+  if (keywords.category) {
+    cleaned = cleaned.replace(keywords.category, '');
+  }
+
+  // 清理标点、多余空格
+  cleaned = cleaned
+    .replace(/[,，、:：\s]+/g, ' ')
+    .replace(/^\s+|\s+$/g, '')
+    .replace(/\s{2,}/g, ' ');
+
+  return cleaned || text.trim(); // 如果清洗后为空，保留原文
+}
+
+/**
  * 高亮颜色配置
  */
 export const HIGHLIGHT_STYLES = {

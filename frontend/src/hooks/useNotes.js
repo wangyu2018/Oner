@@ -23,6 +23,9 @@ export function useNotes() {
     }
     if (activeStatus) {
       result = result.filter(n => (n.status || 'note') === activeStatus);
+    } else {
+      // 全部视图排除已归档（仅在已归档分类下展示）
+      result = result.filter(n => n.status !== 'archived');
     }
     return result;
   }, [allNotes, activeTag, activeStatus]);
