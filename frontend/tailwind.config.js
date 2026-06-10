@@ -31,6 +31,7 @@ export default {
         'subtle-pulse': 'subtlePulse 3s ease-in-out infinite',
         'slide-down': 'slideDown 0.15s ease-out',
         'progress-bar': 'progressBar 1.5s ease-in-out infinite',
+        'mc-pulse': 'mcPulse 2s infinite',
       },
       keyframes: {
         slideUp: {
@@ -53,6 +54,10 @@ export default {
           '0%': { transform: 'translateX(-100%)' },
           '50%': { transform: 'translateX(0%)' },
           '100%': { transform: 'translateX(100%)' },
+        },
+        mcPulse: {
+          '0%, 100%': { boxShadow: '0 0 0 3px #E1F5EE, 0 0 0 5px rgba(15,110,86,0.15)' },
+          '50%': { boxShadow: '0 0 0 5px #E1F5EE, 0 0 0 10px rgba(15,110,86,0.08)' },
         },
       }
     },

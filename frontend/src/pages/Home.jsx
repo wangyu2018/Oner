@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { Plus, Filter } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, LayoutGrid, List, Columns, FileText, Circle, Loader, CheckCircle } from 'lucide-react';
 import CommandBar from '../components/CommandBar';
 import TodayFocus from '../components/TodayFocus';
 import EmptyState from '../components/EmptyState';
@@ -13,8 +14,14 @@ import SwipeStatusTabs from '../components/SwipeStatusTabs';
 import { useNotes } from '../hooks/useNotes';
 import { useUndoDelete } from '../hooks/useUndoDelete';
 import { useReminderCheck } from '../hooks/useReminderCheck';
-import { useAuthContext, useCommandPalette } from '../App';
+import { useAuthContext } from '../App';
 import { api } from '../utils/api';
+
+// 状态筛选 -> CSS active class
+function getStatusActiveClass(status) {
+  const map = { '': 'active-all', note: 'active-memo', todo: 'active-todo', in_progress: 'active-progress', done: 'active-done' };
+  return map[status] || 'active-all';
+}
 
 export default function Home({ categories = [], onVoiceInput }) {
   const {
@@ -35,7 +42,7 @@ export default function Home({ categories = [], onVoiceInput }) {
   } = useNotes();
 
   const { user } = useAuthContext();
-  const commandPalette = useCommandPalette();
+  const navigate = useNavigate();
 
   const [editingNote, setEditingNote] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -172,7 +179,6 @@ export default function Home({ categories = [], onVoiceInput }) {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <CommandBar
         breadcrumb="首页"
-        onOpenPalette={() => commandPalette?.openPalette?.()}
         lastSync={lastSync}
         onRefresh={refresh}
         loading={loading}
@@ -181,7 +187,6 @@ export default function Home({ categories = [], onVoiceInput }) {
 
       <main className="max-w-7xl mx-auto px-4 py-4 space-y-6">
         {/* 今日焦点模块 */}
-        {/* TodayFocus */}
         <TodayFocus
           username={user?.username}
           allNotes={allNotes}
@@ -190,88 +195,141 @@ export default function Home({ categories = [], onVoiceInput }) {
           onVoiceInput={onVoiceInput}
           onToggleStatus={handleToggleStatus}
           onInsightAction={(action) => {
-            // 根据洞察操作设置筛选状态
-            if (action === 'view-overdue') handleStatusChange('todo');
-            else if (action === 'view-statistics') handleStatusChange('');
-            else if (action === 'organize-tasks') handleStatusChange('in_progress');
+            if (action === 'view-overdue') navigate('/ai/overdue');
+            else if (action === 'view-statistics') navigate('/ai/weekly');
+            else if (action === 'organize-tasks') navigate('/ai/associations');
           }}
         />
 
-        {/* 状态筛选标签栏（始终显示，在当前页切换，不跳转） */}
-        <div className="flex items-center gap-2 pt-2 pb-1">
-          <Filter size={13} className="text-gray-400 shrink-0" />
-          <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
-            {statusFilters.map(f => (
-              <button
-                key={f.value}
-                onClick={() => handleStatusChange(f.value)}
-                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium
-                  whitespace-nowrap transition-all duration-150
-                  ${activeStatus === f.value
-                    ? 'bg-accent text-white shadow-sm'
-                    : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-                  }`}
-              >
-                <span>{f.emoji}</span>
-                {f.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* 桌面端：分栏布局 */}
+        <div className="hidden md:flex gap-6">
+          {/* 分类侧边栏 */}
+          <aside className="w-48 flex-shrink-0">
+            <div className="category-sidebar">
+              <div className="category-sidebar-title">分类</div>
+              <div className="category-list">
+                <button
+                  onClick={() => setActiveCategory(null)}
+                  className={`category-item ${!activeCategory ? 'active' : ''}`}
+                >
+                  <span className="cat-name">
+                    <span className="cat-icon">📋</span>
+                    全部
+                  </span>
+                  <span className="cat-count">{allNotes.length}</span>
+                </button>
+                {categories.map(cat => {
+                  const count = allNotes.filter(n => n.category === cat.name).length;
+                  if (count === 0) return null;
+                  return (
+                    <button
+                      key={cat.name}
+                      onClick={() => setActiveCategory(cat.name)}
+                      className={`category-item ${activeCategory === cat.name ? 'active' : ''}`}
+                    >
+                      <span className="cat-name">
+                        <span className="cat-icon">{cat.icon || '📌'}</span>
+                        {cat.name}
+                      </span>
+                      <span className="cat-count">{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </aside>
 
-        {/* 视图切换分界线 */}
-        <div className="flex items-center gap-3 pt-2">
-          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-            全部笔记
-          </h2>
-          <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
-          <div className="flex items-center gap-1 p-0.5 rounded-lg bg-gray-100 dark:bg-gray-800">
-            <button
-              onClick={() => setViewMode('wall')}
-              className={`px-3 py-1 text-xs rounded-md font-medium transition-all ${
-                viewMode === 'wall'
-                  ? 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 shadow-xs'
-                  : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
-              }`}
-            >
-              网格
-            </button>
-            <button
-              onClick={() => setViewMode('swimlane')}
-              className={`px-3 py-1 text-xs rounded-md font-medium transition-all ${
-                viewMode === 'swimlane'
-                  ? 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 shadow-xs'
-                  : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
-              }`}
-            >
-              泳道
-            </button>
-          </div>
-        </div>
+          {/* 主内容区 */}
+          <div className="flex-1 min-w-0">
+            {/* 状态筛选标签栏 */}
+            <div className="status-filter-bar" role="group">
+              {statusFilters.map(f => {
+                const count = f.value === ''
+                  ? allNotes.length
+                  : allNotes.filter(n => (n.status || 'note') === f.value).length;
+                const StatusIcon = f.value === '' ? FileText
+                  : f.value === 'note' ? FileText
+                  : f.value === 'todo' ? Circle
+                  : f.value === 'in_progress' ? Loader
+                  : CheckCircle;
+                return (
+                  <button
+                    key={f.value}
+                    onClick={() => handleStatusChange(f.value)}
+                    className={`status-pill ${getStatusActiveClass(f.value)}`}
+                  >
+                    <span className="pill-icon"><StatusIcon size={12} /></span>
+                    {f.label}
+                    <span className="pill-count">{count}</span>
+                  </button>
+                );
+              })}
+            </div>
 
-        {/* 桌面版: 网格 ↔ 泳道切换 */}
-        <div className="hidden md:block">
-          {notes.length === 0 && !activeTag && !activeStatus ? (
-            <EmptyState onCreateNote={handleCreateNote} />
-          ) : viewMode === 'wall' ? (
-            <CardWall
-              notes={notes}
-              onNoteClick={handleNoteClick}
-              onDelete={handleDelete}
-              onTagClick={handleTagClick}
-            />
-          ) : (
-            <SwimlaneBoard
-              notes={notes}
-              categories={categories}
-              onNoteClick={handleNoteClick}
-              onDelete={handleDelete}
-              onTagClick={handleTagClick}
-              activeCategory={activeCategory}
-              onCategoryClick={setActiveCategory}
-              onMoveNote={handleMoveNote}
-            />
-          )}
+            {/* 区域标题行 + 视图切换 */}
+            <div className="section-header" style={{ marginTop: 20 }}>
+              <div className="section-header-left">
+                <span className="section-title-dot" />
+                <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  全部笔记
+                </span>
+                <span className="section-count">{notes.length}</span>
+              </div>
+              <div className="view-toggle">
+                <button
+                  onClick={() => setViewMode('wall')}
+                  className={`view-btn ${viewMode === 'wall' ? 'active' : ''}`}
+                >
+                  <LayoutGrid size={14} />
+                  网格
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
+                >
+                  <List size={14} />
+                  列表
+                </button>
+                <button
+                  onClick={() => setViewMode('swimlane')}
+                  className={`view-btn ${viewMode === 'swimlane' ? 'active' : ''}`}
+                >
+                  <Columns size={14} />
+                  泳道
+                </button>
+              </div>
+            </div>
+
+            {/* 桌面版内容区域 */}
+            {notes.length === 0 && !activeTag && !activeStatus ? (
+              <EmptyState onCreateNote={handleCreateNote} />
+            ) : viewMode === 'wall' ? (
+              <CardWall
+                notes={notes}
+                onNoteClick={handleNoteClick}
+                onDelete={handleDelete}
+                onTagClick={handleTagClick}
+              />
+            ) : viewMode === 'list' ? (
+              <SmartCardGrid
+                notes={notes}
+                onNoteClick={handleNoteClick}
+                onDelete={handleDelete}
+                onTagClick={handleTagClick}
+              />
+            ) : (
+              <SwimlaneBoard
+                notes={notes}
+                categories={categories}
+                onNoteClick={handleNoteClick}
+                onDelete={handleDelete}
+                onTagClick={handleTagClick}
+                activeCategory={activeCategory}
+                onCategoryClick={setActiveCategory}
+                onMoveNote={handleMoveNote}
+              />
+            )}
+          </div>
         </div>
 
         {/* 移动版: 标签栏 + 页面指示点 + 滑动切换 */}

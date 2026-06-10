@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oner 首页下半部分 UI 重设计方案</title>
+<style>
+:root {
+  --accent: #4f46e5;
+  --accent-50: #eef2ff;
+  --accent-100: #e0e7ff;
+  --accent-500: #6366f1;
+  --accent-600: #4f46e5;
+  --accent-700: #4338ca;
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --surface-hover: #f8fafc;
+  --border: #e2e8f0;
+  --border-light: #f1f5f9;
+  --text: #0f172a;
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-tertiary: #64748b;
+  --text-muted: #94a3b8;
+
+  /* 状态色系 */
+  --memo: #6366f1;      --memo-bg: #eef2ff;   --memo-light: #e0e7ff;
+  --todo: #f59e0b;      --todo-bg: #fffbeb;   --todo-light: #fef3c7;
+  --progress: #3b82f6;  --progress-bg: #eff6ff; --progress-light: #dbeafe;
+  --done: #10b981;      --done-bg: #ecfdf5;   --done-light: #d1fae5;
+  --urgent: #ef4444;    --urgent-bg: #fef2f2; --urgent-light: #fee2e2;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.02);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.03);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.06), 0 4px 6px -4px rgba(0,0,0,0.02);
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.04), 0 0 1px rgba(0,0,0,0.06);
+  --shadow-card-hover: 0 8px 24px -4px rgba(0,0,0,0.08), 0 0 1px rgba(0,0,0,0.08);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  padding-bottom: 80px;
+}
+
+/* ====== 页面容器（模拟桌面端首页下半部分） ====== */
+.mock-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ====== 1. 状态筛选栏 — 全新设计 ====== */
+.status-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  width: fit-content;
+  margin-bottom: 20px;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-lg);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  white-space: nowrap;
+}
+
+.status-pill:hover {
+  background: var(--border-light);
+  color: var(--text-secondary);
+}
+
+.status-pill .pill-icon {
+  width: 18px; height: 18px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 5px;
+  font-size: 11px;
+}
+
+.status-pill .pill-count {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: var(--border-light);
+  color: var(--text-muted);
+  transition: all 0.2s;
+}
+
+/* 选中状态 */
+.status-pill.active-all {
+  background: var(--text-primary);
+  color: white;
+  box-shadow: 0 2px 8px rgba(15,23,42,0.18);
+}
+.status-pill.active-all .pill-count {
+  background: rgba(255,255,255,0.2);
+  color: white;
+}
+
+.status-pill.active-memo {
+  background: var(--memo-bg);
+  color: var(--memo);
+  box-shadow: 0 2px 8px rgba(99,102,241,0.15);
+}
+.status-pill.active-memo .pill-count {
+  background: var(--memo-light);
+  color: var(--memo);
+}
+
+.status-pill.active-todo {
+  background: var(--todo-bg);
+  color: #b45309;
+  box-shadow: 0 2px 8px rgba(245,158,11,0.15);
+}
+.status-pill.active-todo .pill-count {
+  background: var(--todo-light);
+  color: #b45309;
+}
+
+.status-pill.active-progress {
+  background: var(--progress-bg);
+  color: var(--progress);
+  box-shadow: 0 2px 8px rgba(59,130,246,0.15);
+}
+.status-pill.active-progress .pill-count {
+  background: var(--progress-light);
+  color: var(--progress);
+}
+
+.status-pill.active-done {
+  background: var(--done-bg);
+  color: #047857;
+  box-shadow: 0 2px 8px rgba(16,185,129,0.15);
+}
+.status-pill.active-done .pill-count {
+  background: var(--done-light);
+  color: #047857;
+}
+
+/* ====== 2. 区域标题栏 — 改进设计 ====== */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.section-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-title-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-500));
+}
+
+.section-count {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--border-light);
+  padding: 2px 10px;
+  border-radius: 10px;
+}
+
+/* 视图切换 */
+.view-toggle {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  background: var(--border-light);
+  border-radius: 10px;
+}
+
+.view-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.view-btn:hover {
+  color: var(--text-secondary);
+}
+
+.view-btn.active {
+  background: var(--surface);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+/* 排序下拉 */
+.sort-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.sort-dropdown:hover {
+  border-color: var(--accent-100);
+  color: var(--accent);
+}
+
+/* ====== 3. 笔记卡片 — 全新设计 ====== */
+.notes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.note-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+}
+
+.note-card:hover {
+  border-color: var(--accent-100);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+
+/* 卡片顶部色带 — 根据状态变色 */
+.note-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.note-card:hover::before {
+  opacity: 1;
+}
+
+.note-card.status-memo::before { background: linear-gradient(90deg, var(--memo), var(--memo-500, #818cf8)); }
+.note-card.status-todo::before { background: linear-gradient(90deg, var(--todo), #fbbf24); }
+.note-card.status-progress::before { background: linear-gradient(90deg, var(--progress), #60a5fa); }
+.note-card.status-done::before { background: linear-gradient(90deg, var(--done), #34d399); }
+.note-card.status-urgent::before { background: linear-gradient(90deg, var(--urgent), #f87171); }
+
+/* 卡片头部 */
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+}
+
+.card-status-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.status-badge.memo { background: var(--memo-bg); color: var(--memo); }
+.status-badge.todo { background: var(--todo-bg); color: #b45309; }
+.status-badge.progress { background: var(--progress-bg); color: var(--progress); }
+.status-badge.done { background: var(--done-bg); color: #047857; }
+
+.priority-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.priority-dot.urgent { background: var(--urgent); box-shadow: 0 0 0 2px var(--urgent-bg); }
+.priority-dot.high { background: #f59e0b; box-shadow: 0 0 0 2px #fffbeb; }
+.priority-dot.normal { background: var(--text-muted); }
+
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.note-card:hover .card-actions {
+  opacity: 1;
+}
+
+.card-action-btn {
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 7px;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.15s;
+}
+.card-action-btn:hover {
+  background: var(--border-light);
+  color: var(--text-secondary);
+}
+.card-action-btn.delete:hover {
+  background: var(--urgent-bg);
+  color: var(--urgent);
+}
+
+/* 卡片内容 */
+.card-body {
+  padding: 0 16px 12px;
+  flex: 1;
+}
+
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.5;
+  margin-bottom: 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-preview {
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 卡片底部 */
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px 12px;
+  border-top: 1px solid var(--border-light);
+  margin-top: auto;
+}
+
+.card-tags {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.tag-chip {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--border-light);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.tag-chip:hover {
+  background: var(--accent-50);
+  color: var(--accent);
+}
+
+.tag-more {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.card-meta-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.due-date {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.due-date.overdue { color: var(--urgent); }
+.due-date.today { color: #ea580c; }
+.due-date.tomorrow { color: #ca8a04; }
+
+.card-updated {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* 子任务进度条 */
+.subtask-bar {
+  padding: 0 16px 10px;
+}
+
+.subtask-track {
+  height: 4px;
+  background: var(--border-light);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.subtask-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-500));
+  transition: width 0.3s ease;
+}
+
+.subtask-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  text-align: right;
+}
+
+/* ====== 4. 分类侧边栏 + 主内容区（桌面端） ====== */
+.content-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 24px;
+}
+
+.category-sidebar {
+  position: sticky;
+  top: 80px;
+  height: fit-content;
+}
+
+.sidebar-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  padding-left: 8px;
+}
+
+.category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.category-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+  border: none;
+  background: transparent;
+}
+
+.category-item:hover {
+  background: var(--border-light);
+  color: var(--text-primary);
+}
+
+.category-item.active {
+  background: var(--accent-50);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.category-item .cat-icon {
+  width: 20px; height: 20px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 5px;
+  font-size: 11px;
+  margin-right: 8px;
+}
+
+.category-item .cat-name {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.category-item .cat-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--border-light);
+  padding: 1px 7px;
+  border-radius: 8px;
+}
+
+.category-item.active .cat-count {
+  background: var(--accent-100);
+  color: var(--accent);
+}
+
+/* ====== 5. 空状态 ====== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.empty-icon {
+  width: 64px; height: 64px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--accent-50), var(--memo-bg));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px;
+  margin-bottom: 16px;
+}
+
+.empty-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.empty-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+  max-width: 300px;
+}
+
+.empty-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, var(--accent), var(--accent-700));
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(79,70,229,0.25);
+  transition: all 0.2s;
+}
+.empty-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(79,70,229,0.3);
+}
+
+/* ====== 6. 加载骨架屏 ====== */
+.skeleton-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  height: 180px;
+}
+
+.skeleton-line {
+  background: linear-gradient(90deg, var(--border-light) 25%, var(--border) 50%, var(--border-light) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ====== 7. 快捷新建栏（悬浮或固定在区域顶部） ====== */
+.quick-create-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin-bottom: 16px;
+  cursor: text;
+  transition: all 0.2s;
+}
+
+.quick-create-bar:hover {
+  border-color: var(--accent-100);
+  box-shadow: var(--shadow-sm);
+}
+
+.quick-create-bar .qc-icon {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  background: var(--accent-50);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent);
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.quick-create-bar .qc-text {
+  font-size: 13px;
+  color: var(--text-muted);
+  flex: 1;
+}
+
+.quick-create-bar .qc-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--border-light);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+/* ====== 演示用 ====== */
+.demo-section {
+  margin-top: 40px;
+  padding-top: 30px;
+  border-top: 2px dashed var(--border);
+}
+
+.demo-section h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.demo-section p {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  margin-bottom: 24px;
+}
+
+.label {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  background: var(--border-light);
+  padding: 3px 10px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .mock-page { padding: 0 16px; }
+  .content-layout { grid-template-columns: 1fr; }
+  .category-sidebar { display: none; }
+  .notes-grid { grid-template-columns: 1fr; }
+  .status-filter-bar { width: 100%; overflow-x: auto; }
+}
+
+/* 暗色模式 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b0f19;
+    --surface: #111827;
+    --surface-hover: #1f2937;
+    --border: #1f2937;
+    --border-light: #1a2234;
+    --text: #f1f5f9;
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --text-tertiary: #64748b;
+    --text-muted: #475569;
+    --memo-bg: rgba(99,102,241,0.12);
+    --todo-bg: rgba(245,158,11,0.12);
+    --progress-bg: rgba(59,130,246,0.12);
+    --done-bg: rgba(16,185,129,0.12);
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.3), 0 0 1px rgba(0,0,0,0.4);
+    --shadow-card-hover: 0 8px 24px -4px rgba(0,0,0,0.5), 0 0 1px rgba(0,0,0,0.3);
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="mock-page">
+
+<!-- ==================== 1. 状态筛选栏 ==================== -->
+<div class="label">01 · 状态筛选栏重设计</div>
+<div style="margin-bottom: 32px;">
+  <div class="status-filter-bar">
+    <button class="status-pill active-all">
+      <span class="pill-icon">📋</span>
+      <span>全部</span>
+      <span class="pill-count">28</span>
+    </button>
+    <button class="status-pill">
+      <span class="pill-icon">📝</span>
+      <span>备忘</span>
+      <span class="pill-count">12</span>
+    </button>
+    <button class="status-pill">
+      <span class="pill-icon">⏰</span>
+      <span>待办</span>
+      <span class="pill-count">5</span>
+    </button>
+    <button class="status-pill">
+      <span class="pill-icon">🚀</span>
+      <span>进行中</span>
+      <span class="pill-count">3</span>
+    </button>
+    <button class="status-pill">
+      <span class="pill-icon">✅</span>
+      <span>已完成</span>
+      <span class="pill-count">8</span>
+    </button>
+  </div>
+
+  <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">
+    💡 改进点：统一圆角容器包裹、每个 Tab 带 emoji 图标和实时计数、选中状态用品牌色填充+微阴影，视觉层次更清晰
+  </p>
+</div>
+
+<!-- 展示其他选中状态 -->
+<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:40px;">
+  <div>
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">选中「备忘」</div>
+    <div class="status-filter-bar">
+      <button class="status-pill"><span class="pill-icon">📋</span><span>全部</span><span class="pill-count">28</span></button>
+      <button class="status-pill active-memo"><span class="pill-icon">📝</span><span>备忘</span><span class="pill-count">12</span></button>
+      <button class="status-pill"><span class="pill-icon">⏰</span><span>待办</span><span class="pill-count">5</span></button>
+      <button class="status-pill"><span class="pill-icon">🚀</span><span>进行中</span><span class="pill-count">3</span></button>
+      <button class="status-pill"><span class="pill-icon">✅</span><span>已完成</span><span class="pill-count">8</span></button>
+    </div>
+  </div>
+  <div>
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">选中「待办」</div>
+    <div class="status-filter-bar">
+      <button class="status-pill"><span class="pill-icon">📋</span><span>全部</span><span class="pill-count">28</span></button>
+      <button class="status-pill"><span class="pill-icon">📝</span><span>备忘</span><span class="pill-count">12</span></button>
+      <button class="status-pill active-todo"><span class="pill-icon">⏰</span><span>待办</span><span class="pill-count">5</span></button>
+      <button class="status-pill"><span class="pill-icon">🚀</span><span>进行中</span><span class="pill-count">3</span></button>
+      <button class="status-pill"><span class="pill-icon">✅</span><span>已完成</span><span class="pill-count">8</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 2. 区域标题栏 + 快捷新建 ==================== -->
+<div class="label">02 · 区域标题栏 + 快捷新建</div>
+
+<div class="quick-create-bar">
+  <div class="qc-icon">+</div>
+  <div class="qc-text">快速记录一条备忘或待办...</div>
+  <div class="qc-hint">Ctrl + N</div>
+</div>
+
+<div class="section-header">
+  <div class="section-header-left">
+    <div class="section-title">
+      <span class="section-title-dot"></span>
+      全部笔记
+    </div>
+    <span class="section-count">共 28 条</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div class="view-toggle">
+      <button class="view-btn active">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        网格
+      </button>
+      <button class="view-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        列表
+      </button>
+      <button class="view-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="6" rx="2"/><rect x="2" y="15" width="20" height="6" rx="2"/></svg>
+        泳道
+      </button>
+    </div>
+    <button class="sort-dropdown">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M7 12h10M10 18h4"/></svg>
+      最近更新
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- ==================== 3. 笔记卡片网格 ==================== -->
+<div class="label">03 · 笔记卡片全新设计</div>
+
+<div class="notes-grid">
+
+  <!-- 卡片1: 备忘 -->
+  <div class="note-card status-memo">
+    <div class="card-header">
+      <div class="card-status-row">
+        <span class="status-badge memo">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          备忘
+        </span>
+        <span class="priority-dot high"></span>
+      </div>
+      <div class="card-actions">
+        <button class="card-action-btn">⋮</button>
+        <button class="card-action-btn delete">🗑</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="card-title">针对AI客服的功能还有很多需求点</div>
+      <div class="card-preview">{"title": "收集用户对AI客服的反馈和常见问题"}，{"title": "列出当前AI客服缺失或待优化的功能模块"}...</div>
+    </div>
+    <div class="card-footer">
+      <div class="card-tags">
+        <span class="tag-chip">AI客服</span>
+        <span class="tag-chip">需求分析</span>
+        <span class="tag-more">+2</span>
+      </div>
+      <div class="card-meta-right">
+        <span class="card-updated">6月8日</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 卡片2: 待办（紧急+过期） -->
+  <div class="note-card status-todo">
+    <div class="card-header">
+      <div class="card-status-row">
+        <span class="status-badge todo">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          待办
+        </span>
+        <span class="priority-dot urgent"></span>
+      </div>
+      <div class="card-actions">
+        <button class="card-action-btn">⋮</button>
+        <button class="card-action-btn delete">🗑</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="card-title">我想建设一个ai的问答 基于本地rag还是wiki 进行客服接入，加入了各种钩子进行接入各个平台</div>
+      <div class="card-preview">我想建设一个ai的问答 基于本地rag还是wiki 进行客服接入，加入了各种钩子进行接入各个平台...</div>
+    </div>
+    <div class="subtask-bar">
+      <div class="subtask-track">
+        <div class="subtask-fill" style="width: 40%"></div>
+      </div>
+      <div class="subtask-label">子任务 2/5</div>
+    </div>
+    <div class="card-footer">
+      <div class="card-tags">
+        <span class="tag-chip">AI架构</span>
+      </div>
+      <div class="card-meta-right">
+        <span class="due-date overdue">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          5月7日 (已过期)
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 卡片3: 待办（今天） -->
+  <div class="note-card status-todo">
+    <div class="card-header">
+      <div class="card-status-row">
+        <span class="status-badge todo">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          待办
+        </span>
+      </div>
+      <div class="card-actions">
+        <button class="card-action-btn">⋮</button>
+        <button class="card-action-btn delete">🗑</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="card-title">提醒我今天 10点看下codingplan的计划</div>
+      <div class="card-preview">提醒我今天 10点看下codingplan的计划，检查一下进度是否跟得上预期...</div>
+    </div>
+    <div class="card-footer">
+      <div class="card-tags">
+        <span class="tag-chip">codingplan</span>
+      </div>
+      <div class="card-meta-right">
+        <span class="due-date today">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          今天
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 卡片4: 进行中 -->
+  <div class="note-card status-progress">
+    <div class="card-header">
+      <div class="card-status-row">
+        <span class="status-badge progress">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          进行中
+        </span>
+        <span class="priority-dot high"></span>
+      </div>
+      <div class="card-actions">
+        <button class="card-action-btn">⋮</button>
+        <button class="card-action-btn delete">🗑</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="card-title">明天告诉我把冰道修复一下</div>
+      <div class="card-preview">冰道系统的某个模块出现了异常，需要尽快排查并修复...</div>
+    </div>
+    <div class="card-footer">
+      <div class="card-tags">
+        <span class="tag-chip">系统维护</span>
+      </div>
+      <div class="card-meta-right">
+        <span class="due-date">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          明天
+        </span>
+        <span class="card-updated">6月9日</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 卡片5: 已完成 -->
+  <div class="note-card status-done">
+    <div class="card-header">
+      <div class="card-status-row">
+        <span class="status-badge done">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          已完成
+        </span>
+      </div>
+      <div class="card-actions">
+        <button class="card-action-btn">⋮</button>
+        <button class="card-action-btn delete">🗑</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="card-title" style="text-decoration: line-through; opacity: 0.6;">修复前端页面的响应式布局问题</div>
+      <div class="card-preview" style="opacity: 0.5;">已完成所有断点的适配，包括移动端和桌面端...</div>
+    </div>
+    <div class="card-footer">
+      <div class="card-tags">
+        <span class="tag-chip">前端</span>
+        <span class="tag-chip">响应式</span>
+      </div>
+      <div class="card-meta-right">
+        <span class="card-updated">6月5日</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 卡片6: 备忘（长内容） -->
+  <div class="note-card status-memo">
+    <div class="card-header">
+      <div class="card-status-row">
+        <span class="status-badge memo">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          备忘
+        </span>
+      </div>
+      <div class="card-actions">
+        <button class="card-action-btn">⋮</button>
+        <button class="card-action-btn delete">🗑</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="card-title">备忘：在密码备忘的过程中增加全链路的安全管理</div>
+      <div class="card-preview">需要考虑密码存储的加密方式、传输安全、访问控制等多个层面...</div>
+    </div>
+    <div class="card-footer">
+      <div class="card-tags">
+        <span class="tag-chip">密码库</span>
+        <span class="tag-chip">安全</span>
+        <span class="tag-more">+1</span>
+      </div>
+      <div class="card-meta-right">
+        <span class="card-updated">6月10日</span>
+      </div>
+    </div>
+  </div>
+
+</div><!-- .notes-grid -->
+
+<!-- ==================== 4. 分类侧边栏 + 主内容区 ==================== -->
+<div class="demo-section">
+  <div class="label">04 · 桌面端分类侧边栏 + 笔记网格布局</div>
+  <p style="font-size:13px;color:var(--text-tertiary);margin-bottom:24px;">
+    桌面端（>=1024px）时左侧显示分类导航，右侧显示笔记网格。分类按笔记数量排序，支持快速筛选。
+  </p>
+
+  <div class="content-layout">
+    <!-- 左侧分类栏 -->
+    <aside class="category-sidebar">
+      <div class="sidebar-title">分类</div>
+      <div class="category-list">
+        <button class="category-item active">
+          <span class="cat-name">
+            <span class="cat-icon" style="background:var(--memo-bg);color:var(--memo);">📁</span>
+            全部笔记
+          </span>
+          <span class="cat-count">28</span>
+        </button>
+        <button class="category-item">
+          <span class="cat-name">
+            <span class="cat-icon" style="background:var(--todo-bg);color:#b45309;">💼</span>
+            工作
+          </span>
+          <span class="cat-count">12</span>
+        </button>
+        <button class="category-item">
+          <span class="cat-name">
+            <span class="cat-icon" style="background:var(--progress-bg);color:var(--progress);">📚</span>
+            学习
+          </span>
+          <span class="cat-count">8</span>
+        </button>
+        <button class="category-item">
+          <span class="cat-name">
+            <span class="cat-icon" style="background:var(--done-bg);color:#047857;">🏠</span>
+            生活
+          </span>
+          <span class="cat-count">5</span>
+        </button>
+        <button class="category-item">
+          <span class="cat-name">
+            <span class="cat-icon" style="background:#fef2f2;color:var(--urgent);">⚡</span>
+            紧急
+          </span>
+          <span class="cat-count">3</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- 右侧笔记区 -->
+    <div>
+      <div class="section-header">
+        <div class="section-header-left">
+          <div class="section-title">
+            <span class="section-title-dot"></span>
+            工作
+          </div>
+          <span class="section-count">12 条笔记</span>
+        </div>
+        <div class="view-toggle">
+          <button class="view-btn active">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            网格
+          </button>
+          <button class="view-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            列表
+          </button>
+        </div>
+      </div>
+
+      <div class="notes-grid" style="grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));">
+        <div class="note-card status-memo">
+          <div class="card-header">
+            <div class="card-status-row">
+              <span class="status-badge memo">备忘</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="card-title">需求评审会议纪要</div>
+            <div class="card-preview">整理了本次需求评审的关键结论和待跟进事项...</div>
+          </div>
+          <div class="card-footer">
+            <div class="card-tags"><span class="tag-chip">会议</span></div>
+            <span class="card-updated">6月8日</span>
+          </div>
+        </div>
+        <div class="note-card status-todo">
+          <div class="card-header">
+            <div class="card-status-row">
+              <span class="status-badge todo">待办</span>
+              <span class="priority-dot urgent"></span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="card-title">提交Q2季度总结报告</div>
+            <div class="card-preview">需要汇总团队Q2的所有项目进展和数据...</div>
+          </div>
+          <div class="card-footer">
+            <div class="card-tags"><span class="tag-chip">季度汇报</span></div>
+            <span class="due-date overdue">6月8日 (已过期)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 5. 空状态 ==================== -->
+<div class="demo-section">
+  <div class="label">05 · 空状态设计</div>
+  <div class="empty-state">
+    <div class="empty-icon">📝</div>
+    <div class="empty-title">还没有笔记</div>
+    <div class="empty-desc">点击下方的按钮，或按 Ctrl+N 快速创建你的第一条备忘</div>
+    <button class="empty-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      创建笔记
+    </button>
+  </div>
+</div>
+
+<!-- ==================== 6. 实现代码参考 ==================== -->
+<div class="demo-section">
+  <div class="label">06 · React 实现代码参考</div>
+  <pre style="background:#0f172a;color:#e2e8f0;padding:20px;border-radius:12px;font-size:12px;line-height:1.7;overflow-x:auto;">
+<span style="color:#64748b">// ====== 1. StatusFilterBar.jsx ======</span>
+<span style="color:#f472b6">const</span> statusFilters = [
+  { value: <span style="color:#a5f3fc">''</span>,      label: <span style="color:#a5f3fc">'全部'</span>,   emoji: <span style="color:#a5f3fc">'📋'</span>, color: <span style="color:#a5f3fc">'all'</span> },
+  { value: <span style="color:#a5f3fc">'note'</span>,    label: <span style="color:#a5f3fc">'备忘'</span>,   emoji: <span style="color:#a5f3fc">'📝'</span>, color: <span style="color:#a5f3fc">'memo'</span> },
+  { value: <span style="color:#a5f3fc">'todo'</span>,    label: <span style="color:#a5f3fc">'待办'</span>,   emoji: <span style="color:#a5f3fc">'⏰'</span>, color: <span style="color:#a5f3fc">'todo'</span> },
+  { value: <span style="color:#a5f3fc">'in_progress'</span>, label: <span style="color:#a5f3fc">'进行中'</span>, emoji: <span style="color:#a5f3fc">'🚀'</span>, color: <span style="color:#a5f3fc">'progress'</span> },
+  { value: <span style="color:#a5f3fc">'done'</span>,    label: <span style="color:#a5f3fc">'已完成'</span>, emoji: <span style="color:#a5f3fc">'✅'</span>, color: <span style="color:#a5f3fc">'done'</span> },
+];
+
+<span style="color:#64748b">// 统计数量</span>
+<span style="color:#f472b6">const</span> counts = {
+  <span style="color:#a5f3fc">''</span>: allNotes.length,
+  note: allNotes.filter(n =&gt; n.status === <span style="color:#a5f3fc">'note'</span>).length,
+  todo: allNotes.filter(n =&gt; n.status === <span style="color:#a5f3fc">'todo'</span>).length,
+  in_progress: allNotes.filter(n =&gt; n.status === <span style="color:#a5f3fc">'in_progress'</span>).length,
+  done: allNotes.filter(n =&gt; n.status === <span style="color:#a5f3fc">'done'</span>).length,
+};
+
+<span style="color:#64748b">// 选中样式映射</span>
+<span style="color:#f472b6">const</span> activeClassMap = {
+  <span style="color:#a5f3fc">''</span>: <span style="color:#a5f3fc">'active-all'</span>, note: <span style="color:#a5f3fc">'active-memo'</span>, todo: <span style="color:#a5f3fc">'active-todo'</span>,
+  in_progress: <span style="color:#a5f3fc">'active-progress'</span>, done: <span style="color:#a5f3fc">'active-done'</span>
+};
+
+<span style="color:#64748b">// 使用</span>
+&lt;div className=<span style="color:#a5f3fc">"status-filter-bar"</span>&gt;
+  {statusFilters.map(f =&gt; (
+    &lt;button
+      key={f.value}
+      onClick={() =&gt; handleStatusChange(f.value)}
+      className={`status-pill ${activeStatus === f.value ? activeClassMap[f.value] : <span style="color:#a5f3fc">''</span>}`}
+    &gt;
+      &lt;span className=<span style="color:#a5f3fc">"pill-icon"</span>&gt;{f.emoji}&lt;/span&gt;
+      &lt;span&gt;{f.label}&lt;/span&gt;
+      &lt;span className=<span style="color:#a5f3fc">"pill-count"</span>&gt;{counts[f.value]}&lt;/span&gt;
+    &lt;/button&gt;
+  ))}
+&lt;/div&gt;
+
+<span style="color:#64748b">// ====== 2. NoteCard 顶部色带增强 ======</span>
+<span style="color:#64748b">// 在 NoteCard 的 className 中增加状态类：</span>
+<span style="color:#f472b6">const</span> statusTopClass = {
+  note: <span style="color:#a5f3fc">'status-memo'</span>, todo: <span style="color:#a5f3fc">'status-todo'</span>,
+  in_progress: <span style="color:#a5f3fc">'status-progress'</span>, done: <span style="color:#a5f3fc">'status-done'</span>
+};
+
+&lt;div className={`note-card ${statusTopClass[note.status] || <span style="color:#a5f3fc">''</span>}`}&gt;
+  <span style="color:#64748b">// 内部结构保持不变，hover 时顶部色带自动显示</span>
+&lt;/div&gt;
+
+<span style="color:#64748b">// ====== 3. 分类侧边栏（桌面端） ======</span>
+&lt;aside className=<span style="color:#a5f3fc">"category-sidebar hidden lg:block"</span>&gt;
+  &lt;div className=<span style="color:#a5f3fc">"sidebar-title"</span>&gt;分类&lt;/div&gt;
+  &lt;div className=<span style="color:#a5f3fc">"category-list"</span>&gt;
+    &lt;button
+      className={`category-item ${!activeCategory ? <span style="color:#a5f3fc">'active'</span> : <span style="color:#a5f3fc">''</span>}`}
+      onClick={() =&gt; setActiveCategory(null)}
+    &gt;
+      &lt;span className=<span style="color:#a5f3fc">"cat-name"</span>&gt;
+        &lt;span className=<span style="color:#a5f3fc">"cat-icon"</span> style={{...}}&gt;📁&lt;/span&gt;
+        全部笔记
+      &lt;/span&gt;
+      &lt;span className=<span style="color:#a5f3fc">"cat-count"</span>&gt;{allNotes.length}&lt;/span&gt;
+    &lt;/button&gt;
+    {categories.map(cat =&gt; (
+      &lt;button
+        key={cat.id}
+        className={`category-item ${activeCategory === cat.id ? <span style="color:#a5f3fc">'active'</span> : <span style="color:#a5f3fc">''</span>}`}
+        onClick={() =&gt; setActiveCategory(cat.id)}
+      &gt;
+        &lt;span className=<span style="color:#a5f3fc">"cat-name"</span>&gt;
+          &lt;span className=<span style="color:#a5f3fc">"cat-icon"</span>&gt;{cat.emoji || <span style="color:#a5f3fc">'📂'</span>}&lt;/span&gt;
+          {cat.name}
+        &lt;/span&gt;
+        &lt;span className=<span style="color:#a5f3fc">"cat-count"</span>&gt;{cat.noteCount}&lt;/span&gt;
+      &lt;/button&gt;
+    ))}
+  &lt;/div&gt;
+&lt;/aside&gt;
+
+<span style="color:#64748b">// ====== 4. QuickCreateBar 组件 ======</span>
+&lt;div className=<span style="color:#a5f3fc">"quick-create-bar"</span> onClick={handleCreateNote}&gt;
+  &lt;div className=<span style="color:#a5f3fc">"qc-icon"</span>&gt;+&lt;/div&gt;
+  &lt;div className=<span style="color:#a5f3fc">"qc-text"</span>&gt;快速记录一条备忘或待办...&lt;/div&gt;
+  &lt;div className=<span style="color:#a5f3fc">"qc-hint"</span>&gt;Ctrl + N&lt;/div&gt;
+&lt;/div&gt;
+  </pre>
+</div>
+
+<!-- ==================== 7. 变更清单 ==================== -->
+<div class="demo-section">
+  <div class="label">07 · 变更清单</div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <thead>
+      <tr style="border-bottom:2px solid var(--border);">
+        <th style="text-align:left;padding:10px;color:var(--text-muted);font-weight:600;">组件</th>
+        <th style="text-align:left;padding:10px;color:var(--text-muted);font-weight:600;">变更内容</th>
+        <th style="text-align:left;padding:10px;color:var(--text-muted);font-weight:600;">影响文件</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="border-bottom:1px solid var(--border-light);">
+        <td style="padding:10px;font-weight:600;">StatusFilterBar</td>
+        <td style="padding:10px;color:var(--text-secondary);">新增外层圆角容器，选中状态用品牌色填充+微阴影，每个 Tab 带 emoji+实时计数</td>
+        <td style="padding:10px;color:var(--text-muted);">Home.jsx</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border-light);">
+        <td style="padding:10px;font-weight:600;">SectionHeader</td>
+        <td style="padding:10px;color:var(--text-secondary);">增加左侧小圆点装饰、笔记计数、视图切换三态按钮（网格/列表/泳道）、排序下拉</td>
+        <td style="padding:10px;color:var(--text-muted);">Home.jsx</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border-light);">
+        <td style="padding:10px;font-weight:600;">QuickCreateBar</td>
+        <td style="padding:10px;color:var(--text-secondary);">新增快捷新建输入栏，点击触发新建，占位提示+快捷键提示</td>
+        <td style="padding:10px;color:var(--text-muted);">Home.jsx（新增）</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border-light);">
+        <td style="padding:10px;font-weight:600;">NoteCard</td>
+        <td style="padding:10px;color:var(--text-secondary);">顶部 hover 色带（按状态变色）、圆角调整、操作按钮 hover 显示、标签 hover 效果、子任务进度条美化</td>
+        <td style="padding:10px;color:var(--text-muted);">NoteCard.jsx</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border-light);">
+        <td style="padding:10px;font-weight:600;">CategorySidebar</td>
+        <td style="padding:10px;color:var(--text-secondary);">桌面端左侧 sticky 分类栏，带 emoji 图标+计数，选中高亮</td>
+        <td style="padding:10px;color:var(--text-muted);">Home.jsx（新增）</td>
+      </tr>
+      <tr>
+        <td style="padding:10px;font-weight:600;">EmptyState</td>
+        <td style="padding:10px;color:var(--text-secondary);">更精致的空状态：渐变图标背景+标题+描述+品牌色 CTA 按钮</td>
+        <td style="padding:10px;color:var(--text-muted);">EmptyState.jsx（修改）</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+</div><!-- .mock-page -->
+
+</body>
+</html>

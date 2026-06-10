@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Oner 思维链 V2 — 精品重设计方案</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  :root {
+    --violet:#7c3aed; --violet-light:#ede9fe; --violet-dark:#5b21b6;
+    --indigo:#4f46e5; --indigo-light:#e0e7ff;
+    --accent:#6366f1; --accent-light:#eef2ff; --accent-200:#c7d2fe;
+    --bg:#f8fafc; --text:#0f172a; --text-sec:#475569; --text-muted:#94a3b8;
+    --border:#e2e8f0; --border-light:#f1f5f9;
+    --red:#ef4444; --red-light:#fef2f2;
+    --amber:#f59e0b; --amber-light:#fffbeb;
+    --green:#10b981; --green-light:#ecfdf5;
+    --blue:#3b82f6; --blue-light:#eff6ff;
+    --teal:#14b8a6; --teal-light:#f0fdfa;
+    --purple:#8b5cf6; --purple-light:#f5f3ff;
+    --rose:#f43f5e; --rose-light:#fff1f2;
+    --coral:#D85A30; --coral-light:#FAECE7;
+    --grad-start:#7c3aed; --grad-end:#4f46e5;
+    --shadow-sm:0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md:0 4px 12px rgba(0,0,0,0.07);
+    --shadow-lg:0 12px 40px rgba(0,0,0,0.1);
+    --radius:12px;--radius-lg:16px;--radius-xl:20px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;padding:20px;}
+
+  /* ====== Page Header ====== */
+  .page-header{background:linear-gradient(135deg,var(--grad-start),var(--grad-end));color:white;padding:36px 40px 28px;border-radius:var(--radius-xl) var(--radius-xl) 0 0;margin-bottom:24px;position:relative;overflow:hidden;}
+  .page-header::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");}
+  .header-breadcrumb{display:flex;align-items:center;gap:8px;font-size:12px;opacity:0.75;margin-bottom:14px;}
+  .header-title{font-size:28px;font-weight:800;display:flex;align-items:center;gap:12px;margin-bottom:6px;}
+  .sparkle{width:40px;height:40px;background:rgba(255,255,255,0.18);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px;backdrop-filter:blur(4px);}
+  .header-desc{font-size:14px;opacity:0.85;max-width:650px;line-height:1.7;}
+  .header-actions{display:flex;gap:10px;margin-top:20px;}
+  .header-btn{padding:9px 20px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:all 0.15s;}
+  .header-btn.primary{background:white;color:var(--grad-start);}
+  .header-btn.ghost{background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.25);}
+
+  /* ====== Section ====== */
+  .section{margin-bottom:32px;}
+  .sec-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:18px;}
+  .sec-num{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--purple));color:white;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;flex-shrink:0;}
+  .sec-title{font-size:20px;font-weight:800;color:var(--text);}
+  .sec-desc{font-size:13px;color:var(--text-sec);width:100%;margin-top:4px;line-height:1.6;}
+  .sec-tags{display:flex;gap:6px;flex-wrap:wrap;width:100%;margin-top:8px;}
+  .sec-tag{font-size:11px;padding:3px 10px;border-radius:6px;font-weight:600;}
+  .card{background:white;border-radius:var(--radius);border:1px solid var(--border);padding:18px 20px;box-shadow:var(--shadow-sm);}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+  .insight-box{background:linear-gradient(135deg,#fefce8,#fffbeb);border:1px solid #fde68a;border-radius:var(--radius);padding:14px 18px;}
+  .insight-box p{font-size:13px;color:#92400e;line-height:1.7;}
+  .ctrl-btn{font-size:11px;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:white;cursor:pointer;font-family:inherit;color:var(--text-sec);transition:all 0.12s;}
+  .ctrl-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .ctrl-btn.ai{background:linear-gradient(135deg,var(--violet),var(--indigo));color:white;border:none;font-weight:600;}
+  .ctrl-btn.ai:hover{opacity:0.9;}
+
+  /* ═══════ V2 Mind Chain Styles ═══════ */
+  #mindchain-v2{background:white;border-radius:var(--radius-lg);border:1px solid var(--border);overflow:hidden;box-shadow:var(--shadow-md);}
+
+  /* Chain Header */
+  .mc-header{padding:18px 24px 14px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,#EEEDFE,#E6F1FB);}
+  .mc-header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .mc-logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#7F77DD,#378ADD);display:flex;align-items:center;justify-content:center;color:white;font-size:15px;font-weight:700;box-shadow:0 2px 8px rgba(127,119,221,0.25);flex-shrink:0;}
+  .mc-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+  .mc-stat-card{background:rgba(255,255,255,0.75);border-radius:10px;padding:10px 14px;text-align:center;border:1px solid rgba(127,119,221,0.08);}
+  .mc-stat-num{font-size:22px;font-weight:800;}
+  .mc-stat-label{font-size:11px;color:var(--text-muted);margin-top:1px;}
+
+  /* Chain Body */
+  .mc-body{padding:18px 20px;position:relative;}
+  .mc-time-axis{position:absolute;left:0;top:0;bottom:0;width:46px;border-right:1px solid var(--border-light);z-index:2;padding:0 4px;}
+  .mc-time-mark{position:absolute;left:4px;font-size:10px;color:var(--text-muted);font-weight:600;}
+  .mc-time-mark.today{color:#0F6E56;font-weight:700;}
+  .mc-nodes-area{margin-left:54px;position:relative;}
+
+  /* Node Wrapper */
+  .mc-node-wrapper{display:flex;align-items:flex-start;gap:10px;position:relative;z-index:1;margin-bottom:14px;}
+  .mc-node-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;margin-top:8px;}
+  .mc-node-card{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;transition:all 0.15s;border-left:3px solid transparent;}
+  .mc-node-card:hover{box-shadow:var(--shadow-md);transform:translateY(-1px);}
+  .mc-node-root{border-color:#CECBF6;border-left-color:#7F77DD;background:linear-gradient(135deg,#FAFAFF,white);}
+  .mc-node-important{border-color:#F5C4B3;border-left-color:#D85A30;background:linear-gradient(135deg,#FFFAF8,white);}
+  .mc-node-current{border:1px solid #9FE1CB;border-left-color:#0F6E56;background:linear-gradient(135deg,#F0FFF8,#E6F1FB);}
+  .mc-node-compact{padding:10px 14px;}
+  .mc-node-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+  .mc-type-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;}
+  .mc-node-time{font-size:11px;color:var(--text-muted);}
+  .mc-node-title{font-size:14px;font-weight:700;margin-bottom:5px;color:var(--text);}
+  .mc-node-preview{font-size:12px;color:var(--text-sec);line-height:1.65;margin-bottom:8px;}
+  .mc-node-preview strong{color:var(--text);}
+  .mc-node-tags{display:flex;gap:5px;flex-wrap:wrap;}
+  .mc-tag{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:600;}
+
+  /* Current Node Special */
+  .mc-dot-current{width:14px;height:14px;border-radius:50%;background:#0F6E56;box-shadow:0 0 0 3px #E1F5EE,0 0 0 5px rgba(15,110,86,0.15);animation:mcPulse 2s infinite;margin-top:8px;flex-shrink:0;}
+  .mc-current-badge{font-size:9px;padding:1px 7px;border-radius:3px;background:#0F6E56;color:white;font-weight:700;}
+
+  /* Action Bar inside node */
+  .mc-action-bar{display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(159,225,203,0.4);}
+  .mc-btn-mc{font-size:11px;padding:5px 12px;border-radius:7px;border:1px solid var(--border);background:white;cursor:pointer;font-family:inherit;color:var(--text-sec);font-weight:500;}
+  .mc-btn-primary{border-color:#7F77DD;color:#534AB7;}
+  .mc-btn-success{border:none;background:#0F6E56;color:white;}
+
+  /* Fork / Merge indicators */
+  .mc-fork-indicator{position:relative;z-index:1;margin-bottom:8px;margin-left:20px;display:flex;align-items:center;gap:6px;}
+  .mc-fork-line-v{width:1.5px;height:14px;background:#B4B2A9;}
+  .mc-fork-line-h{height:1px;flex:1;max-width:130px;background:#B4B2A9;}
+  .mc-fork-label{font-size:10px;color:var(--text-muted);}
+  .mc-merge-indicator{position:relative;z-index:1;margin-bottom:10px;margin-left:38px;display:flex;align-items:center;gap:8px;}
+  .mc-merge-line{height:1px;width:90px;background:#D85A30;}
+  .mc-merge-label{font-size:10px;color:#D85A30;font-weight:600;}
+
+  /* AI Insight Bubble */
+  .mc-ai-bubble{width:150px;flex-shrink:0;background:#EEEDFE;border-radius:var(--radius);padding:10px 12px;border:1px solid #CECBF6;}
+  .mc-ai-bubble-header{display:flex;align-items:center;gap:5px;margin-bottom:5px;}
+  .mc-ai-icon{width:18px;height:18px;border-radius:5px;background:#7F77DD;display:flex;align-items:center;justify-content:center;color:white;font-size:9px;font-weight:700;}
+  .mc-ai-bubble-text{font-size:11px;color:#534AB7;line-height:1.55;}
+
+  /* Footer */
+  .mc-footer{padding:14px 20px;border-top:1px solid var(--border);background:var(--bg);display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+
+  @keyframes mcPulse{0%,100%{box-shadow:0 0 0 3px #E1F5EE,0 0 0 5px rgba(15,110,86,0.15)}50%{box-shadow:0 0 0 5px #E1F5EE,0 0 0 10px rgba(15,110,86,0.08)}}
+
+  /* Level indents */
+  [data-level="0"]{}
+  [data-level="1"]{padding-left:18px;}
+  [data-level="2"]{padding-left:38px;}
+
+  /* Comparison Table */
+  .compare-table{width:100%;border-collapse:collapse;font-size:12px;}
+  .compare-table th{background:var(--bg);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;border-bottom:2px solid var(--border);}
+  .compare-table td{padding:10px 14px;border-bottom:1px solid var(--border-light);vertical-align:top;line-height:1.6;}
+  .compare-table tr:hover td{background:rgba(99,102,241,0.02);}
+
+  /* Page Footer */
+  .page-footer{text-align:center;padding:30px 20px;color:var(--text-muted);font-size:12px;border-top:1px solid var(--border);margin-top:40px;}
+</style>
+</head>
+<body>
+
+<!-- ====== HEADER ====== -->
+<div class="page-header" style="border-radius:var(--radius-xl);">
+  <div class="header-breadcrumb">
+    <span>Oner 产品规划</span> <span>/</span> <span>备忘功能</span> <span>/</span> <strong>思维链 V2 重设计</strong>
+  </div>
+  <div class="header-title">
+    <div class="sparkle">MC</div>
+    思维链视图 V2 — 精品重设计
+  </div>
+  <div class="header-desc">完全重构的思维链设计：从「圆点+竖线+简单卡片」升级为带时间轴的分支树状结构。每个节点包含完整内容预览、标签组、时间戳；支持分叉/汇合可视化、AI洞察气泡、当前节点脉冲动画。</div>
+  <div class="header-actions">
+    <button class="header-btn primary">查看完整原型 ↓</button>
+    <button class="header-btn ghost">对比 V1 → V2</button>
+  </div>
+</div>
+
+<!-- ====== SECTION: V1 vs V2 对比 ====== -->
+<section class="section">
+  <div class="sec-head">
+    <div class="sec-num" style="background:var(--amber);">Δ</div>
+    <div class="sec-title">V1 vs V2 — 具体改了什么？</div>
+    <div class="sec-desc">逐项对比旧版（粗糙版）和新版（精品版）的设计差异，说明每个改进的理由和用户价值。</div>
+  </div>
+
+  <table class="compare-table card" style="overflow:hidden;">
+    <thead><tr>
+      <th style="width:22%;">维度</th>
+      <th style="width:39%;">V1 旧版（粗糙）</th>
+      <th style="width:39%;">V2 新版（精品）</th>
+    </tr></thead>
+    <tbody>
+      <tr>
+        <td><strong style="color:var(--red);">节点信息量</strong></td>
+        <td>只有标题 + 一行 meta（如"2026-04-22 · 调研 · 由XX延伸"），看不到内容概要</td>
+        <td><strong>标题 + 2~4行内容预览 + 标签组 + 精确时间戳 + 类型徽标</strong>，不进详情页就能判断是否相关</td>
+      </tr>
+      <tr style="background:rgba(99,102,241,0.01);">
+        <td><strong style="color:var(--blue);">连线方式</strong></td>
+        <td>1.5px 灰色直线，所有层级同色，无方向感</td>
+        <td><strong>SVG 贝塞尔曲线</strong>，颜色随层级渐变（紫→蓝→绿→橙→青），线宽区分主/次路径（2.5px 主干 / 1.8px 分支）</td>
+      </tr>
+      <tr>
+        <td><strong style="color:var(--teal);">分支可视化</strong></td>
+        <td>只有 padding-left 缩进暗示层级，看不出哪里分叉、哪里汇合</td>
+        <td><strong>显式分叉指示器</strong>（├ 分叉为 N 条路径）+ <strong>汇合指示器</strong>（─ 汇合），虚线表示跨级收敛</td>
+      </tr>
+      <tr style="background:rgba(99,102,241,0.01);">
+        <td><strong style="color:var(--purple);">时间感知</strong></td>
+        <td>只有节点内部的小字时间戳，无法看到整体时间节奏</td>
+        <td><strong>左侧固定时间轴 rail</strong>，每节点对应日期刻度，「今天」高亮绿色，一眼看到停滞期和密集期</td>
+      </tr>
+      <tr>
+        <td><strong style="color:var(--coral);">关键节点强调</strong></td>
+        <td>结论节点和普通节点样式相同，只是边框色略有不同</td>
+        <td><strong>结论节点 = 橙色左边框+渐变底色 + AI洞察气泡</strong>；<strong>行动节点 = 绿色脉冲动画 + 快捷操作栏</strong>（打开/标记完成/插入子节点）</td>
+      </tr>
+      <tr style="background:rgba(99,102,241,0.01);">
+        <td><strong style="color:var(--green);">AI 融合</strong></td>
+        <td>没有 AI 元素，纯粹是静态展示</td>
+        <td><strong>AI 洞察气泡</strong>附着在关键节点旁（如决策点），自动解释该节点的角色（枢纽度、被引用次数）；<strong>置信度 badge</strong>在头部显示建链可信度</td>
+      </tr>
+      <tr>
+        <td><strong style="color:var(--text-sec);">头部统计</strong></td>
+        <td>只有一行文字标题 "思维链 — XXX"</td>
+        <td><strong>4 格统计卡片</strong>（节点数 / 时间跨度 / 分支数 / 跨链关联数）+ 链名称 + 置信度 + 视图切换按钮</td>
+      </tr>
+      <tr style="background:rgba(99,102,241,0.01);">
+        <td><strong style="color:var(--amber);">底部操作栏</strong></td>
+        <td>5 个等宽按钮平铺</td>
+        <td><strong>分层操作</strong>：AI 功能紫色渐变突出（AI补全链条）、导出功能靠右、常用操作居左，视觉优先级匹配使用频率</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ====== SECTION: 完整原型 ====== -->
+<section class="section">
+  <div class="sec-head">
+    <div class="sec-num" style="background:linear-gradient(135deg,#7F77DD,#378ADD);">P</div>
+    <div class="sec-title">思维链 V2 — 完整交互原型</div>
+    <div class="sec-desc">以下是可以交互的原型。点击「切换视图」可查看不同展示模式。</div>
+    <div class="sec-tags">
+      <span class="sec-tag" style="background:#EEEDFE; color:#534AB7;">时间轴</span>
+      <span class="sec-tag" style="background:#E1F5EE; color:#0F6E56;">分支/汇合</span>
+      <span class="sec-tag" style="background:#FAECE7; color:#993C1D;">AI气泡</span>
+      <span class="sec-tag" style="background:#E6F1FB; color:#185FA5;">内容预览</span>
+    </div>
+  </div>
+
+  <!-- ═══════ MIND CHAIN V2 PROTOTYPE ═══════ -->
+  <div id="mindchain-v2">
+
+    <!-- Chain Header -->
+    <div class="mc-header">
+      <div class="mc-header-top">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="mc-logo">MC</div>
+          <div>
+            <div style="font-size:16px;font-weight:800;color:var(--text);">产品研究思维链</div>
+            <div style="font-size:12px;color:var(--text-muted);">AI 自动生成 · 6 个节点 · 4 层深度</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;padding:4px 12px;border-radius:20px;background:#7F77DD;color:white;font-weight:700;">置信度 89%</span>
+          <button onclick="toggleChainView()" style="font-size:11px;padding:5px 12px;border-radius:8px;border:1px solid rgba(127,119,221,0.3);background:white;cursor:pointer;font-family:inherit;color:#534AB7;font-weight:600;">切换视图 ↻</button>
+        </div>
+      </div>
+      <div class="mc-stats">
+        <div class="mc-stat-card"><div class="mc-stat-num" style="color:#7F77DD;">6</div><div class="mc-stat-label">节点</div></div>
+        <div class="mc-stat-card"><div class="mc-stat-num" style="color:#1D9E75;">26天</div><div class="mc-stat-label">跨度</div></div>
+        <div class="mc-stat-card"><div class="mc-stat-num" style="color:#D85A30;">2</div><div class="mc-stat-label">分支</div></div>
+        <div class="mc-stat-card"><div class="mc-stat-num" style="color:#378ADD;">5</div><div class="mc-stat-label">跨链关联</div></div>
+      </div>
+    </div>
+
+    <!-- Chain Body -->
+    <div class="mc-body">
+
+      <!-- Time Axis Rail (absolute positioned) -->
+      <div class="mc-time-axis">
+        <div class="mc-time-mark" style="top:24px;">04/15</div>
+        <div class="mc-time-mark" style="top:96px;">04/22</div>
+        <div class="mc-time-mark" style="top:186px;">04/28</div>
+        <div class="mc-time-mark" style="top:274px;">05/03</div>
+        <div class="mc-time-mark" style="top:346px;">05/10</div>
+        <div class="mc-time-mark today" style="top:420px;">今天</div>
+      </div>
+
+      <!-- Nodes Area -->
+      <div class="mc-nodes-area">
+
+        <!-- SVG Connector Lines Overlay -->
+        <svg style="position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;" viewBox="0 0 580 460" preserveAspectRatio="xMinYMin meet" id="chainSvgLines">
+          <defs>
+            <filter id="glow"><feGaussianBlur stdDeviation="2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          </defs>
+          <!-- Root → Extend -->
+          <path d="M38,32 Q38,58 38,74" stroke="#CECBF6" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <!-- Extend → Detail A -->
+          <path d="M38,126 Q38,156 58,168" stroke="#B5D4F4" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+          <!-- Extend → Detail B -->
+          <path d="M38,126 Q38,222 58,235" stroke="#C0DD97" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+          <!-- Detail A → Conclusion -->
+          <path d="M192,218 C270,245 298,278 320,280" stroke="#F0997B" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-dasharray="4,3"/>
+          <!-- Detail B → Conclusion -->
+          <path d="M192,284 C256,296 304,290 320,286" stroke="#F0997B" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-dasharray="4,3"/>
+          <!-- Conclusion → Action -->
+          <path d="M380,314 Q380,352 380,372" stroke="#9FE1CB" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        </svg>
+
+        <!-- ══ NODE 0: 起点 ROOT ══ -->
+        <div class="mc-node-wrapper" data-level="0">
+          <div class="mc-node-dot" style="width:14px;height:14px;background:#7F77DD;box-shadow:0 0 0 3px #EEEDFE,0 0 0 5px rgba(127,119,221,0.15);"></div>
+          <div class="mc-node-card mc-node-root">
+            <div class="mc-node-header">
+              <span class="mc-type-badge" style="background:#EEEDFE;color:#534AB7;">起点</span>
+              <span class="mc-node-time">2026-04-15 14:20</span>
+            </div>
+            <div class="mc-node-title">最初灵感 — Oner 如何做「AI 原生」备忘</div>
+            <div class="mc-node-preview">如果每条备忘不只是孤立的时间点，而是一个演化链条上的节点会怎样？用户的核心痛点是想法碎片化——写了就忘、找不到关联、无法看到思考的完整脉络。如果 AI 能自动把相关备忘串成一条「思考路径」呢？...</div>
+            <div class="mc-node-tags">
+              <span class="mc-tag" style="background:#E6F1FB;color:#185FA5;">#产品思考</span>
+              <span class="mc-tag" style="background:#FAEEDA;color:#854F0B;">#灵感</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ NODE 1: 延伸 EXTEND ══ -->
+        <div class="mc-node-wrapper" data-level="1">
+          <div class="mc-node-dot" style="width:11px;height:11px;background:#378ADD;box-shadow:0 0 0 2.5px #E6F1FB;"></div>
+          <div class="mc-node-card">
+            <div class="mc-node-header">
+              <span class="mc-type-badge" style="background:#E6F1FB;color:#185FA5;">延伸</span>
+              <span class="mc-node-time">2026-04-22 09:15</span>
+            </div>
+            <div class="mc-node-title">竞品调研 — Notion / Obsidian / Capacities</div>
+            <div class="mc-node-preview">Notion 的 Database + Relation 系统、Obsidian 的双向链接 + Graph View、Capacities 的对象化类型系统——三者分别代表了关系型数据库、图结构、面向对象三种不同的知识组织范式。我们需要分析各自优劣并找到差异化机会...</div>
+            <div class="mc-node-tags">
+              <span class="mc-tag" style="background:#EAF3DE;color:#27500A;">#竞品</span>
+              <span class="mc-tag" style="background:#E6F1FB;color:#185FA5;">#调研</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Branch Fork Indicator -->
+        <div class="mc-fork-indicator">
+          <div class="mc-fork-line-v"></div>
+          <div class="mc-fork-line-h"></div>
+          <span class="mc-fork-label">分叉为 2 条并行路径</span>
+        </div>
+
+        <!-- ══ NODE 2a: 细化 — 分支 A ══ -->
+        <div class="mc-node-wrapper" data-level="2">
+          <div class="mc-node-dot" style="width:10px;height:10px;background:#639922;box-shadow:0 0 0 2px #EAF3DE;"></div>
+          <div class="mc-node-card mc-node-compact">
+            <div class="mc-node-header">
+              <span class="mc-type-badge" style="background:#EAF3DE;color:#27500A;">细化</span>
+              <span class="mc-node-time">04-28</span>
+            </div>
+            <div class="mc-node-title">「双向链接」功能点深度分析</div>
+            <div class="mc-node-preview">Obsidian 的 Local Graph + Canvas 是核心差异化功能。双向链接的本质是「手动声明的关系」，而我们要做的是「AI 自动发现的关系」。两者互补但不互斥——手动链接保证精确性，AI 发现覆盖遗忘...</div>
+          </div>
+        </div>
+
+        <!-- ══ NODE 2b: 细化 — 分支 B ══ -->
+        <div class="mc-node-wrapper" data-level="2">
+          <div class="mc-node-dot" style="width:10px;height:10px;background:#639922;box-shadow:0 0 0 2px #EAF3DE;"></div>
+          <div class="mc-node-card mc-node-compact">
+            <div class="mc-node-header">
+              <span class="mc-type-badge" style="background:#EAF3DE;color:#27500A;">细化</span>
+              <span class="mc-node-time">05-03</span>
+            </div>
+            <div class="mc-node-title">语义检索 vs 关键词检索 对比实验</div>
+            <div class="mc-node-preview">Embedding 相似度搜索在中文场景下的表现评估：使用 text-embedding-3-small 对备忘内容做向量化，然后用余弦相似度计算关联强度。实验结果表明语义检索在短文本场景下准确率可达 82%...</div>
+          </div>
+        </div>
+
+        <!-- Merge Converge Indicator -->
+        <div class="mc-merge-indicator">
+          <div class="mc-merge-line"></div>
+          <span class="mc-merge-label">汇合</span>
+        </div>
+
+        <!-- ══ NODE 3: 结论 CONCLUSION + AI Bubble ══ -->
+        <div class="mc-node-wrapper" data-level="1" style="align-items:flex-start;">
+          <div class="mc-node-dot" style="width:12px;height:12px;background:#D85A30;box-shadow:0 0 0 2.5px #FAECE7;"></div>
+          <div style="flex:1;display:flex;gap:10px;">
+            <div class="mc-node-card mc-node-important" style="flex:1;">
+              <div class="mc-node-header">
+                <span class="mc-type-badge" style="background:#FAECE7;color:#993C1D;">结论</span>
+                <span class="mc-node-time">2026-05-10 16:40</span>
+              </div>
+              <div class="mc-node-title">Q3 方向确定 — AI 语义关联 + 思维链两轨并行</div>
+              <div class="mc-node-preview">基于竞品调研和两项细化分析，最终确定两条技术路线：<br/><br/>
+                <strong>① AI 智能关联轨：</strong>用 Embedding 实现自动推荐关联，降低用户维护成本<br/>
+                <strong>② 思维链组织轨：</strong>用可视化链条组织想法演化，增强知识连续性感知<br/><br/>
+                两者互为补充——关联负责「横向连接」，思维链负责「纵向演化」。
+              </div>
+              <div class="mc-node-tags">
+                <span class="mc-tag" style="background:#E6F1FB;color:#185FA5;">#Q3规划</span>
+                <span class="mc-tag" style="background:#FBEAF0;color:#993556;">#决策</span>
+                <span class="mc-tag" style="background:#EEEDFE;color:#534AB7;">#技术方向</span>
+              </div>
+            </div>
+            <!-- AI Insight Bubble -->
+            <div class="mc-ai-bubble">
+              <div class="mc-ai-bubble-header">
+                <div class="mc-ai-icon">AI</div>
+                <span style="font-size:10px;font-weight:600;color:#534AB7;">洞察</span>
+              </div>
+              <div class="mc-ai-bubble-text">该节点汇总了 3 条上游路径，是链中<strong>关键决策点</strong>。检测到它同时被 5 条其他思维链引用，属于「高价值枢纽节点」。</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ NODE 4: 行动 ACTION (CURRENT) ══ -->
+        <div class="mc-node-wrapper" data-level="1">
+          <div class="mc-dot-current"></div>
+          <div class="mc-node-card mc-node-current">
+            <div class="mc-node-header">
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span class="mc-type-badge" style="background:#E1F5EE;color:#085041;">行动</span>
+                <span class="mc-current-badge">当前</span>
+              </div>
+              <span class="mc-node-time" style="color:#0F6E56;font-weight:600;">今天 14:32</span>
+            </div>
+            <div class="mc-node-title" style="color:#085041;">UI 设计方案 — 智能关联界面原型</div>
+            <div class="mc-node-preview">将「结论」转化为可执行的设计方案。包含三大模块详细交互规格：<br/>
+              • <strong>关联面板</strong>：底部抽屉式，5格评分+理由说明<br/>
+              • <strong>思维链视图</strong>：时间轴+分支树的复合布局<br/>
+              • <strong>分类导航</strong>：左侧固定分类树+右侧多视图列表
+            </div>
+            <div class="mc-node-tags">
+              <span class="mc-tag" style="background:#E1F5EE;color:#085041;">#UI设计</span>
+              <span class="mc-tag" style="background:#E6F1FB;color:#185FA5;">#进行中</span>
+            </div>
+            <!-- Quick Actions -->
+            <div class="mc-action-bar">
+              <button class="mc-btn-mc mc-btn-primary">打开备忘 →</button>
+              <button class="mc-btn-mc mc-btn-success">标记完成 ✓</button>
+              <button class="mc-btn-mc" style="margin-left:auto;">＋ 插入子节点</button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- end nodes area -->
+    </div><!-- end body -->
+
+    <!-- Footer Actions -->
+    <div class="mc-footer">
+      <button class="ctrl-btn ai">🤖 AI 自动补全链条</button>
+      <button class="ctrl-btn">＋ 手动添加节点</button>
+      <button class="ctrl-btn">✂ 拆分节点</button>
+      <button class="ctrl-btn">🔗 合并节点</button>
+      <button class="ctrl-btn" style="margin-left:auto;">📄 导出 Markdown 大纲</button>
+      <button class="ctrl-btn">⛶ 全屏查看</button>
+    </div>
+  </div>
+
+  <!-- Design Notes -->
+  <div class="insight-box" style="margin-top:20px;">
+    <p style="font-size:13px;color:#92400e;line-height:1.7;"><strong>V2 重设计要点总结：</strong></p>
+    <ul style="margin:8px 0 0 18px;padding:0;font-size:12px;color:#92400e;line-height:1.9;">
+      <li><strong>时间轴左侧固定</strong>：每条备忘对应一个日期刻度，直观看到思考的时间节奏和停滞期</li>
+      <li><strong>节点卡片信息量 ×3</strong>：从「标题+一行meta」升级为「类型标签+标题+2~4行内容预览+标签组+精确时间戳」</li>
+      <li><strong>分支/汇合可视化</strong>：用分叉指示器和汇合指示器明确标注拓扑变化点，不再靠缩进暗示</li>
+      <li><strong>AI 洞察气泡</strong>：关键节点右侧自动附加紫色 AI 分析卡片，解释节点角色和枢纽度</li>
+      <li><strong>当前节点脉冲动画</strong>：行动类节点用绿色脉冲圆点+渐变背景+快捷操作栏突出显示</li>
+      <li><strong>SVG 贝塞尔曲线连线</strong>：替代直线，颜色随层级渐变，线宽区分主/次路径</li>
+    </ul>
+  </div>
+
+  <!-- Node Type Legend -->
+  <div class="card" style="margin-top:16px;">
+    <div style="font-size:13px;font-weight:700;margin-bottom:14px;">节点类型视觉规范</div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;">
+      <div style="text-align:center;padding:14px 8px;border-radius:10px;background:#EEEDFE;">
+        <div style="width:14px;height:14px;border-radius:50%;background:#7F77DD;margin:0 auto 7px;box-shadow:0 0 0 2px white;"></div>
+        <div style="font-size:11px;font-weight:700;color:#534AB7;">起点</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">大圆·紫·发光</div>
+      </div>
+      <div style="text-align:center;padding:14px 8px;border-radius:10px;background:#E6F1FB;">
+        <div style="width:11px;height:11px;border-radius:50%;background:#378ADD;margin:0 auto 7px;"></div>
+        <div style="font-size:11px;font-weight:700;color:#185FA5;">延伸</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">中圆·蓝</div>
+      </div>
+      <div style="text-align:center;padding:14px 8px;border-radius:10px;background:#EAF3DE;">
+        <div style="width:10px;height:10px;border-radius:50%;background:#639922;margin:0 auto 7px;"></div>
+        <div style="font-size:11px;font-weight:700;color:#27500A;">细化</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">小圆·绿</div>
+      </div>
+      <div style="text-align:center;padding:14px 8px;border-radius:10px;background:#FAECE7;">
+        <div style="width:12px;height:12px;border-radius:50%;background:#D85A30;margin:0 auto 7px;"></div>
+        <div style="font-size:11px;font-weight:700;color:#993C1D;">结论</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">中大·橙</div>
+      </div>
+      <div style="text-align:center;padding:14px 8px;border-radius:10px;background:#E1F5EE;">
+        <div style="width:14px;height:14px;border-radius:50%;background:#0F6E56;margin:0 auto 7px;animation:mcPulse 2s infinite;"></div>
+        <div style="font-size:11px;font-weight:700;color:#085041;">行动</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">最大·青·脉动</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== FOOTER ====== -->
+<div class="page-footer">
+  Oner 备忘功能设计规划 · 思维链 V2 重设计 · 2026-06-10
+</div>
+
+<script>
+function toggleChainView() {
+  const body = document.getElementById('chainBodyV2') || document.querySelector('.mc-body');
+  if (!body) return;
+  // Toggle compact mode
+  body.classList.toggle('compact-mode');
+  const cards = body.querySelectorAll('.mc-node-preview');
+  cards.forEach(c => { c.style.display = c.style.display === 'none' ? '' : 'none'; });
+}
+
+// Live dot animation for time axis
+setInterval(() => {
+  const dots = document.querySelectorAll('.mc-dot-current');
+  dots.forEach(d => { d.style.opacity = d.style.opacity === '0.6' ? '1' : '0.6'; });
+}, 1500);
+</script>
+</body>
+</html>

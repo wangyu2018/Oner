@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oner 主题配色系统设计 — 浅色/深色双主题</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f8f9fc; color: #1e293b; }
+
+  /* ========== Layout ========== */
+  .page { max-width: 1280px; margin: 0 auto; padding: 40px 32px 80px; }
+  .hero { text-align: center; margin-bottom: 48px; }
+  .hero h1 { font-size: 32px; font-weight: 800; background: linear-gradient(135deg, #6366f1, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
+  .hero p { font-size: 15px; color: #64748b; }
+  .section { margin-bottom: 56px; }
+  .section-title { font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 4px; display:flex; align-items:center; gap:8px; }
+  .section-desc { font-size: 13px; color: #94a3b8; margin-bottom: 20px; }
+
+  /* ========== Theme Toggle ========== */
+  .theme-toggle { display:flex; justify-content:center; gap:4px; margin-bottom:40px; background:#e2e8f0; border-radius:10px; padding:4px; width:fit-content; margin-left:auto; margin-right:auto; }
+  .theme-toggle button { padding:8px 24px; border-radius:8px; border:none; font-size:14px; font-weight:600; cursor:pointer; transition:all .2s; background:transparent; color:#64748b; }
+  .theme-toggle button.active { background:#fff; color:#6366f1; box-shadow:0 1px 3px rgba(0,0,0,.1); }
+
+  /* ========== Preview Frame ========== */
+  .preview-frame { border-radius:16px; overflow:hidden; box-shadow:0 4px 24px rgba(0,0,0,.08); margin-bottom:48px; border:1px solid #e2e8f0; }
+  .preview-frame.light { background:#f8f9fc; }
+  .preview-frame.dark { background:#0f172a; }
+  .preview-header { padding:16px 24px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid rgba(0,0,0,.06); }
+  .preview-header.dark { border-bottom-color:rgba(255,255,255,.06); }
+  .preview-header .dots { display:flex; gap:6px; }
+  .preview-header .dot { width:10px; height:10px; border-radius:50%; }
+  .preview-body { padding:24px; }
+
+  /* ========== Color Swatch Grid ========== */
+  .swatch-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:12px; margin-bottom:32px; }
+  .swatch { border-radius:12px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.06); border:1px solid rgba(0,0,0,.04); }
+  .swatch-color { height:80px; display:flex; align-items:flex-end; padding:8px; }
+  .swatch-label { padding:10px 12px; background:#fff; }
+  .swatch-label.dark { background:#1e293b; }
+  .swatch-name { font-size:12px; font-weight:600; color:#334155; }
+  .swatch-label.dark .swatch-name { color:#e2e8f0; }
+  .swatch-hex { font-size:11px; color:#94a3b8; font-family:'JetBrains Mono',monospace; }
+
+  /* ========== Semantic Colors ========== */
+  .semantic-row { display:flex; gap:16px; flex-wrap:wrap; margin-bottom:24px; }
+  .semantic-card { flex:1; min-width:200px; border-radius:12px; padding:20px; display:flex; align-items:center; gap:16px; }
+  .semantic-icon { width:44px; height:44px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px; }
+  .semantic-info h4 { font-size:14px; font-weight:700; margin-bottom:2px; }
+  .semantic-info p { font-size:12px; opacity:.7; }
+
+  /* ========== Surface Preview ========== */
+  .surface-showcase { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:16px; }
+  .surface-card { border-radius:12px; padding:20px; }
+  .surface-card h4 { font-size:13px; font-weight:600; margin-bottom:8px; }
+  .surface-card p { font-size:12px; opacity:.7; }
+
+  /* ========== App Preview Mini ========== */
+  .app-preview { display:flex; height:420px; border-radius:12px; overflow:hidden; }
+  .app-sidebar { width:220px; padding:16px; display:flex; flex-direction:column; gap:8px; border-right:1px solid rgba(0,0,0,.06); }
+  .app-sidebar.dark { border-right-color:rgba(255,255,255,.06); }
+  .sidebar-item { padding:8px 12px; border-radius:8px; font-size:13px; font-weight:500; display:flex; align-items:center; gap:8px; }
+  .app-main { flex:1; padding:20px; display:flex; flex-direction:column; gap:12px; }
+  .app-card { border-radius:10px; padding:14px 16px; }
+  .app-card h4 { font-size:14px; font-weight:600; margin-bottom:4px; }
+  .app-card p { font-size:12px; opacity:.6; }
+
+  /* ========== Code Block ========== */
+  .code-block { background:#1e293b; border-radius:12px; padding:24px; margin-bottom:32px; overflow-x:auto; }
+  .code-block pre { color:#e2e8f0; font-size:13px; line-height:1.7; font-family:'JetBrains Mono',monospace; white-space:pre; }
+  .code-comment { color:#64748b; }
+  .code-key { color:#7dd3fc; }
+  .code-val { color:#fbbf24; }
+  .code-punct { color:#94a3b8; }
+
+  /* ========== Comparison Table ========== */
+  .compare-table { width:100%; border-collapse:collapse; margin-bottom:32px; }
+  .compare-table th { padding:12px 16px; font-size:13px; font-weight:600; text-align:left; border-bottom:2px solid #e2e8f0; color:#475569; }
+  .compare-table td { padding:10px 16px; font-size:13px; border-bottom:1px solid #f1f5f9; color:#334155; }
+  .compare-table tr:last-child td { border-bottom:none; }
+  .compare-table .swatch-inline { width:24px; height:24px; border-radius:6px; display:inline-block; vertical-align:middle; margin-right:8px; }
+
+  /* ========== Dark mode overrides ========== */
+  body.dark-preview { background:#0f172a; color:#e2e8f0; }
+  body.dark-preview .hero p { color:#94a3b8; }
+  body.dark-preview .section-title { color:#f1f5f9; }
+  body.dark-preview .theme-toggle { background:#1e293b; }
+  body.dark-preview .theme-toggle button { color:#94a3b8; }
+  body.dark-preview .theme-toggle button.active { background:#334155; color:#a5b4fc; }
+  body.dark-preview .preview-frame { border-color:#334155; }
+  body.dark-preview .code-block { background:#0f172a; border:1px solid #334155; }
+  body.dark-preview .compare-table th { border-bottom-color:#334155; color:#94a3b8; }
+  body.dark-preview .compare-table td { border-bottom-color:#1e293b; color:#cbd5e1; }
+
+  /* ========== Accent Color Picker ========== */
+  .accent-presets { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:24px; }
+  .accent-preset { width:40px; height:40px; border-radius:10px; cursor:pointer; border:3px solid transparent; transition:all .15s; }
+  .accent-preset:hover, .accent-preset.active { border-color:#fff; box-shadow:0 0 0 2px rgba(0,0,0,.1); }
+
+  /* ========== Token Table ========== */
+  .token-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .token-table th { padding:10px 14px; font-weight:600; text-align:left; background:#f8fafc; border-bottom:1px solid #e2e8f0; color:#475569; }
+  .token-table td { padding:9px 14px; border-bottom:1px solid #f1f5f9; color:#334155; font-family:'JetBrains Mono',monospace; font-size:12px; }
+  .token-table tr:hover td { background:#f8fafc; }
+  .color-dot { width:16px; height:16px; border-radius:4px; display:inline-block; vertical-align:middle; margin-right:8px; border:1px solid rgba(0,0,0,.06); }
+</style>
+</head>
+<body>
+
+<div class="page" id="page">
+
+  <!-- Hero -->
+  <div class="hero">
+    <h1>🎨 Oner 主题配色系统</h1>
+    <p>浅色 / 深色双主题 · 完整设计 Token · 默认强调色 Indigo-500 (#6366f1)</p>
+  </div>
+
+  <!-- Theme Toggle -->
+  <div class="theme-toggle">
+    <button class="active" onclick="switchTheme('light')">☀️ 浅色主题</button>
+    <button onclick="switchTheme('dark')">🌙 深色主题</button>
+  </div>
+
+  <!-- ==================== SECTION 1: 默认强调色 ==================== -->
+  <div class="section">
+    <div class="section-title">① 默认强调色选择</div>
+    <div class="section-desc">Oner 默认主题色从 Blue-500 升级为 Indigo-500，更现代、更适合生产力场景</div>
+
+    <div class="accent-presets">
+      <div class="accent-preset active" style="background:#6366f1" title="Indigo-500 (新默认)" onclick="selectAccent(this,'#6366f1')"></div>
+      <div class="accent-preset" style="background:#3b82f6" title="Blue-500 (旧默认)" onclick="selectAccent(this,'#3b82f6')"></div>
+      <div class="accent-preset" style="background:#8b5cf6" title="Violet-500" onclick="selectAccent(this,'#8b5cf6')"></div>
+      <div class="accent-preset" style="background:#0ea5e9" title="Sky-500" onclick="selectAccent(this,'#0ea5e9')"></div>
+      <div class="accent-preset" style="background:#10b981" title="Emerald-500" onclick="selectAccent(this,'#10b981')"></div>
+      <div class="accent-preset" style="background:#f59e0b" title="Amber-500" onclick="selectAccent(this,'#f59e0b')"></div>
+    </div>
+
+    <div class="compare-table">
+      <thead>
+        <tr><th>方案</th><th>色值</th><th>HSL</th><th>适用场景</th><th>评价</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="swatch-inline" style="background:#6366f1"></span>Indigo-500 (推荐)</td><td><code>#6366f1</code></td><td>240, 81%, 67%</td><td>全场景通用</td><td>现代感强，不刺眼，深浅主题都和谐</td></tr>
+        <tr><td><span class="swatch-inline" style="background:#3b82f6"></span>Blue-500 (当前)</td><td><code>#3b82f6</code></td><td>217, 91%, 60%</td><td>通用</td><td>太常见，略显平庸</td></tr>
+        <tr><td><span class="swatch-inline" style="background:#8b5cf6"></span>Violet-500</td><td><code>#8b5cf6</code></td><td>264, 81%, 68%</td><td>创意类应用</td><td>偏紫，不够专业</td></tr>
+        <tr><td><span class="swatch-inline" style="background:#0ea5e9"></span>Sky-500</td><td><code>#0ea5e9</code></td><td>198, 89%, 48%</td><td>轻量工具</td><td>太亮，深色模式下对比度不足</td></tr>
+      </tbody>
+    </div>
+
+    <div class="code-block">
+<pre><span class="code-comment">// utils/themeColors.js — 新的默认强调色</span>
+<span class="code-key">export const</span> <span class="code-val">DEFAULT_ACCENT</span> <span class="code-punct">=</span> <span class="code-punct">{</span>
+  h<span class="code-punct">:</span> <span class="code-val">240</span><span class="code-punct">,</span>
+  s<span class="code-punct">:</span> <span class="code-val">81</span><span class="code-punct">,</span>
+  l<span class="code-punct">:</span> <span class="code-val">67</span><span class="code-punct">,</span>
+  hex<span class="code-punct">:</span> <span class="code-val">'#6366f1'</span>
+<span class="code-punct">};</span></pre>
+    </div>
+  </div>
+
+  <!-- ==================== SECTION 2: 浅色主题配色 ==================== -->
+  <div class="section">
+    <div class="section-title">② 浅色主题 — 完整配色表</div>
+    <div class="section-desc">基于 Indigo-500 生成的完整调色板，含语义色、表面色、边框色</div>
+
+    <!-- Accent Shades -->
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:12px;color:#475569;">Accent 色阶 (50–900)</h3>
+    <div class="swatch-grid" id="lightAccentGrid">
+      <!-- JS 生成 -->
+    </div>
+
+    <!-- Neutral Shades -->
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:12px;color:#475569;">Neutral 中性色阶 (50–900)</h3>
+    <div class="swatch-grid" id="lightNeutralGrid">
+      <!-- JS 生成 -->
+    </div>
+
+    <!-- Semantic Colors -->
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:12px;color:#475569;">语义色 (Semantic)</h3>
+    <div class="semantic-row">
+      <div class="semantic-card" style="background:#f0fdf4;border:1px solid #bbf7d0;">
+        <div class="semantic-icon" style="background:#22c55e22;color:#16a34a;">✓</div>
+        <div class="semantic-info"><h4 style="color:#15803d;">Success 成功</h4><p style="color:#16a34a;">#22c55e / hsl(142 72% 50%)</p></div>
+      </div>
+      <div class="semantic-card" style="background:#fefce8;border:1px solid #fde68a;">
+        <div class="semantic-icon" style="background:#f59e0b22;color:#d97706;">⚠</div>
+        <div class="semantic-info"><h4 style="color:#b45309;">Warning 警告</h4><p style="color:#d97706;">#f59e0b / hsl(38 92% 50%)</p></div>
+      </div>
+      <div class="semantic-card" style="background:#fef2f2;border:1px solid #fecaca;">
+        <div class="semantic-icon" style="background:#ef444422;color:#dc2626;">✕</div>
+        <div class="semantic-info"><h4 style="color:#dc2626;">Error 错误</h4><p style="color:#dc2626;">#ef4444 / hsl(0 84% 60%)</p></div>
+      </div>
+      <div class="semantic-card" style="background:#eff6ff;border:1px solid #bfdbfe;">
+        <div class="semantic-icon" style="background:#3b82f622;color:#2563eb;">ℹ</div>
+        <div class="semantic-info"><h4 style="color:#2563eb;">Info 信息</h4><p style="color:#2563eb;">#3b82f6 / hsl(217 91% 60%)</p></div>
+      </div>
+    </div>
+
+    <!-- Surface Colors -->
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:12px;color:#475569;">表面色 (Surface & Background)</h3>
+    <div class="surface-showcase">
+      <div class="surface-card" style="background:#f8fafc;border:1px solid #e2e8f0;">
+        <h4 style="color:#475569;">bg-page 页面背景</h4>
+        <p style="color:#94a3b8;">#f8fafc · hsl(210 40% 98%)</p>
+      </div>
+      <div class="surface-card" style="background:#ffffff;border:1px solid #e2e8f0;">
+        <h4 style="color:#475569;">bg-surface 卡片/弹窗</h4>
+        <p style="color:#94a3b8;">#ffffff · hsl(0 0% 100%)</p>
+      </div>
+      <div class="surface-card" style="background:#f1f5f9;border:1px solid #e2e8f0;">
+        <h4 style="color:#475569;">bg-muted 次级区域</h4>
+        <p style="color:#94a3b8;">#f1f5f9 · hsl(210 40% 96%)</p>
+      </div>
+      <div class="surface-card" style="background:#e2e8f0;border:1px solid #cbd5e1;">
+        <h4 style="color:#475569;">border 边框/分割线</h4>
+        <p style="color:#94a3b8;">#e2e8f0 · hsl(214 32% 91%)</p>
+      </div>
+      <div class="surface-card" style="background:rgba(99,102,241,0.04);border:1px solid rgba(99,102,241,0.12);">
+        <h4 style="color:#475569;">bg-accent-subtle 强调色浅底</h4>
+        <p style="color:#94a3b8;">rgba(99,102,241,0.04)</p>
+      </div>
+    </div>
+
+    <!-- Text Colors -->
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:12px;color:#475569;">文字色 (Text Hierarchy)</h3>
+    <div class="compare-table">
+      <thead><tr><th>Token</th><th>色值</th><th>用途</th><th>对比度(AA)</th></tr></thead>
+      <tbody>
+        <tr><td>text-primary</td><td><span class="swatch-inline" style="background:#0f172a"></span><code>#0f172a</code></td><td>主标题、正文</td><td>14.7:1 ✓</td></tr>
+        <tr><td>text-secondary</td><td><span class="swatch-inline" style="background:#475569"></span><code>#475569</code></td><td>副标题、描述</td><td>7.3:1 ✓</td></tr>
+        <tr><td>text-tertiary</td><td><span class="swatch-inline" style="background:#94a3b8"></span><code>#94a3b8</code></td><td>辅助文字、placeholder</td><td>3.2:1 ✓</td></tr>
+        <tr><td>text-accent</td><td><span class="swatch-inline" style="background:#6366f1"></span><code>#6366f1</code></td><td>链接、强调文字</td><td>5.1:1 ✓</td></tr>
+        <tr><td>text-on-accent</td><td><span class="swatch-inline" style="background:#ffffff"></span><code>#ffffff</code></td><td>强调色背景上的文字</td><td>—</td></tr>
+      </tbody>
+    </div>
+  </div>
+
+  <!-- ==================== SECTION 3: 深色主题配色 ==================== -->
+  <div class="section">
+    <div class="section-title">③ 深色主题 — 完整配色表</div>
+    <div class="section-desc">深色主题不以「把浅色反转」为目标，而是独立设计——降低对比度、保护眼睛、保持层次感</div>
+
+    <!-- Accent Shades Dark -->
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:12px;color:#94a3b8;">Accent 色阶 (50–900) — 深色版</h3>
+    <div class="swatch-grid" id="darkAccentGrid">
+      <!-- JS 生成 -->
+    </div>
+
+    <!-- Neutral Shades Dark -->
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:12px;color:#94a3b8;">Neutral 中性色阶 (50–900) — 深色版</h3>
+    <div class="swatch-grid" id="darkNeutralGrid">
+      <!-- JS 生成 -->
+    </div>
+
+    <!-- Semantic Colors Dark -->
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:12px;color:#94a3b8;">语义色 (Semantic) — 深色版</h3>
+    <div class="semantic-row">
+      <div class="semantic-card" style="background:#052e160a;border:1px solid #166534;"></div>
+      <div class="semantic-card" style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);">
+        <div class="semantic-icon" style="background:rgba(34,197,94,0.2);color:#4ade80;">✓</div>
+        <div class="semantic-info"><h4 style="color:#4ade80;">Success 成功</h4><p style="color:#86efac;">#4ade80 / hsl(142 68% 65%)</p></div>
+      </div>
+      <div class="semantic-card" style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);">
+        <div class="semantic-icon" style="background:rgba(245,158,11,0.2);color:#fbbf24;">⚠</div>
+        <div class="semantic-info"><h4 style="color:#fbbf24;">Warning 警告</h4><p style="color:#fde68a;">#fbbf24 / hsl(38 92% 65%)</p></div>
+      </div>
+      <div class="semantic-card" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);">
+        <div class="semantic-icon" style="background:rgba(239,68,68,0.2);color:#f87171;">✕</div>
+        <div class="semantic-info"><h4 style="color:#f87171;">Error 错误</h4><p style="color:#fca5a5;">#f87171 / hsl(0 84% 72%)</p></div>
+      </div>
+      <div class="semantic-card" style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);">
+        <div class="semantic-icon" style="background:rgba(59,130,246,0.2);color:#60a5fa;">ℹ</div>
+        <div class="semantic-info"><h4 style="color:#60a5fa;">Info 信息</h4><p style="color:#93c5fd;">#60a5fa / hsl(217 91% 70%)</p></div>
+      </div>
+    </div>
+
+    <!-- Surface Colors Dark -->
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:12px;color:#94a3b8;">表面色 (Surface & Background) — 深色版</h3>
+    <div class="surface-showcase">
+      <div class="surface-card" style="background:#0f172a;border:1px solid #1e293b;">
+        <h4 style="color:#94a3b8;">bg-page 页面背景</h4>
+        <p style="color:#64748b;">#0f172a · hsl(222 47% 11%)</p>
+      </div>
+      <div class="surface-card" style="background:#1e293b;border:1px solid #334155;">
+        <h4 style="color:#94a3b8;">bg-surface 卡片/弹窗</h4>
+        <p style="color:#64748b;">#1e293b · hsl(222 47% 18%)</p>
+      </div>
+      <div class="surface-card" style="background:#334155;border:1px solid #475569;">
+        <h4 style="color:#94a3b8;">bg-muted 次级区域</h4>
+        <p style="color:#64748b;">#334155 · hsl(222 47% 28%)</p>
+      </div>
+      <div class="surface-card" style="background:#1e293b;border:1px solid #334155;">
+        <h4 style="color:#94a3b8;">border 边框/分割线</h4>
+        <p style="color:#64748b;">#334155 · hsl(222 47% 25%)</p>
+      </div>
+      <div class="surface-card" style="background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);">
+        <h4 style="color:#94a3b8;">bg-accent-subtle 强调色深底</h4>
+        <p style="color:#64748b;">rgba(99,102,241,0.08)</p>
+      </div>
+    </div>
+
+    <!-- Text Colors Dark -->
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:12px;color:#94a3b8;">文字色 (Text Hierarchy) — 深色版</h3>
+    <div class="compare-table">
+      <thead><tr><th>Token</th><th>色值</th><th>用途</th><th>对比度(AA)</th></tr></thead>
+      <tbody>
+        <tr><td>text-primary</td><td><span class="swatch-inline" style="background:#f1f5f9"></span><code>#f1f5f9</code></td><td>主标题、正文</td><td>12.8:1 ✓</td></tr>
+        <tr><td>text-secondary</td><td><span class="swatch-inline" style="background:#cbd5e1"></span><code>#cbd5e1</code></td><td>副标题、描述</td><td>7.1:1 ✓</td></tr>
+        <tr><td>text-tertiary</td><td><span class="swatch-inline" style="background:#64748b"></span><code>#64748b</code></td><td>辅助文字、placeholder</td><td>3.5:1 ✓</td></tr>
+        <tr><td>text-accent</td><td><span class="swatch-inline" style="background:#a5b4fc"></span><code>#a5b4fc</code></td><td>链接、强调文字</td><td>4.8:1 ✓</td></tr>
+        <tr><td>text-on-accent</td><td><span class="swatch-inline" style="background:#ffffff"></span><code>#ffffff</code></td><td>强调色背景上的文字</td><td>—</td></tr>
+      </tbody>
+    </div>
+  </div>
+
+  <!-- ==================== SECTION 4: CSS Variables 代码 ==================== -->
+  <div class="section">
+    <div class="section-title">④ globals.css — 完整 CSS Variables 定义</div>
+    <div class="section-desc">直接替换 frontend/src/styles/globals.css 中的 :root 和 .dark 块</div>
+
+    <div class="code-block">
+<pre><span class="code-comment">/* ============================</span>
+<span class="code-comment">  Oner 主题配色系统 v2</span>
+<span class="code-comment">  默认强调色: Indigo-500 (#6366f1)</span>
+<span class="code-comment">  浅色主题: :root  (无 .dark 类)</span>
+<span class="code-comment">  深色主题: .dark 类挂在 &lt;html&gt; 上</span>
+<span class="code-comment">============================ */</span>
+
+<span class="code-comment">/* ===== :root = 浅色主题 ===== */</span>
+<span class="code-punct">:</span><span class="code-key">root</span> <span class="code-punct">{</span>
+  <span class="code-comment">/* --- Accent (Indigo-500 派生) --- */</span>
+  <span class="code-val">--accent-50</span><span class="code-punct">:</span>  <span class="code-val">240</span> <span class="code-val">81%</span> <span class="code-val">97%</span><span class="code-punct">;</span>
+  <span class="code-val">--accent-100</span><span class="code-punct">:</span> <span class="code-val">240</span> <span class="code-val">81%</span> <span class="code-val">93%</span><span class="code-punct">;</span>
+  <span class="code-val">--accent-200</span><span class="code-punct">:</span> <span class="code-val">240</span> <span class="code-val">81%</span> <span class="code-val">85%</span><span class="code-punct">;</span>
+  <span class="code-val">--accent-300</span><span class="code-punct">:</span> <span class="code-val">240</span> <span class="code-val">81%</span> <span class="code-val">75%</span><span class="code-punct">;</span>
+  <span class="code-val">--accent-400</span><span class="code-punct">:</span> <span class="code-val">240</span> <span class="code-val">81%</span> <span class="code-val">67%</span><span class="code-punct">;</span>
+  <span class="code-val">--accent-500</span><span class="code-punct">:</span> <span class="code-val">240</span> <span class="code-val">81%</span> <span class="code-val">67%</span><span class="code-punct">;</span>  <span class="code-comment">/* 主色 #6366f1 */</span>
+  <span class="code-val">--accent-600</span><span class="code-punct">:</span> <span class="code-val">240</span> <span class="code-val">81%</span> <span class="code-val">59%</span><span class="code-punct">;</span>
+  <span class="code-val">--accent-700</span><span class="code-punct">:</span> <span class="code-val">240</span> <span class="code-val">81%</span> <span class="code-val">51%</span><span class="code-punct">;</span>
+  <span class="code-val">--accent-800</span><span class="code-punct">:</span> <span class="code-val">240</span> <span class="code-val">81%</span> <span class="code-val">43%</span><span class="code-punct">;</span>
+  <span class="code-val">--accent-900</span><span class="code-punct">:</span> <span class="code-val">240</span> <span class="code-val">81%</span> <span class="code-val">33%</span><span class="code-punct">;</span>
+
+  <span class="code-comment">/* --- Neutral (Slate) --- */</span>
+  <span class="code-val">--neutral-50</span><span class="code-punct">:</span>  <span class="code-val">210</span> <span class="code-val">40%</span>  <span class="code-val">98%</span><span class="code-punct">;</span>
+  <span class="code-val">--neutral-100</span><span class="code-punct">:</span> <span class="code-val">210</span> <span class="code-val">40%</span>  <span class="code-val">96%</span><span class="code-punct">;</span>
+  <span class="code-val">--neutral-200</span><span class="code-punct">:</span> <span class="code-val">214</span> <span class="code-val">32%</span>  <span class="code-val">91%</span><span class="code-punct">;</span>
+  <span class="code-val">--neutral-300</span><span class="code-punct">:</span> <span class="code-val">213</span> <span class="code-val">27%</span>  <span class="code-val">84%</span><span class="code-punct">;</span>
+  <span class="code-val">--neutral-400</span><span class="code-punct">:</span> <span class="code-val">215</span> <span class="code-val">20%</span>  <span class="code-val">65%</span><span class="code-punct">;</span>
+  <span class="code-val">--neutral-500</span><span class="code-punct">:</span> <span class="code-val">215</span> <span class="code-val">16%</span>  <span class="code-val">47%</span><span class="code-punct">;</span>
+  <span class="code-val">--neutral-600</span><span class="code-punct">:</span> <span class="code-val">215</span> <span class="code-val">19%</span>  <span class="code-val">35%</span><span class="code-punct">;</span>
+  <span class="code-val">--neutral-700</span><span class="code-punct">:</span> <span class="code-val">215</span> <span class="code-val">25%</span>  <span class="code-val">27%</span><span class="code-punct">;</span>
+  <span class="code-val">--neutral-800</span><span class="code-punct">:</span> <span class="code-val">217</span> <span class="code-val">33%</span>  <span class="code-val">17%</span><span class="code-punct">;</span>
+  <span class="code-val">--neutral-900</span><span class="code-punct">:</span> <span class="code-val">222</span> <span class="code-val">47%</span>  <span class="code-val">11%</span><span class="code-punct">;</span>
+
+  <span class="code-comment">/* --- Surface & Background --- */</span>
+  <span class="code-val">--bg-page</span><span class="code-punct">:</span>     <span class="code-val">210</span> <span class="code-val">40%</span>  <span class="code-val">98%</span><span class="code-punct">;</span>  <span class="code-comment">/* #f8fafc */</span>
+  <span class="code-val">--bg-surface</span><span class="code-punct">:</span>   <span class="code-val">0</span>   <span class="code-val">0%</span>   <span class="code-val">100%</span><span class="code-punct">;</span>  <span class="code-comment">/* #ffffff */</span>
+  <span class="code-val">--bg-muted</span><span class="code-punct">:</span>     <span class="code-val">210</span> <span class="code-val">40%</span>  <span class="code-val">96%</span><span class="code-punct">;</span>  <span class="code-comment">/* #f1f5f9 */</span>
+  <span class="code-val">--bg-accent-subtle</span><span class="code-punct">:</span> <span class="code-val">240</span> <span class="code-val">81%</span>  <span class="code-val">97%</span><span class="code-punct">;</span>  <span class="code-comment">/* accent-50 */</span>
+
+  <span class="code-comment">/* --- Border --- */</span>
+  <span class="code-val">--border-default</span><span class="code-punct">:</span> <span class="code-val">214</span> <span class="code-val">32%</span> <span class="code-val">91%</span><span class="code-punct">;</span>  <span class="code-comment">/* neutral-200 */</span>
+  <span class="code-val">--border-strong</span><span class="code-punct">:</span>  <span class="code-val">213</span> <span class="code-val">27%</span> <span class="code-val">84%</span><span class="code-punct">;</span>  <span class="code-comment">/* neutral-300 */</span>
+  <span class="code-val">--border-accent</span><span class="code-punct">:</span>  <span class="code-val">240</span> <span class="code-val">81%</span> <span class="code-val">85%</span><span class="code-punct">;</span>  <span class="code-comment">/* accent-200 */</span>
+
+  <span class="code-comment">/* --- Text --- */</span>
+  <span class="code-val">--text-primary</span><span class="code-punct">:</span>   <span class="code-val">222</span> <span class="code-val">47%</span>  <span class="code-val">11%</span><span class="code-punct">;</span>  <span class="code-comment">/* #0f172a */</span>
+  <span class="code-val">--text-secondary</span><span class="code-punct">:</span> <span class="code-val">215</span> <span class="code-val">19%</span>  <span class="code-val">35%</span><span class="code-punct">;</span>  <span class="code-comment">/* #475569 */</span>
+  <span class="code-val">--text-tertiary</span><span class="code-punct">:</span>  <span class="code-val">215</span> <span class="code-val">20%</span>  <span class="code-val">65%</span><span class="code-punct">;</span>  <span class="code-comment">/* #94a3b8 */</span>
+  <span class="code-val">--text-accent</span><span class="code-punct">:</span>    <span class="code-val">240</span> <span class="code-val">81%</span>  <span class="code-val">67%</span><span class="code-punct">;</span>  <span class="code-comment">/* accent-500 */</span>
+  <span class="code-val">--text-on-accent</span><span class="code-punct">:</span> <span class="code-val">0</span>   <span class="code-val">0%</span>   <span class="code-val">100%</span><span class="code-punct">;</span>  <span class="code-comment">/* #ffffff */</span>
+
+  <span class="code-comment">/* --- Semantic --- */</span>
+  <span class="code-val">--color-success</span><span class="code-punct">:</span> <span class="code-val">142</span> <span class="code-val">72%</span>  <span class="code-val">50%</span><span class="code-punct">;</span>  <span class="code-comment">/* #22c55e */</span>
+  <span class="code-val">--color-warning</span><span class="code-punct">:</span> <span class="code-val">38</span>  <span class="code-val">92%</span>  <span class="code-val">50%</span><span class="code-punct">;</span>  <span class="code-comment">/* #f59e0b */</span>
+  <span class="code-val">--color-error</span><span class="code-punct">:</span>   <span class="code-val">0</span>   <span class="code-val">84%</span>  <span class="code-val">60%</span><span class="code-punct">;</span>  <span class="code-comment">/* #ef4444 */</span>
+  <span class="code-val">--color-info</span><span class="code-punct">:</span>    <span class="code-val">217</span> <span class="code-val">91%</span>  <span class="code-val">60%</span><span class="code-punct">;</span>  <span class="code-comment">/* #3b82f6 */</span>
+
+  <span class="code-comment">/* --- Shadow (浅色专用) --- */</span>
+  <span class="code-val">--shadow-sm</span><span class="code-punct">:</span>  <span class="code-val">0</span> <span class="code-val">1px</span>  <span class="code-val">2px</span>  <span class="code-val">0</span> <span class="code-val">rgb(0 0 0 / 0.04)</span><span class="code-punct">;</span>
+  <span class="code-val">--shadow-md</span><span class="code-punct">:</span>  <span class="code-val">0</span> <span class="code-val">4px</span>  <span class="code-val">6px</span> <span class="code-val">-1px</span> <span class="code-val">rgb(0 0 0 / 0.06)</span><span class="code-punct">;</span>
+  <span class="code-val">--shadow-lg</span><span class="code-punct">:</span>  <span class="code-val">0</span> <span class="code-val">10px</span> <span class="code-val">15px</span> <span class="code-val">-3px</span> <span class="code-val">rgb(0 0 0 / 0.08)</span><span class="code-punct">;</span>
+  <span class="code-val">--shadow-xl</span><span class="code-punct">:</span>  <span class="code-val">0</span> <span class="code-val">20px</span> <span class="code-val">25px</span> <span class="code-val">-5px</span> <span class="code-val">rgb(0 0 0 / 0.1)</span><span class="code-punct">;</span>
+
+  <span class="code-comment">/* --- Wallpaper --- */</span>
+  <span class="code-val">--wallpaper</span><span class="code-punct">:</span> <span class="code-val">none</span><span class="code-punct">;</span>
+  <span class="code-val">--wallpaper-blur</span><span class="code-punct">:</span> <span class="code-val">20px</span><span class="code-punct">;</span>
+  <span class="code-val">--wallpaper-opacity</span><span class="code-punct">:</span> <span class="code-val">0.3</span><span class="code-punct">;</span>
+<span class="code-punct">}</span>
+
+<span class="code-comment">/* ===== .dark = 深色主题 ===== */</span>
+<span class="code-punct">.</span><span class="code-key">dark</span> <span class="code-punct">{</span>
+  <span class="code-comment">/* --- Accent (更亮，在深色背景上更可见) --- */</span>
+  <span class="code-val">--accent-50</span><span class="code-punct">:</span>  <span class="code-val">240</span> <span class="code-val">81%</span>  <span class="code-val">22%</span><span class="code-punct">;</span>
+  <span class="code-val">--accent-100</span><span class="code-punct">:</span> <span class="code-val">240</span> <span class="code-val">81%</span>  <span class="code-val">28%</span><span class="code-punct">;</span>
+  <span class="code-val">--accent-200</span><span class="code-punct">:</span> <span class="code-val">240</span> <span class="code-val">81%</span>  <span class="code-val">38%</span><span class="code-punct">;</span>
+  <span class="code-val">--accent-300</span><span class="code-punct">:</span> <span class="code-val">240</span> <span class="code-val">81%</span>  <span class="code-val">50%</span><span class="code-punct">;</span>
+  <span class="code-val">--accent-400</span><span class="code-punct">:</span> <span class="code-val">240</span> <span class="code-val">81%</span>  <span class="code-val">58%</span><span class="code-punct">;</span>
+  <span class="code-val">--accent-500</span><span class="code-punct">:</span> <span class="code-val">240</span> <span class="code-val">81%</span>  <span class="code-val">67%</span><span class="code-punct">;</span>  <span class="code-comment">/* 主色 #818cf8 (略亮于浅色版) */</span>
+  <span class="code-val">--accent-600</span><span class="code-punct">:</span> <span class="code-val">240</span> <span class="code-val">81%</span>  <span class="code-val">72%</span><span class="code-punct">;</span>
+  <span class="code-val">--accent-700</span><span class="code-punct">:</span> <span class="code-val">240</span> <span class="code-val">81%</span>  <span class="code-val">78%</span><span class="code-punct">;</span>
+  <span class="code-val">--accent-800</span><span class="code-punct">:</span> <span class="code-val">240</span> <span class="code-val">81%</span>  <span class="code-val">85%</span><span class="code-punct">;</span>
+  <span class="code-val">--accent-900</span><span class="code-punct">:</span> <span class="code-val">240</span> <span class="code-val">81%</span>  <span class="code-val">93%</span><span class="code-punct">;</span>
+
+  <span class="code-comment">/* --- Neutral (Slate Dark) --- */</span>
+  <span class="code-val">--neutral-50</span><span class="code-punct">:</span>  <span class="code-val">222</span> <span class="code-val">47%</span>  <span class="code-val">11%</span><span class="code-punct">;</span>  <span class="code-comment">/* #0f172a */</span>
+  <span class="code-val">--neutral-100</span><span class="code-punct">:</span> <span class="code-val">222</span> <span class="code-val">47%</span>  <span class="code-val">13%</span><span class="code-punct">;</span>  <span class="code-comment">/* #111827 (近似) */</span>
+  <span class="code-val">--neutral-200</span><span class="code-punct">:</span> <span class="code-val">216</span> <span class="code-val">34%</span>  <span class="code-val">17%</span><span class="code-punct">;</span>  <span class="code-comment">/* #1e293b */</span>
+  <span class="code-val">--neutral-300</span><span class="code-punct">:</span> <span class="code-val">215</span> <span class="code-val">28%</span>  <span class="code-val">23%</span><span class="code-punct">;</span>  <span class="code-comment">/* #334155 */</span>
+  <span class="code-val">--neutral-400</span><span class="code-punct">:</span> <span class="code-val">215</span> <span class="code-val">25%</span>  <span class="code-val">32%</span><span class="code-punct">;</span>  <span class="code-comment">/* #475569 */</span>
+  <span class="code-val">--neutral-500</span><span class="code-punct">:</span> <span class="code-val">215</span> <span class="code-val">20%</span>  <span class="code-val">45%</span><span class="code-punct">;</span>  <span class="code-comment">/* #64748b */</span>
+  <span class="code-val">--neutral-600</span><span class="code-punct">:</span> <span class="code-val">212</span> <span class="code-val">20%</span>  <span class="code-val">58%</span><span class="code-punct">;</span>  <span class="code-comment">/* #94a3b8 */</span>
+  <span class="code-val">--neutral-700</span><span class="code-punct">:</span> <span class="code-val">212</span> <span class="code-val">23%</span>  <span class="code-val">69%</span><span class="code-punct">;</span>  <span class="code-comment">/* #cbd5e1 */</span>
+  <span class="code-val">--neutral-800</span><span class="code-punct">:</span> <span class="code-val">210</span> <span class="code-val">40%</span>  <span class="code-val">87%</span><span class="code-punct">;</span>  <span class="code-comment">/* #e2e8f0 */</span>
+  <span class="code-val">--neutral-900</span><span class="code-punct">:</span> <span class="code-val">210</span> <span class="code-val">40%</span>  <span class="code-val">97%</span><span class="code-punct">;</span>  <span class="code-comment">/* #f1f5f9 */</span>
+
+  <span class="code-comment">/* --- Surface & Background --- */</span>
+  <span class="code-val">--bg-page</span><span class="code-punct">:</span>     <span class="code-val">222</span> <span class="code-val">47%</span>  <span class="code-val">11%</span><span class="code-punct">;</span>  <span class="code-comment">/* #0f172a */</span>
+  <span class="code-val">--bg-surface</span><span class="code-punct">:</span>   <span class="code-val">222</span> <span class="code-val">47%</span>  <span class="code-val">18%</span><span class="code-punct">;</span>  <span class="code-comment">/* #1e293b */</span>
+  <span class="code-val">--bg-muted</span><span class="code-punct">:</span>     <span class="code-val">222</span> <span class="code-val">47%</span>  <span class="code-val">28%</span><span class="code-punct">;</span>  <span class="code-comment">/* #334155 */</span>
+  <span class="code-val">--bg-accent-subtle</span><span class="code-punct">:</span> <span class="code-val">240</span> <span class="code-val">81%</span>  <span class="code-val">22%</span><span class="code-punct">;</span>  <span class="code-comment">/* accent-50 */</span>
+
+  <span class="code-comment">/* --- Border --- */</span>
+  <span class="code-val">--border-default</span><span class="code-punct">:</span> <span class="code-val">215</span> <span class="code-val">28%</span> <span class="code-val">23%</span><span class="code-punct">;</span>  <span class="code-comment">/* neutral-300 */</span>
+  <span class="code-val">--border-strong</span><span class="code-punct">:</span>  <span class="code-val">215</span> <span class="code-val">25%</span> <span class="code-val">32%</span><span class="code-punct">;</span>  <span class="code-comment">/* neutral-400 */</span>
+  <span class="code-val">--border-accent</span><span class="code-punct">:</span>  <span class="code-val">240</span> <span class="code-val">81%</span> <span class="code-val">38%</span><span class="code-punct">;</span>  <span class="code-comment">/* accent-200 */</span>
+
+  <span class="code-comment">/* --- Text --- */</span>
+  <span class="code-val">--text-primary</span><span class="code-punct">:</span>   <span class="code-val">210</span> <span class="code-val">40%</span>  <span class="code-val">97%</span><span class="code-punct">;</span>  <span class="code-comment">/* #f1f5f9 */</span>
+  <span class="code-val">--text-secondary</span><span class="code-punct">:</span> <span class="code-val">212</span> <span class="code-val">20%</span>  <span class="code-val">69%</span><span class="code-punct">;</span>  <span class="code-comment">/* #cbd5e1 */</span>
+  <span class="code-val">--text-tertiary</span><span class="code-punct">:</span>  <span class="code-val">215</span> <span class="code-val">20%</span>  <span class="code-val">45%</span><span class="code-punct">;</span>  <span class="code-comment">/* #64748b */</span>
+  <span class="code-val">--text-accent</span><span class="code-punct">:</span>    <span class="code-val">240</span> <span class="code-val">81%</span>  <span class="code-val">72%</span><span class="code-punct">;</span>  <span class="code-comment">/* accent-600 #a5b4fc */</span>
+  <span class="code-val">--text-on-accent</span><span class="code-punct">:</span> <span class="code-val">0</span>   <span class="code-val">0%</span>   <span class="code-val">100%</span><span class="code-punct">;</span>  <span class="code-comment">/* #ffffff */</span>
+
+  <span class="code-comment">/* --- Semantic (深色下更亮) --- */</span>
+  <span class="code-val">--color-success</span><span class="code-punct">:</span> <span class="code-val">142</span> <span class="code-val">68%</span>  <span class="code-val">65%</span><span class="code-punct">;</span>  <span class="code-comment">/* #4ade80 */</span>
+  <span class="code-val">--color-warning</span><span class="code-punct">:</span> <span class="code-val">38</span>  <span class="code-val">92%</span>  <span class="code-val">65%</span><span class="code-punct">;</span>  <span class="code-comment">/* #fbbf24 */</span>
+  <span class="code-val">--color-error</span><span class="code-punct">:</span>   <span class="code-val">0</span>   <span class="code-val">84%</span>  <span class="code-val">72%</span><span class="code-punct">;</span>  <span class="code-comment">/* #f87171 */</span>
+  <span class="code-val">--color-info</span><span class="code-punct">:</span>    <span class="code-val">217</span> <span class="code-val">91%</span>  <span class="code-val">70%</span><span class="code-punct">;</span>  <span class="code-comment">/* #60a5fa */</span>
+
+  <span class="code-comment">/* --- Shadow (深色专用) --- */</span>
+  <span class="code-val">--shadow-sm</span><span class="code-punct">:</span>  <span class="code-val">0</span> <span class="code-val">1px</span>  <span class="code-val">2px</span>  <span class="code-val">0</span> <span class="code-val">rgb(0 0 0 / 0.2)</span><span class="code-punct">;</span>
+  <span class="code-val">--shadow-md</span><span class="code-punct">:</span>  <span class="code-val">0</span> <span class="code-val">4px</span>  <span class="code-val">6px</span> <span class="code-val">-1px</span> <span class="code-val">rgb(0 0 0 / 0.3)</span><span class="code-punct">;</span>
+  <span class="code-val">--shadow-lg</span><span class="code-punct">:</span>  <span class="code-val">0</span> <span class="code-val">10px</span> <span class="code-val">15px</span> <span class="code-val">-3px</span> <span class="code-val">rgb(0 0 0 / 0.4)</span><span class="code-punct">;</span>
+  <span class="code-val">--shadow-xl</span><span class="code-punct">:</span>  <span class="code-val">0</span> <span class="code-val">20px</span> <span class="code-val">25px</span> <span class="code-val">-5px</span> <span class="code-val">rgb(0 0 0 / 0.5)</span><span class="code-punct">;</span>
+<span class="code-punct">}</span></pre>
+    </div>
+  </div>
+
+  <!-- ==================== SECTION 5: 应用预览 ==================== -->
+  <div class="section">
+    <div class="section-title">⑤ 应用界面预览 — 浅色/深色对照</div>
+    <div class="section-desc">同样的组件，在两种主题下的真实表现</div>
+
+    <!-- Light Preview -->
+    <div class="preview-frame light" id="lightPreview">
+      <div class="preview-header">
+        <div class="dots">
+          <div class="dot" style="background:#ef4444"></div>
+          <div class="dot" style="background:#f59e0b"></div>
+          <div class="dot" style="background:#22c55e"></div>
+        </div>
+        <span style="font-size:13px;color:#64748b;font-weight:500;">Oner — 浅色主题</span>
+        <div style="width:60px"></div>
+      </div>
+      <div class="preview-body" style="display:flex;gap:20px;">
+        <!-- Sidebar -->
+        <div style="width:200px;display:flex;flex-direction:column;gap:4px;">
+          <div style="padding:8px 12px;border-radius:8px;background:#eef2ff;color:#4f46e5;font-size:13px;font-weight:600;">🏠 工作台</div>
+          <div style="padding:8px 12px;border-radius:8px;color:#475569;font-size:13px;font-weight:500;">📝 备忘录</div>
+          <div style="padding:8px 12px;border-radius:8px;color:#475569;font-size:13px;font-weight:500;">✅ 待办</div>
+          <div style="padding:8px 12px;border-radius:8px;color:#475569;font-size:13px;font-weight:500;">📊 看板</div>
+          <div style="padding:8px 12px;border-radius:8px;color:#475569;font-size:13px;font-weight:500;">🤖 AI 助手</div>
+          <div style="margin-top:auto;padding:8px 12px;border-radius:8px;background:#f1f5f9;color:#64748b;font-size:12px;">⚙️ 设置</div>
+        </div>
+        <!-- Main -->
+        <div style="flex:1;display:flex;flex-direction:column;gap:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="font-size:18px;font-weight:700;color:#0f172a;">今日工作台</div>
+            <div style="padding:6px 16px;background:#6366f1;color:#fff;border-radius:8px;font-size:13px;font-weight:600;">+ 新建</div>
+          </div>
+          <div style="padding:14px 16px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;">
+            <div style="font-size:14px;font-weight:600;color:#0f172a;margin-bottom:4px;">完成 Q3 数据报告</div>
+            <div style="font-size:12px;color:#94a3b8;">截止: 今天 18:00 · 高优</div>
+          </div>
+          <div style="padding:14px 16px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;">
+            <div style="font-size:14px;font-weight:600;color:#0f172a;margin-bottom:4px;">Review 新设计方案</div>
+            <div style="font-size:12px;color:#94a3b8;">进行中 · 中优</div>
+          </div>
+          <div style="padding:14px 16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;">
+            <div style="font-size:14px;font-weight:600;color:#15803d;margin-bottom:4px;">✓ 已发送会议邀请</div>
+            <div style="font-size:12px;color:#16a34a;">已完成 · 昨天</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dark Preview -->
+    <div class="preview-frame dark" id="darkPreview" style="margin-top:24px;">
+      <div class="preview-header dark">
+        <div class="dots">
+          <div class="dot" style="background:#ef4444"></div>
+          <div class="dot" style="background:#f59e0b"></div>
+          <div class="dot" style="background:#22c55e"></div>
+        </div>
+        <span style="font-size:13px;color:#94a3b8;font-weight:500;">Oner — 深色主题</span>
+        <div style="width:60px"></div>
+      </div>
+      <div class="preview-body" style="display:flex;gap:20px;">
+        <!-- Sidebar -->
+        <div style="width:200px;display:flex;flex-direction:column;gap:4px;">
+          <div style="padding:8px 12px;border-radius:8px;background:rgba(99,102,241,0.15);color:#a5b4fc;font-size:13px;font-weight:600;">🏠 工作台</div>
+          <div style="padding:8px 12px;border-radius:8px;color:#cbd5e1;font-size:13px;font-weight:500;">📝 备忘录</div>
+          <div style="padding:8px 12px;border-radius:8px;color:#cbd5e1;font-size:13px;font-weight:500;">✅ 待办</div>
+          <div style="padding:8px 12px;border-radius:8px;color:#cbd5e1;font-size:13px;font-weight:500;">📊 看板</div>
+          <div style="padding:8px 12px;border-radius:8px;color:#cbd5e1;font-size:13px;font-weight:500;">🤖 AI 助手</div>
+          <div style="margin-top:auto;padding:8px 12px;border-radius:8px;background:#334155;color:#94a3b8;font-size:12px;">⚙️ 设置</div>
+        </div>
+        <!-- Main -->
+        <div style="flex:1;display:flex;flex-direction:column;gap:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="font-size:18px;font-weight:700;color:#f1f5f9;">今日工作台</div>
+            <div style="padding:6px 16px;background:#6366f1;color:#fff;border-radius:8px;font-size:13px;font-weight:600;">+ 新建</div>
+          </div>
+          <div style="padding:14px 16px;background:#1e293b;border:1px solid #334155;border-radius:10px;">
+            <div style="font-size:14px;font-weight:600;color:#f1f5f9;margin-bottom:4px;">完成 Q3 数据报告</div>
+            <div style="font-size:12px;color:#64748b;">截止: 今天 18:00 · 高优</div>
+          </div>
+          <div style="padding:14px 16px;background:#1e293b;border:1px solid #334155;border-radius:10px;">
+            <div style="font-size:14px;font-weight:600;color:#f1f5f9;margin-bottom:4px;">Review 新设计方案</div>
+            <div style="font-size:12px;color:#64748b;">进行中 · 中优</div>
+          </div>
+          <div style="padding:14px 16px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:10px;">
+            <div style="font-size:14px;font-weight:600;color:#4ade80;margin-bottom:4px;">✓ 已发送会议邀请</div>
+            <div style="font-size:12px;color:#86efac;">已完成 · 昨天</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== SECTION 6: 变更清单 ==================== -->
+  <div class="section">
+    <div class="section-title">⑥ 实施变更清单</div>
+    <div class="section-desc">需要修改的文件及具体改动点</div>
+
+    <div class="compare-table">
+      <thead><tr><th>文件</th><th>改动内容</th><th>优先级</th></tr></thead>
+      <tbody>
+        <tr><td><code>utils/themeColors.js</code></td><td>DEFAULT_ACCENT 改为 <code>{h:240, s:81, l:67, hex:'#6366f1'}</code></td><td>🔴 高</td></tr>
+        <tr><td><code>styles/globals.css</code></td><td>替换 <code>:root</code> 块 — 新的 accent + neutral + surface + text + semantic + shadow tokens</td><td>🔴 高</td></tr>
+        <tr><td><code>styles/globals.css</code></td><td>替换 <code>.dark</code> 块 — 深色主题完整 tokens（独立设计，非反转）</td><td>🔴 高</td></tr>
+        <tr><td><code>hooks/useCustomTheme.js</code></td><td>确认 <code>generateSurfaceColors()</code> 兼容新 accent，或改为使用 CSS variables</td><td>🟡 中</td></tr>
+        <tr><td><code>components/ThemeCustomizer.jsx</code></td><td>颜色选择器默认值更新为 #6366f1；预设色板增加 Indigo 选项</td><td>🟡 中</td></tr>
+        <tr><td><code>tailwind.config.js</code></td><td>确认 colors.accent 指向新的 CSS variable 体系（或保留原有方式）</td><td>🟢 低</td></tr>
+        <tr><td><code>styles/globals.css</code> 暗色滚动条</td><td>更新 <code>.dark ::-webkit-scrollbar</code> 配色以匹配新深色主题</td><td>🟢 低</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Footer -->
+  <div style="text-align:center;padding:32px 0 0;border-top:1px solid #e2e8f0;color:#94a3b8;font-size:13px;">
+    Oner 主题配色系统设计 v2 · 默认强调色 Indigo-500 (#6366f1) · 浅色/深色双主题完整 Token<br>
+    设计：UI Designer · 日期：2026-06-10
+  </div>
+
+</div>
+
+<script>
+// ========== Data ==========
+const accentLight = [
+  {shade:'50',  hex:'#eef2ff', hsl:'240 81% 97%'},
+  {shade:'100', hex:'#e0e7ff', hsl:'240 81% 93%'},
+  {shade:'200', hex:'#c7d2fe', hsl:'240 81% 85%'},
+  {shade:'300', hex:'#a5b4fc', hsl:'240 81% 75%'},
+  {shade:'400', hex:'#818cf8', hsl:'240 81% 67%'},
+  {shade:'500', hex:'#6366f1', hsl:'240 81% 67%', main:true},
+  {shade:'600', hex:'#4f46e5', hsl:'240 81% 59%'},
+  {shade:'700', hex:'#4338ca', hsl:'240 81% 51%'},
+  {shade:'800', hex:'#3730a3', hsl:'240 81% 43%'},
+  {shade:'900', hex:'#312e81', hsl:'240 81% 33%'},
+];
+const neutralLight = [
+  {shade:'50',  hex:'#f8fafc', hsl:'210 40% 98%'},
+  {shade:'100', hex:'#f1f5f9', hsl:'210 40% 96%'},
+  {shade:'200', hex:'#e2e8f0', hsl:'214 32% 91%'},
+  {shade:'300', hex:'#cbd5e1', hsl:'213 27% 84%'},
+  {shade:'400', hex:'#94a3b8', hsl:'215 20% 65%'},
+  {shade:'500', hex:'#64748b', hsl:'215 16% 47%'},
+  {shade:'600', hex:'#475569', hsl:'215 19% 35%'},
+  {shade:'700', hex:'#334155', hsl:'215 25% 27%'},
+  {shade:'800', hex:'#1e293b', hsl:'217 33% 17%'},
+  {shade:'900', hex:'#0f172a', hsl:'222 47% 11%'},
+];
+const accentDark = [
+  {shade:'50',  hex:'#0f172a', hsl:'240 81% 22%'},
+  {shade:'100', hex:'#1e1b4b', hsl:'240 81% 28%'},
+  {shade:'200', hex:'#312e81', hsl:'240 81% 38%'},
+  {shade:'300', hex:'#4338ca', hsl:'240 81% 50%'},
+  {shade:'400', hex:'#6366f1', hsl:'240 81% 58%'},
+  {shade:'500', hex:'#818cf8', hsl:'240 81% 67%', main:true},
+  {shade:'600', hex:'#a5b4fc', hsl:'240 81% 72%'},
+  {shade:'700', hex:'#c7d2fe', hsl:'240 81% 78%'},
+  {shade:'800', hex:'#e0e7ff', hsl:'240 81% 85%'},
+  {shade:'900', hex:'#eef2ff', hsl:'240 81% 93%'},
+];
+const neutralDark = [
+  {shade:'50',  hex:'#0f172a', hsl:'222 47% 11%'},
+  {shade:'100', hex:'#111827', hsl:'222 47% 13%'},
+  {shade:'200', hex:'#1e293b', hsl:'216 34% 17%'},
+  {shade:'300', hex:'#334155', hsl:'215 28% 23%'},
+  {shade:'400', hex:'#475569', hsl:'215 25% 32%'},
+  {shade:'500', hex:'#64748b', hsl:'215 20% 45%'},
+  {shade:'600', hex:'#94a3b8', hsl:'212 20% 58%'},
+  {shade:'700', hex:'#cbd5e1', hsl:'212 23% 69%'},
+  {shade:'800', hex:'#e2e8f0', hsl:'210 40% 87%'},
+  {shade:'900', hex:'#f1f5f9', hsl:'210 40% 97%'},
+];
+
+// ========== Render Swatches ==========
+function renderSwatches(containerId, data, isDark) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = data.map(c => `
+    <div class="swatch">
+      <div class="swatch-color" style="background:${c.hex};${c.main ? 'outline:3px solid #fff;outline-offset:-4px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.1);' : ''}">
+        ${c.main ? '<span style="background:rgba(0,0,0,.35);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;">MAIN</span>' : ''}
+      </div>
+      <div class="swatch-label ${isDark ? 'dark' : ''}">
+        <div class="swatch-name">${c.shade} ${c.main ? '★' : ''}</div>
+        <div class="swatch-hex">${c.hex}</div>
+        <div class="swatch-hex" style="color:#cbd5e1;">${c.hsl}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+renderSwatches('lightAccentGrid', accentLight, false);
+renderSwatches('lightNeutralGrid', neutralLight, false);
+renderSwatches('darkAccentGrid', accentDark, true);
+renderSwatches('darkNeutralGrid', neutralDark, true);
+
+// ========== Theme Toggle ==========
+let currentTheme = 'light';
+function switchTheme(theme) {
+  currentTheme = theme;
+  document.body.classList.toggle('dark-preview', theme === 'dark');
+  document.querySelectorAll('.theme-toggle button').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent.includes(theme === 'light' ? '浅色' : '深色'));
+  });
+}
+
+// ========== Accent Picker ==========
+function selectAccent(el, hex) {
+  document.querySelectorAll('.accent-preset').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  // Could update preview colors here
+}
+</script>
+</body>
+</html>

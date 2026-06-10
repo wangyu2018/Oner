@@ -52,16 +52,6 @@ function getWeightClass(note) {
   return 'normal';
 }
 
-function getWeightClassForCSS(note) {
-  const p = note.priority || 'normal';
-  const s = note.status || 'note';
-  if (p === 'urgent') return 'weight-urgent';
-  if (p === 'high') return 'weight-high';
-  if (s === 'done') return 'weight-done';
-  if (p === 'low') return 'weight-low';
-  return '';
-}
-
 // ========== 泳道卡片（可拖拽） ==========
 function SwimlaneCard({ note, onClick, onDelete, onTagClick, themeColor }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -77,7 +67,6 @@ function SwimlaneCard({ note, onClick, onDelete, onTagClick, themeColor }) {
 
   const p = note.priority || 'normal';
   const weight = getWeightClass(note);
-  const weightClassCSS = getWeightClassForCSS(note);
   const title = note.title || extractFirstLine(note.content) || '无标题';
   const preview = getContentPreview(note.content, 60);
 
@@ -90,56 +79,33 @@ function SwimlaneCard({ note, onClick, onDelete, onTagClick, themeColor }) {
   const isOverdue = dueDate && new Date(dueDate) < new Date(new Date().setHours(0, 0, 0, 0));
   const isDueToday = dueDate && new Date(dueDate).toDateString() === new Date().toDateString();
 
+  const doneClass = weight === 'done' ? 'done-state' : '';
+
   return (
     <div
       ref={setNodeRef}
       {...listeners}
       {...attributes}
       onClick={() => onClick(note)}
-      className={`group relative cursor-grab active:cursor-grabbing active:scale-[0.98]
-        bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700
-        rounded-lg p-2.5 mb-1.5 ${weightClassCSS}
-        ${weight === 'done' ? 'opacity-60' : ''}
-        ${weight === 'low' ? 'opacity-70 border-dashed' : ''}
-      `}
+      className={`swim-card ${doneClass}`}
       style={dragStyle}
-      onMouseEnter={(e) => {
-        if (weight !== 'done') {
-          e.currentTarget.style.borderColor = '#4f46e5';
-          e.currentTarget.style.boxShadow = '0 2px 8px rgba(79,70,229,0.1)';
-          e.currentTarget.style.transform = 'translateY(-1px)';
-        }
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = weight === 'done' || weight === 'low' ? '#e2e8f0' : '#e2e8f0';
-        e.currentTarget.style.boxShadow = 'none';
-        e.currentTarget.style.transform = 'none';
-      }}
     >
       {/* 删除按钮 */}
-      <button
-        onClick={handleDelete}
-        className="absolute top-1.5 right-1.5 p-0.5 rounded opacity-0 group-hover:opacity-100
-          hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all z-10"
-      >
-        <Trash2 size={10} />
+      <button onClick={handleDelete} className="swim-delete-btn" title="删除">
+        <Trash2 size={9} />
       </button>
 
       {/* 优先级徽章 */}
-      {(p === 'urgent' || p === 'high') && (
-        <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginBottom: 5 }}>
+      {(p === 'urgent' || p === 'high' || note.subtask_total > 0) && (
+        <div className="swim-badges">
           {p === 'urgent' && (
-            <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 4, fontWeight: 600, background: '#fef2f2', color: '#ef4444' }}>
-              🔴 高优先
-            </span>
+            <span className="badge-urgent">🔴 高优先</span>
           )}
           {p === 'high' && (
-            <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 4, fontWeight: 600, background: '#fff7ed', color: '#f97316' }}>
-              🟠 中优先
-            </span>
+            <span className="badge-high">🟠 中优先</span>
           )}
           {note.subtask_total > 0 && (
-            <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 4, fontWeight: 600, background: '#eef2ff', color: '#4f46e5' }}>
+            <span className="badge-subtask">
               {note.subtask_done || 0}/{note.subtask_total}
             </span>
           )}
@@ -147,29 +113,21 @@ function SwimlaneCard({ note, onClick, onDelete, onTagClick, themeColor }) {
       )}
 
       {/* 标题 */}
-      <h4 style={{ fontSize: 12, fontWeight: 600, marginBottom: 2, lineHeight: 1.4, color: weight === 'done' ? '#94a3b8' : '#1e293b' }}>
+      <h4 className="swim-title">
         {weight === 'done' ? <s>{title}</s> : title}
       </h4>
 
       {/* 预览 */}
       {preview && (
-        <p style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.3, marginBottom: 0 }}>{preview}</p>
+        <p className="swim-preview">{preview}</p>
       )}
 
       {/* 截止日期 */}
       {dueDate && (
-        <div style={{
-          fontSize: 10,
-          marginTop: 4,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 3,
-          color: isOverdue ? '#ef4444' : isDueToday ? '#f97316' : '#94a3b8',
-          fontWeight: isOverdue ? 700 : isDueToday ? 600 : 400,
-        }}>
-          <AlertTriangle size={10} />
-          {isOverdue ? `⚠️ 已过期 ${Math.floor((new Date() - new Date(dueDate)) / (1000*60*60*24))}天` : ''}
-          {isDueToday && !isOverdue ? '📅 今日截止' : ''}
+        <div className={`swim-due ${isOverdue ? 'overdue' : isDueToday ? 'today' : 'normal'}`}>
+          <AlertTriangle size={9} />
+          {isOverdue ? `已过期 ${Math.floor((new Date() - new Date(dueDate)) / (1000*60*60*24))}天` : ''}
+          {isDueToday && !isOverdue ? '今日截止' : ''}
           {!isOverdue && !isDueToday
             ? new Date(dueDate).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
             : ''
@@ -180,15 +138,13 @@ function SwimlaneCard({ note, onClick, onDelete, onTagClick, themeColor }) {
       {/* 子任务进度条 */}
       {note.subtask_total > 0 && (
         <>
-          <div style={{ height: 3, background: '#e2e8f0', borderRadius: 2, marginTop: 6, overflow: 'hidden' }}>
-            <div style={{
-              height: '100%',
-              borderRadius: 2,
-              width: `${((note.subtask_done || 0) / note.subtask_total) * 100}%`,
-              backgroundColor: themeColor || '#4f46e5',
-            }} />
+          <div className="swim-subtask-bar">
+            <div
+              className="swim-subtask-fill"
+              style={{ width: `${((note.subtask_done || 0) / note.subtask_total) * 100}%` }}
+            />
           </div>
-          <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 2 }}>
+          <div className="swim-subtask-text">
             {note.subtask_done || 0}/{note.subtask_total} 子任务
           </div>
         </>
@@ -196,18 +152,18 @@ function SwimlaneCard({ note, onClick, onDelete, onTagClick, themeColor }) {
 
       {/* 标签 */}
       {note.tags?.length > 0 && (
-        <div style={{ display: 'flex', gap: 3, marginTop: 5 }}>
+        <div className="swim-tags">
           {note.tags.slice(0, 2).map(tag => (
             <span
               key={tag}
               onClick={(e) => { e.stopPropagation(); onTagClick?.(tag); }}
-              style={{ fontSize: 9, padding: '1px 5px', borderRadius: 3, background: '#eef2ff', color: '#4f46e5', cursor: 'pointer' }}
+              className="swim-tag"
             >
               {tag}
             </span>
           ))}
           {note.tags.length > 2 && (
-            <span style={{ fontSize: 9, color: '#94a3b8' }}>+{note.tags.length - 2}</span>
+            <span className="swim-tags-more">+{note.tags.length - 2}</span>
           )}
         </div>
       )}
@@ -225,46 +181,16 @@ function LaneCell({ cellId, cards, onClick, onDelete, onTagClick, themeColor }) 
   return (
     <div
       ref={setNodeRef}
-      style={{
-        padding: 8,
-        borderRight: '1px solid #f1f5f9',
-        minHeight: 80,
-        transition: 'all 0.2s ease',
-        background: isOver ? 'rgba(79,70,229,0.06)' : 'transparent',
-        position: 'relative',
-      }}
-      className="last:border-r-0"
+      className={`lane-cell ${isOver ? 'drop-hover' : ''}`}
     >
-      {/* 拖拽放置提示 */}
-      {isOver && (
-        <div style={{
-          position: 'absolute', inset: 4,
-          border: '2px dashed rgba(79,70,229,0.3)',
-          borderRadius: 8,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          pointerEvents: 'none',
-          zIndex: 2,
-        }}>
-          <span style={{ fontSize: 11, color: '#4f46e5', fontWeight: 600, background: 'rgba(255,255,255,0.9)', padding: '2px 8px', borderRadius: 6 }}>
-            松手移动到这里
-          </span>
-        </div>
-      )}
-
       {cards.length === 0 ? (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 60 }}>
-          {isOver ? (
-            <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #a5b4fc' }}>
-              <span style={{ fontSize: 12, color: '#4f46e5', fontWeight: 700 }}>+</span>
-            </div>
-          ) : (
-            <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontSize: 10, color: '#94a3b8' }}>—</span>
-            </div>
-          )}
+        <div className={`cell-empty-placeholder ${isOver ? 'hovering' : ''}`}>
+          <div className="cell-empty-icon">
+            {isOver ? '+' : '—'}
+          </div>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <div>
           {cards.map(note => (
             <SwimlaneCard
               key={note.id}
@@ -289,39 +215,22 @@ function LaneLabel({ category, stats, theme, isActive, onClick }) {
   return (
     <div
       onClick={onClick}
-      className="hover:bg-gray-50 cursor-pointer"
-      style={{
-        padding: '14px 12px',
-        borderRight: '1px solid #e2e8f0',
-        background: isActive ? 'rgba(79,70,229,0.03)' : 'white',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 3,
-        position: 'sticky',
-        left: 0,
-        zIndex: 5,
-        borderLeft: `4px solid ${theme.border}`,
-      }}
+      className="lane-label"
+      style={{ borderLeftColor: theme.border }}
     >
-      <span style={{ fontSize: 12, fontWeight: 700, color: theme.color }}>
-        {icon} {category || '未分类'}
-      </span>
-      <span style={{ fontSize: 10, color: '#94a3b8' }}>
+      <div className="lane-name" style={{ color: theme.color }}>
+        <span className="lane-icon" style={{ background: `${theme.color}15`, color: theme.color }}>
+          {icon}
+        </span>
+        {category || '未分类'}
+      </div>
+      <div className="lane-stats">
         {stats.total} 项 · {stats.done} 完成
-      </span>
-      <div style={{ height: 3, background: '#e2e8f0', borderRadius: 2, overflow: 'hidden' }}>
-        <div style={{ height: '100%', borderRadius: 2, width: `${progress}%`, backgroundColor: theme.color, transition: 'width 0.4s' }} />
       </div>
-      <div style={{
-        width: 16, height: 16, borderRadius: 4,
-        background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 10, color: '#94a3b8', marginTop: 2,
-        transition: 'all 0.15s',
-      }}
-        className="hover:bg-indigo-50 hover:text-indigo-600"
-      >
-        ▾
+      <div className="lane-progress-track">
+        <div className="lane-progress-fill" style={{ width: `${progress}%`, backgroundColor: theme.color }} />
       </div>
+      <div className="lane-collapse-btn">▾</div>
     </div>
   );
 }
@@ -418,33 +327,18 @@ function SwimlaneBoard({
       if (targetCategory === currentCategory && status === currentStatus) return;
       onMoveNote?.(note.id, { category: targetCategory, status });
     }}>
-    <div style={{
-      border: '1px solid #e2e8f0',
-      borderRadius: 16,
-      overflow: 'hidden',
-      background: '#f8fafc',
-    }}>
+    <div className="swim-container">
       <div style={{ minWidth: 800 }}>
         {/* ===== 列头 ===== */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '140px repeat(4, 1fr)',
-            background: 'white',
-            borderBottom: '2px solid #e2e8f0',
-            position: 'sticky',
-            top: 0,
-            zIndex: 10,
-          }}
-        >
-          <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 500, color: '#94a3b8' }}>
+        <div className="col-header">
+          <div className="col-header-cell">
             分类 \ 状态
           </div>
           {COLUMNS.map(col => (
-            <div key={col.id} style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: col.color, flexShrink: 0 }} />
+            <div key={col.id} className="col-header-cell">
+              <span className="col-dot" style={{ color: col.color, backgroundColor: col.color }} />
               {col.title}
-              <span style={{ marginLeft: 'auto', fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>
+              <span className="col-count-badge">
                 {columnStats[col.id] || 0}
               </span>
             </div>
@@ -457,13 +351,13 @@ function SwimlaneBoard({
           return (
             <div
               key={lane.category || '__uncategorized__'}
+              className="swim-row last:border-b-0"
               style={{
-                borderBottom: '1px solid #e2e8f0',
                 display: 'grid',
                 gridTemplateColumns: '140px repeat(4, 1fr)',
                 background: lane.category && theme.bg !== 'transparent' ? theme.bg : 'transparent',
+                borderBottom: '1px solid var(--border-default)',
               }}
-              className="last:border-b-0"
             >
               {/* 泳道标签 */}
               <LaneLabel

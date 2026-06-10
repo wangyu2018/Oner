@@ -14,6 +14,10 @@ import Profile from './pages/Profile';
 import PasswordVault from './pages/PasswordVault';
 import AIChat from './pages/AIChat';
 import MemosPage from './pages/MemosPage';
+import OverduePage from './pages/OverduePage';
+import WeeklyPage from './pages/WeeklyPage';
+import AssociationsPage from './pages/AssociationsPage';
+import MindChainPage from './pages/MindChainPage';
 import AuthGuard from './components/AuthGuard';
 import BottomNav from './components/BottomNav';
 import CommandPalette from './components/CommandPalette';
@@ -189,6 +193,54 @@ export default function App() {
                     <ErrorBoundary>
                       <PageTransition>
                         <AIChat />
+                      </PageTransition>
+                    </ErrorBoundary>
+                  </AuthGuard>
+                }
+              />
+              <Route
+                path="/ai/overdue"
+                element={
+                  <AuthGuard>
+                    <ErrorBoundary>
+                      <PageTransition>
+                        <OverduePage />
+                      </PageTransition>
+                    </ErrorBoundary>
+                  </AuthGuard>
+                }
+              />
+              <Route
+                path="/ai/weekly"
+                element={
+                  <AuthGuard>
+                    <ErrorBoundary>
+                      <PageTransition>
+                        <WeeklyPage />
+                      </PageTransition>
+                    </ErrorBoundary>
+                  </AuthGuard>
+                }
+              />
+              <Route
+                path="/ai/associations"
+                element={
+                  <AuthGuard>
+                    <ErrorBoundary>
+                      <PageTransition>
+                        <AssociationsPage />
+                      </PageTransition>
+                    </ErrorBoundary>
+                  </AuthGuard>
+                }
+              />
+              <Route
+                path="/ai/chain"
+                element={
+                  <AuthGuard>
+                    <ErrorBoundary>
+                      <PageTransition>
+                        <MindChainPage />
                       </PageTransition>
                     </ErrorBoundary>
                   </AuthGuard>

@@ -4,7 +4,7 @@
  *   h: 0-360, s: 0-100, l: 0-100
  */
 
-export const DEFAULT_ACCENT = { h: 217, s: 91, l: 60, hex: '#3b82f6' };
+export const DEFAULT_ACCENT = { h: 240, s: 81, l: 67, hex: '#6366f1' };
 
 /**
  * Lightness targets for each accent shade (50–900).

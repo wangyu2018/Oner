@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Search, User, LogOut, Settings, Monitor, Lock, ArrowLeft } from 'lucide-react';
+import { LogOut, Settings, Monitor, Lock, ArrowLeft } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import BackupMenu from './BackupMenu';
 import DesktopSettings from './DesktopSettings';
@@ -11,7 +11,6 @@ import { useAuthContext } from '../App';
 
 export default function CommandBar({
   breadcrumb = '首页',
-  onOpenPalette,
   lastSync,
   onRefresh,
   loading,
@@ -53,13 +52,9 @@ export default function CommandBar({
     navigate('/login', { replace: true });
   };
 
-  const handleSearchClick = () => {
-    if (onOpenPalette) onOpenPalette();
-  };
-
   return (
     <>
-      <header className="sticky top-0 z-50 h-12 flex items-center gap-3 px-4 lg:px-5
+      <header className="sticky top-0 z-50 h-12 flex items-center justify-between gap-3 px-4 lg:px-5
         bg-white/92 dark:bg-gray-950/92 backdrop-blur-xl saturate-180
         border-b border-gray-200 dark:border-gray-800
         transition-colors duration-normal"
@@ -83,27 +78,7 @@ export default function CommandBar({
           </span>
         </div>
 
-        {/* 中间：搜索栏占位（点击打开命令面板） */}
-        <div
-          onClick={handleSearchClick}
-          className="flex-1 max-w-[480px] mx-auto h-8 flex items-center gap-2 px-3
-            rounded-[10px] border border-gray-200 dark:border-gray-700
-            bg-gray-50 dark:bg-gray-800/50
-            cursor-pointer transition-all duration-150
-            hover:border-accent/50 hover:bg-white dark:hover:bg-gray-800"
-        >
-          <Search size={15} className="text-gray-400 shrink-0" />
-          <span className="flex-1 text-sm text-gray-400 truncate select-none">
-            搜索、创建或输入命令...
-          </span>
-          <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5
-            text-[10px] font-medium text-gray-400
-            bg-gray-200/70 dark:bg-gray-700/70 rounded
-            font-sans leading-none"
-          >
-            ⌘K
-          </kbd>
-        </div>
+
 
         {/* 右侧：操作按钮 + 头像 */}
         <div className="flex items-center gap-1 shrink-0">

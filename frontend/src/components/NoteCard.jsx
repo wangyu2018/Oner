@@ -1,11 +1,17 @@
 import React from 'react';
-import { Trash2, Calendar } from 'lucide-react';
-import TagChip from './TagChip';
-import PriorityBadge from './PriorityBadge';
+import { Trash2, Calendar, CheckCircle } from 'lucide-react';
 import { RecurrenceBadge } from './RecurrenceSelector';
 import { CategoryBadge } from './CategorySelector';
 import { STATUS_CONFIG } from './StatusSelector';
 import { getContentPreview, extractFirstLine } from '../utils/tags';
+
+// Map status to CSS class name
+const STATUS_CLASS = {
+  note: 'memo',
+  todo: 'todo',
+  in_progress: 'progress',
+  done: 'done',
+};
 
 export default function NoteCard({ note, onClick, onDelete, onTagClick }) {
   const title = note.title || extractFirstLine(note.content) || '无标题';
@@ -16,8 +22,10 @@ export default function NoteCard({ note, onClick, onDelete, onTagClick }) {
   });
 
   // 状态配置
-  const statusConfig = STATUS_CONFIG[note.status] || STATUS_CONFIG.note;
+  const statusKey = note.status || 'note';
+  const statusConfig = STATUS_CONFIG[statusKey] || STATUS_CONFIG.note;
   const StatusIcon = statusConfig.icon;
+  const statusClass = STATUS_CLASS[statusKey] || 'memo';
 
   // 检查截止日期状态
   const getDueDateStatus = () => {
@@ -36,15 +44,6 @@ export default function NoteCard({ note, onClick, onDelete, onTagClick }) {
   };
 
   const dueDateStatus = getDueDateStatus();
-
-  // 颜色指示条（紧急红/进行中靛蓝/已完成翠绿）
-  const getIndicatorColor = () => {
-    if (note.priority === 'urgent') return 'bg-red-500';
-    if (note.status === 'in_progress') return 'bg-indigo-500';
-    if (note.status === 'done') return 'bg-emerald-500';
-    return null;
-  };
-  const indicatorColor = getIndicatorColor();
   const isUrgent = note.priority === 'urgent';
 
   const formatDueDate = () => {
@@ -61,99 +60,82 @@ export default function NoteCard({ note, onClick, onDelete, onTagClick }) {
   return (
     <div
       onClick={() => onClick(note)}
-      className={`group relative p-4 bg-white dark:bg-gray-900 rounded-xl border
-        border-gray-200 dark:border-gray-800 hover:border-accent dark:hover:border-accent
-        hover:shadow-md transition-all cursor-pointer
-        ${indicatorColor ? 'pl-5' : ''}
-        ${isUrgent ? 'animate-subtle-pulse' : ''}`}
+      className={`note-card status-${statusClass} ${isUrgent ? 'animate-subtle-pulse' : ''}`}
     >
-      {/* 左侧颜色指示条 */}
-      {indicatorColor && (
-        <div className={`absolute left-0 top-2 bottom-2 w-1 rounded-r-full ${indicatorColor}`} />
-      )}
-
-      <button
-        onClick={handleDelete}
-        className="absolute top-3 right-3 p-2 rounded-lg
-          md:opacity-0 md:group-hover:opacity-100 md:hover:bg-red-50 md:dark:hover:bg-red-900/30
-          text-gray-400 hover:text-red-500 transition-all"
-        style={{ minWidth: 44, minHeight: 44 }}
-      >
-        <Trash2 size={16} />
-      </button>
-
-      {/* 状态和优先级指示器 */}
-      <div className="flex items-center gap-2 mb-2">
-        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs ${statusConfig.bgColor} ${statusConfig.textColor}`}>
-          <StatusIcon size={10} />
-          {statusConfig.label}
-        </span>
-        {note.priority !== 'normal' && (
-          <PriorityBadge priority={note.priority} size="xs" showLabel={false} />
-        )}
-        <RecurrenceBadge recurrence={note.recurrence} size="xs" />
-        <CategoryBadge category={note.category} size="xs" />
+      {/* Header */}
+      <div className="card-header">
+        <div className="flex items-center gap-2">
+          <span className={`status-badge ${statusClass}`}>
+            <StatusIcon size={11} />
+            {statusConfig.label}
+          </span>
+          {note.priority !== 'normal' && (
+            <span className={`priority-dot ${note.priority}`} />
+          )}
+          <RecurrenceBadge recurrence={note.recurrence} size="xs" />
+          <CategoryBadge category={note.category} size="xs" />
+        </div>
+        <div className="card-actions">
+          <button onClick={handleDelete} className="card-action-btn" title="删除">
+            <Trash2 size={13} />
+          </button>
+        </div>
       </div>
 
-      <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-2 pr-8 line-clamp-2">
-        {title}
-      </h3>
+      {/* Body */}
+      <div className="card-body">
+        <h3 className="card-title">{title}</h3>
+        {preview && (
+          <p className="card-preview">{preview}</p>
+        )}
 
-      {preview && (
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-3">
-          {preview}
-        </p>
-      )}
-
-      {/* 截止日期 */}
-      {note.due_date && (
-        <div className={`flex items-center gap-1 text-xs mb-3 ${
-          dueDateStatus === 'overdue'
-            ? 'text-red-500'
-            : dueDateStatus === 'today'
-              ? 'text-orange-500'
-              : dueDateStatus === 'tomorrow'
-                ? 'text-yellow-600'
-                : 'text-gray-500 dark:text-gray-400'
-        }`}>
-          <Calendar size={12} />
-          <span>{formatDueDate()}</span>
-          {dueDateStatus === 'overdue' && <span className="font-medium">(已过期)</span>}
-          {dueDateStatus === 'today' && <span className="font-medium">(今天)</span>}
-        </div>
-      )}
-
-      {/* 子任务进度 */}
-      {note.subtask_total > 0 && (
-        <div className="flex items-center gap-2 mb-3">
-          <div className="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all bg-gradient-to-r from-accent to-accent-400"
-              style={{ width: `${(note.subtask_done / note.subtask_total) * 100}%` }}
-            />
+        {/* 截止日期 */}
+        {note.due_date && (
+          <div className={`due-date ${dueDateStatus === 'overdue' ? 'overdue' : dueDateStatus === 'today' ? 'today' : dueDateStatus === 'tomorrow' ? 'tomorrow' : ''}`}>
+            <Calendar size={11} />
+            <span>{formatDueDate()}</span>
+            {dueDateStatus === 'overdue' && <span className="font-medium">(已过期)</span>}
+            {dueDateStatus === 'today' && <span className="font-medium">(今天)</span>}
           </div>
-          <span className="text-xs text-gray-400">{note.subtask_done}/{note.subtask_total}</span>
-        </div>
-      )}
+        )}
 
-      <div className="flex items-center justify-between">
-        <div className="flex flex-wrap gap-1.5">
+        {/* 子任务进度 */}
+        {note.subtask_total > 0 && (
+          <div className="flex items-center gap-2 mt-3">
+            <div className="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all"
+                style={{
+                  width: `${((note.subtask_done || 0) / note.subtask_total) * 100}%`,
+                  background: 'linear-gradient(90deg, var(--color-memo), hsl(240 81% 67%))',
+                }}
+              />
+            </div>
+            <span className="text-xs text-gray-400">{note.subtask_done || 0}/{note.subtask_total}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="card-footer">
+        <div className="card-tags">
           {note.tags?.slice(0, 3).map((tag) => (
-            <TagChip
+            <span
               key={tag}
-              tag={tag}
-              size="xs"
+              className="card-tag"
               onClick={(e) => {
                 e.stopPropagation();
                 onTagClick(tag);
               }}
-            />
+            >
+              {tag}
+            </span>
           ))}
           {note.tags?.length > 3 && (
-            <span className="text-xs text-gray-400">+{note.tags.length - 3}</span>
+            <span className="card-tag-more">+{note.tags.length - 3}</span>
           )}
         </div>
-        <span className="text-xs text-gray-400 dark:text-gray-500">{date}</span>
+        <span className="card-updated">{date}</span>
       </div>
     </div>
   );
