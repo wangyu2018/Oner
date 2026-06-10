@@ -9,6 +9,7 @@ export default forwardRef(function GlobalQuickEntry({ onCreateNote, onVoiceInput
   const [text, setText] = useState('');
   const [status, setStatus] = useState('note');
   const [creating, setCreating] = useState(false);
+  const [polishing, setPolishing] = useState(false);
   const inputRef = useRef(null);
   const containerRef = useRef(null);
   const isComposing = useRef(false);
@@ -272,18 +273,42 @@ export default forwardRef(function GlobalQuickEntry({ onCreateNote, onVoiceInput
         </div>
       )}
 
-      {/* 关键词标签（AI 模式下隐藏） */}
-      {!compact && !aiMode && keywordChips.length > 0 && (
-        <div className="flex items-center gap-1.5 px-3 pt-2 pb-1 overflow-x-auto scrollbar-none">
-          {keywordChips.map((chip, i) => (
-            <span
-              key={i}
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium whitespace-nowrap"
-              style={{ color: chip.color, backgroundColor: chip.bg }}
-            >
-              {chip.label}
+      {/* 实时预览区域：关键词标签 + 笔记预览 */}
+      {!compact && hasText && keywordChips.length > 0 && (
+        <div className="px-3 pt-2 pb-1 border-b border-gray-100 dark:border-gray-800/50
+          bg-gradient-to-r from-gray-50/50 to-transparent dark:from-gray-800/20">
+          {/* 智能分类标签 */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {keywordChips.map((chip, i) => (
+              <span
+                key={i}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium whitespace-nowrap
+                  border border-current/10"
+                style={{ color: chip.color, backgroundColor: chip.bg }}
+              >
+                {chip.label}
+              </span>
+            ))}
+            {/* 实时状态指示 */}
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium
+              ${(keywords?.status || status) === 'todo'
+                ? 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400'
+                : 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+              }`}>
+              {(keywords?.status || status) === 'todo' ? '待办' : '备忘'}
             </span>
-          ))}
+          </div>
+          {/* 笔记预览卡片 */}
+          <div className="mt-1.5 p-2 rounded-lg bg-white/70 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50">
+            <p className="text-xs text-gray-700 dark:text-gray-300 line-clamp-2 leading-relaxed">
+              {text.trim()}
+            </p>
+            {keywords?.category && (
+              <span className="mt-1 inline-flex items-center gap-0.5 text-[10px] text-green-600 dark:text-green-400">
+                📂 {keywords.category}
+              </span>
+            )}
+          </div>
         </div>
       )}
 
@@ -295,22 +320,6 @@ export default forwardRef(function GlobalQuickEntry({ onCreateNote, onVoiceInput
         ${compact ? 'md:rounded-xl md:shadow-sm' : 'md:rounded-2xl md:shadow-lg md:shadow-black/10'}
         transition-all duration-200`}>
         <div className={`flex items-center gap-1.5 ${compact ? 'px-2 py-1' : 'px-3 py-2.5'}`}>
-          {/* Status indicator (icon only) */}
-          {!compact && (
-            <button
-              onClick={() => setStatus(s => s === 'note' ? 'todo' : 'note')}
-              disabled={creating}
-              className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
-                (keywords?.status || status) === 'todo'
-                  ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400'
-                  : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-              } ${creating ? 'opacity-50' : ''}`}
-              title={status === 'note' ? '切换为待办' : '切换为备忘'}
-            >
-              {(keywords?.status || status) === 'todo' ? <Circle size={16} /> : <FileText size={16} />}
-            </button>
-          )}
-
           {/* Text input */}
           <div className="flex-1 relative">
             <input
@@ -327,7 +336,7 @@ export default forwardRef(function GlobalQuickEntry({ onCreateNote, onVoiceInput
               onKeyDown={handleKeyDown}
               onCompositionStart={handleCompositionStart}
               onCompositionEnd={handleCompositionEnd}
-              placeholder={creating ? '创建中...' : aiMode ? 'AI 帮你记录...' : (activeCategory ? `在「${activeCategory}」中搜索...` : '写点什么... 支持自然语言')}
+              placeholder={creating ? '创建中...' : polishing ? '润色中...' : aiMode ? 'AI 帮你记录...' : (activeCategory ? `在「${activeCategory}」中搜索...` : '写点什么... 支持自然语言')}
               className={`w-full bg-gray-100/90 dark:bg-gray-800/90
                 text-sm text-gray-900 dark:text-gray-100
                 placeholder-gray-400 dark:placeholder-gray-500
@@ -350,6 +359,34 @@ export default forwardRef(function GlobalQuickEntry({ onCreateNote, onVoiceInput
               </button>
             )}
           </div>
+
+          {/* AI 润色按钮 */}
+          {hasText && !creating && !compact && (
+            <button
+              onClick={async () => {
+                if (polishing || !text.trim()) return;
+                setPolishing(true);
+                try {
+                  const res = await api.ai.analyze({ action: 'polish', content: text.trim() });
+                  const polished = res.data?.result?.trim();
+                  if (polished) setText(polished);
+                } catch {
+                  // 润色失败时保持原文
+                } finally {
+                  setPolishing(false);
+                }
+              }}
+              disabled={polishing}
+              className={`flex-shrink-0 p-2 rounded-xl transition-all
+                ${polishing
+                  ? 'bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400'
+                  : 'bg-gray-100/70 dark:bg-gray-800/70 text-gray-500 dark:text-gray-400 hover:bg-violet-50 hover:text-violet-600 dark:hover:bg-violet-900/20 dark:hover:text-violet-400'
+                }`}
+              title="AI 润色"
+            >
+              {polishing ? <Loader2 size={compact ? 14 : 16} className="animate-spin" /> : <Sparkles size={compact ? 14 : 16} />}
+            </button>
+          )}
 
           {/* AI mode indicator */}
           {aiMode && !creating && (

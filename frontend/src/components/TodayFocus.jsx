@@ -27,6 +27,7 @@ export default function TodayFocus({
   onVoiceInput,
   onNoteClick,
   onInsightAction,
+  onToggleStatus,
 }) {
   const navigate = useNavigate();
   const today = new Date();
@@ -82,7 +83,7 @@ export default function TodayFocus({
 
       {/* Grid: TodoList | AIInsightPanel */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4">
-        <TodoList notes={allNotes} onNoteClick={onNoteClick} />
+        <TodoList notes={allNotes} onNoteClick={onNoteClick} onToggleStatus={onToggleStatus} />
         <AIInsightPanel allNotes={allNotes} onNoteClick={onNoteClick} onInsightAction={onInsightAction} />
       </div>
     </div>

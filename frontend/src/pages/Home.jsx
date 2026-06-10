@@ -1,11 +1,12 @@
 import React, { useState, useCallback } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Filter } from 'lucide-react';
 import CommandBar from '../components/CommandBar';
 import TodayFocus from '../components/TodayFocus';
 import TodayStrip from '../components/TodayStrip';
 import EmptyState from '../components/EmptyState';
 import CardWall from '../components/CardWall';
 import SwimlaneBoard from '../components/SwimlaneBoard';
+import SmartCardGrid from '../components/SmartCardGrid';
 import NoteEditor from '../components/NoteEditor';
 import UndoToast from '../components/UndoToast';
 import ReminderOverlay from '../components/ReminderOverlay';
@@ -14,6 +15,7 @@ import { useNotes } from '../hooks/useNotes';
 import { useUndoDelete } from '../hooks/useUndoDelete';
 import { useReminderCheck } from '../hooks/useReminderCheck';
 import { useAuthContext } from '../App';
+import { api } from '../utils/api';
 
 export default function Home({ categories = [], onVoiceInput }) {
   const {
@@ -122,6 +124,26 @@ export default function Home({ categories = [], onVoiceInput }) {
     }
   }, [updateNote]);
 
+  // 待办圆圈点击切换完成状态
+  const handleToggleStatus = useCallback(async (noteId, newStatus) => {
+    try {
+      await api.notes.update(noteId, { status: newStatus });
+      // 乐观更新本地状态
+      await refresh();
+    } catch (err) {
+      console.error('Toggle status error:', err);
+    }
+  }, [refresh]);
+
+  // 状态筛选选项
+  const statusFilters = [
+    { value: '', label: '全部', emoji: '📋' },
+    { value: 'note', label: '备忘', emoji: '📝' },
+    { value: 'todo', label: '待办', emoji: '⏰' },
+    { value: 'in_progress', label: '进行中', emoji: '🚀' },
+    { value: 'done', label: '已完成', emoji: '✅' },
+  ];
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -161,13 +183,43 @@ export default function Home({ categories = [], onVoiceInput }) {
 
       <main className="max-w-7xl mx-auto px-4 py-4 space-y-6">
         {/* 今日焦点模块 */}
+        {/* TodayFocus */}
         <TodayFocus
           username={user?.username}
           allNotes={allNotes}
           onNoteClick={handleNoteClick}
           onCreateNote={handleCreateNote}
           onVoiceInput={onVoiceInput}
+          onToggleStatus={handleToggleStatus}
+          onInsightAction={(action) => {
+            // 根据洞察操作设置筛选状态
+            if (action === 'view-overdue') handleStatusChange('todo');
+            else if (action === 'view-statistics') handleStatusChange('');
+            else if (action === 'organize-tasks') handleStatusChange('in_progress');
+          }}
         />
+
+        {/* 状态筛选标签栏（始终显示，在当前页切换，不跳转） */}
+        <div className="flex items-center gap-2 pt-2 pb-1">
+          <Filter size={13} className="text-gray-400 shrink-0" />
+          <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
+            {statusFilters.map(f => (
+              <button
+                key={f.value}
+                onClick={() => handleStatusChange(f.value)}
+                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium
+                  whitespace-nowrap transition-all duration-150
+                  ${activeStatus === f.value
+                    ? 'bg-accent text-white shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                  }`}
+              >
+                <span>{f.emoji}</span>
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* 视图切换分界线 */}
         <div className="flex items-center gap-3 pt-2">

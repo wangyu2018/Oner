@@ -229,16 +229,33 @@ function LaneCell({ cellId, cards, onClick, onDelete, onTagClick, themeColor }) 
         padding: 8,
         borderRight: '1px solid #f1f5f9',
         minHeight: 80,
-        transition: 'background 0.15s',
-        background: isOver ? 'rgba(79,70,229,0.04)' : 'transparent',
+        transition: 'all 0.2s ease',
+        background: isOver ? 'rgba(79,70,229,0.06)' : 'transparent',
+        position: 'relative',
       }}
       className="last:border-r-0"
     >
+      {/* 拖拽放置提示 */}
+      {isOver && (
+        <div style={{
+          position: 'absolute', inset: 4,
+          border: '2px dashed rgba(79,70,229,0.3)',
+          borderRadius: 8,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          pointerEvents: 'none',
+          zIndex: 2,
+        }}>
+          <span style={{ fontSize: 11, color: '#4f46e5', fontWeight: 600, background: 'rgba(255,255,255,0.9)', padding: '2px 8px', borderRadius: 6 }}>
+            松手移动到这里
+          </span>
+        </div>
+      )}
+
       {cards.length === 0 ? (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 60 }}>
           {isOver ? (
-            <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontSize: 10, color: '#4f46e5' }}>+</span>
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #a5b4fc' }}>
+              <span style={{ fontSize: 12, color: '#4f46e5', fontWeight: 700 }}>+</span>
             </div>
           ) : (
             <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

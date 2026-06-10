@@ -14,7 +14,7 @@ function getDueCategory(note) {
   return null;
 }
 
-export default function TodoList({ notes = [], onNoteClick }) {
+export default function TodoList({ notes = [], onNoteClick, onToggleStatus }) {
   // 筛选出待办/进行中且有截止日期的笔记
   const todos = notes
     .filter(n => (n.status === 'todo' || n.status === 'in_progress') && n.due_date)
@@ -37,6 +37,11 @@ export default function TodoList({ notes = [], onNoteClick }) {
       'urgent': 'bg-red-50 text-red-600',
     };
 
+    const handleCircleClick = (e) => {
+      e.stopPropagation();
+      onToggleStatus?.(note.id, note.status === 'done' ? 'todo' : 'done');
+    };
+
     return (
       <div
         key={note.id}
@@ -48,10 +53,23 @@ export default function TodoList({ notes = [], onNoteClick }) {
           ${cat === 'upcoming' ? 'border-l-[3px] border-gray-300 dark:border-gray-600 pl-[calc(0.75rem-3px)]' : ''}
         `}
       >
-        {/* 复选框 */}
-        <div className="w-[18px] h-[18px] rounded-full border-2 border-gray-300 dark:border-gray-600
-          flex-shrink-0 mt-0.5 transition-all hover:border-accent hover:bg-accent-50
-          dark:hover:border-accent-400 dark:hover:bg-accent-900/20 cursor-pointer" />
+        {/* 复选框 — 点击切换完成状态 */}
+        <button
+          onClick={handleCircleClick}
+          className={`w-[18px] h-[18px] rounded-full border-2 flex-shrink-0 mt-0.5
+            transition-all cursor-pointer flex items-center justify-center
+            ${note.status === 'done'
+              ? 'bg-accent border-accent text-white'
+              : 'border-gray-300 dark:border-gray-600 hover:border-accent hover:bg-accent-50 dark:hover:border-accent-400 dark:hover:bg-accent-900/20'
+            }`}
+          title={note.status === 'done' ? '标记为未完成' : '标记为已完成'}
+        >
+          {note.status === 'done' && (
+            <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+              <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          )}
+        </button>
 
         {/* 内容 */}
         <div className="flex-1 min-w-0">

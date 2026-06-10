@@ -1,159 +1,213 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, ChevronDown, ChevronUp, Send, Loader2, ListChecks, Compass, Expand } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Sparkles, ChevronDown, ChevronUp, Lightbulb, BookOpen, PenLine, Loader2 } from 'lucide-react';
 import { api } from '../utils/api';
-import MarkdownRenderer from './MarkdownRenderer';
 
-const QUICK_ACTIONS = [
-  { id: 'decompose', label: '拆解任务', icon: ListChecks, description: '将笔记拆解为具体子任务' },
-  { id: 'recommend', label: '推荐行动', icon: Compass, description: '给出下一步行动建议' },
-  { id: 'expand', label: '扩展内容', icon: Expand, description: '补充完善笔记内容' },
+const QUICK_TAGS = [
+  '拆解任务', '推荐行动', '扩展内容', '总结要点', '生成标题', '翻译英文',
 ];
 
 export default function AIAssistant({ noteId, content, title }) {
   const [expanded, setExpanded] = useState(false);
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [relatedNotes, setRelatedNotes] = useState([]);
+  const [continuations, setContinuations] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [conversationId, setConversationId] = useState(null);
-  const messagesEndRef = useRef(null);
+  const [activeAction, setActiveAction] = useState(null);
 
+  // 加载建议
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const handleQuickAction = async (action) => {
-    if (loading) return;
+    if (!expanded || !noteId) return;
+    let cancelled = false;
     setLoading(true);
-    setMessages(prev => [...prev, { role: 'user', content: `【${QUICK_ACTIONS.find(a => a.id === action)?.label}】`, timestamp: Date.now() }]);
 
+    Promise.all([
+      api.ai.analyze({ noteId, action: 'suggest' }).catch(() => ({ data: { result: '暂无建议' } })),
+      api.notes.list({ limit: 3 }).catch(() => ({ data: { notes: [] } })),
+    ]).then(([suggestRes, notesRes]) => {
+      if (cancelled) return;
+      // 解析建议
+      const rawSuggest = suggestRes.data?.result || '';
+      const lines = rawSuggest.split('\n').filter(l => l.trim()).slice(0, 4);
+      setSuggestions(lines.length > 0 ? lines : ['暂无可用建议，试试拆解任务或扩展内容']);
+
+      // 相关笔记（排除当前笔记）
+      const allNotes = notesRes.data?.notes || [];
+      setRelatedNotes(allNotes.filter(n => n.id !== noteId).slice(0, 3));
+
+      // 续写建议
+      const continuations = [
+        '补充更多细节描述...',
+        '添加具体的行动步骤...',
+        '总结关键要点和结论...',
+      ];
+      setContinuations(continuations);
+      setLoading(false);
+    });
+
+    return () => { cancelled = true; };
+  }, [expanded, noteId]);
+
+  const handleTagClick = async (tag) => {
+    if (loading || !noteId) return;
+    setActiveAction(tag);
+    setLoading(true);
     try {
-      const res = await api.ai.analyze({ noteId, action });
-      setMessages(prev => [...prev, { role: 'assistant', content: res.data.result, timestamp: Date.now() }]);
-    } catch (err) {
-      setMessages(prev => [...prev, { role: 'assistant', content: `错误：${err.message}`, isError: true, timestamp: Date.now() }]);
+      const actionMap = {
+        '拆解任务': 'decompose',
+        '推荐行动': 'recommend',
+        '扩展内容': 'expand',
+        '总结要点': 'summarize',
+        '生成标题': 'title',
+        '翻译英文': 'translate',
+      };
+      const res = await api.ai.analyze({ noteId, action: actionMap[tag] || 'suggest' });
+      setSuggestions([`✅ ${tag}完成:`, ...(res.data?.result || '').split('\n').filter(l => l.trim()).slice(0, 4)]);
+    } catch {
+      setSuggestions([`❌ ${tag}失败，请重试`]);
     } finally {
       setLoading(false);
+      setActiveAction(null);
     }
   };
 
-  const handleSend = async () => {
-    const text = input.trim();
-    if (!text || loading) return;
-    setInput('');
-    setLoading(true);
-
-    const userMsg = { role: 'user', content: text, timestamp: Date.now() };
-    setMessages(prev => [...prev, userMsg]);
-
-    try {
-      const res = await api.ai.chat({
-        message: text,
-        conversationId,
-        contextType: 'note',
-        contextId: noteId,
-      });
-      setConversationId(res.data.conversationId);
-      setMessages(prev => [...prev, { role: 'assistant', content: res.data.reply, timestamp: Date.now() }]);
-    } catch (err) {
-      setMessages(prev => [...prev, { role: 'assistant', content: `错误：${err.message}`, isError: true, timestamp: Date.now() }]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
+  const handleContinuation = (text) => {
+    // 将续写建议追加到内容（通过回调或事件）
+    console.log('Continuation:', text);
   };
 
   return (
     <div className="border-t border-gray-100 dark:border-gray-800">
-      {/* 折叠按钮 */}
+      {/* 折叠态：40px 渐变条 */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+        className="w-full h-10 flex items-center gap-2 px-4
+          bg-gradient-to-r from-violet-50/80 via-white to-indigo-50/80
+          dark:from-violet-950/20 dark:via-gray-900 dark:to-indigo-950/20
+          hover:from-violet-100/80 hover:to-indigo-100/80
+          transition-all duration-200 group"
       >
-        <span className="flex items-center gap-2">
-          <Sparkles size={16} className="text-accent" />
-          AI 助手
+        <span className="w-5 h-5 rounded-md bg-gradient-to-br from-violet-500 to-indigo-600
+          flex items-center justify-center shadow-sm flex-shrink-0">
+          <Sparkles size={11} className="text-white" />
         </span>
-        {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        <span className="text-xs font-semibold text-violet-600 dark:text-violet-400">
+          AI 建议
+        </span>
+        {/* 3 个快速标签 chip */}
+        {QUICK_TAGS.slice(0, 3).map(tag => (
+          <span key={tag}
+            onClick={(e) => { e.stopPropagation(); handleTagClick(tag); }}
+            className="hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium
+              bg-white/80 dark:bg-gray-800/60 text-gray-600 dark:text-gray-300
+              border border-gray-200/50 dark:border-gray-700/50
+              hover:bg-violet-50 hover:text-violet-600 hover:border-violet-200
+              transition-colors cursor-pointer"
+          >
+            {tag}
+          </span>
+        ))}
+        <span className="ml-auto text-[11px] text-gray-400 flex items-center gap-0.5">
+          {expanded ? '收起' : '展开'}
+          {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+        </span>
       </button>
 
-      {/* 展开内容 */}
+      {/* 展开态：200px 3列布局 */}
       {expanded && (
-        <div className="px-4 pb-3 space-y-3">
-          {/* 快捷操作 */}
-          <div className="flex flex-wrap gap-2">
-            {QUICK_ACTIONS.map(({ id, label, icon: Icon }) => (
-              <button
-                key={id}
-                onClick={() => handleQuickAction(id)}
-                disabled={loading || !noteId}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg
-                  bg-accent-50 dark:bg-accent-900/20 text-accent-700 dark:text-accent-300
-                  hover:bg-accent-100 dark:hover:bg-accent-900/40 transition-colors disabled:opacity-50"
-              >
-                <Icon size={14} />
-                {label}
-              </button>
-            ))}
+        <div className="h-[200px] grid grid-cols-3 gap-0 border-t border-gray-100 dark:border-gray-800
+          bg-gray-50/50 dark:bg-gray-900/50 overflow-hidden">
+
+          {/* 列1: 建议标签云 */}
+          <div className="p-3 border-r border-gray-100 dark:border-gray-800 overflow-y-auto">
+            <div className="flex items-center gap-1.5 mb-2">
+              <Lightbulb size={12} className="text-amber-500" />
+              <span className="text-[11px] font-semibold text-gray-600 dark:text-gray-400">快捷操作</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {QUICK_TAGS.map(tag => (
+                <button
+                  key={tag}
+                  onClick={() => handleTagClick(tag)}
+                  disabled={loading}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all
+                    ${activeAction === tag
+                      ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300'
+                      : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-violet-300 hover:text-violet-600'
+                    }
+                    disabled:opacity-50`}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+            {/* AI 建议结果 */}
+            {loading && (
+              <div className="flex items-center gap-1.5 mt-2 text-[11px] text-gray-400">
+                <Loader2 size={11} className="animate-spin" />
+                思考中...
+              </div>
+            )}
+            {suggestions.length > 0 && !loading && (
+              <div className="mt-2 space-y-1">
+                {suggestions.map((s, i) => (
+                  <p key={i} className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
+                    {s}
+                  </p>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* 消息区域 */}
-          {messages.length > 0 && (
-            <div className="max-h-60 overflow-y-auto space-y-2 rounded-lg bg-gray-50 dark:bg-gray-800/50 p-3">
-              {messages.map((msg, i) => (
-                <div key={i} className={`text-sm ${msg.role === 'user' ? 'text-right' : ''}`}>
-                  <div className={`inline-block max-w-[90%] rounded-lg px-3 py-2 ${
-                    msg.role === 'user'
-                      ? 'bg-accent text-white'
-                      : msg.isError
-                        ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
-                        : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100'
-                  }`}>
-                    {msg.role === 'assistant' && !msg.isError ? (
-                      <div className="markdown-content text-sm">
-                        <MarkdownRenderer content={msg.content} />
-                      </div>
-                    ) : (
-                      <span className="whitespace-pre-wrap">{msg.content}</span>
-                    )}
-                  </div>
-                </div>
-              ))}
-              {loading && (
-                <div className="flex items-center gap-2 text-sm text-gray-400">
-                  <Loader2 size={14} className="animate-spin" />
-                  思考中...
-                </div>
-              )}
-              <div ref={messagesEndRef} />
+          {/* 列2: 相关笔记 */}
+          <div className="p-3 border-r border-gray-100 dark:border-gray-800 overflow-y-auto">
+            <div className="flex items-center gap-1.5 mb-2">
+              <BookOpen size={12} className="text-blue-500" />
+              <span className="text-[11px] font-semibold text-gray-600 dark:text-gray-400">相关笔记</span>
             </div>
-          )}
+            {relatedNotes.length > 0 ? (
+              <div className="space-y-1.5">
+                {relatedNotes.map(note => (
+                  <div key={note.id}
+                    className="p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700
+                      cursor-pointer hover:border-blue-200 dark:hover:border-blue-800 transition-colors"
+                  >
+                    <p className="text-[11px] font-medium text-gray-700 dark:text-gray-300 line-clamp-1">
+                      {note.title || '无标题'}
+                    </p>
+                    <p className="text-[10px] text-gray-400 line-clamp-1 mt-0.5">
+                      {note.content?.slice(0, 40) || ''}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[11px] text-gray-400">暂无相关笔记</p>
+            )}
+          </div>
 
-          {/* 输入框 */}
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="问AI关于这条笔记的问题..."
-              disabled={loading}
-              className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg
-                bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100
-                placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-accent-500"
-            />
-            <button
-              onClick={handleSend}
-              disabled={loading || !input.trim()}
-              className="p-2 rounded-lg bg-accent text-white hover:bg-accent-600 transition-colors disabled:opacity-50"
-            >
-              <Send size={16} />
-            </button>
+          {/* 列3: 续写建议 */}
+          <div className="p-3 overflow-y-auto">
+            <div className="flex items-center gap-1.5 mb-2">
+              <PenLine size={12} className="text-emerald-500" />
+              <span className="text-[11px] font-semibold text-gray-600 dark:text-gray-400">续写建议</span>
+            </div>
+            <div className="space-y-1.5">
+              {continuations.map((text, i) => (
+                <button
+                  key={i}
+                  onClick={() => handleContinuation(text)}
+                  className="w-full text-left p-2 rounded-lg bg-white dark:bg-gray-800
+                    border border-gray-100 dark:border-gray-700
+                    text-[11px] text-gray-600 dark:text-gray-300
+                    hover:border-emerald-200 dark:hover:border-emerald-800
+                    hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10
+                    transition-colors cursor-pointer"
+                >
+                  <span className="text-emerald-500 mr-1">+</span>
+                  {text}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
