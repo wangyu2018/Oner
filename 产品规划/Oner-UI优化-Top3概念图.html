@@ -1,0 +1,2002 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oner UI 优化方案 · Top 3 概念图</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    /* New Indigo-based palette */
+    --brand-50: #eef2ff;
+    --brand-100: #e0e7ff;
+    --brand-200: #c7d2fe;
+    --brand-300: #a5b4fc;
+    --brand-400: #818cf8;
+    --brand-500: #6366f1;
+    --brand-600: #4f46e5;
+    --brand-700: #4338ca;
+    --brand-800: #3730a3;
+    --brand-900: #312e81;
+
+    /* AI / Violet */
+    --ai-50: #f5f3ff;
+    --ai-100: #ede9fe;
+    --ai-400: #a78bfa;
+    --ai-500: #8b5cf6;
+    --ai-600: #7c3aed;
+
+    /* Semantic */
+    --success: #10b981;
+    --success-bg: #d1fae5;
+    --success-text: #065f46;
+    --warning: #f59e0b;
+    --warning-bg: #fef3c7;
+    --warning-text: #92400e;
+    --danger: #f43f5e;
+    --danger-bg: #ffe4e6;
+    --danger-text: #9f1239;
+    --info-bg: #dbeafe;
+    --info-text: #1e40af;
+
+    /* Surfaces - Slate based */
+    --surface-0: #ffffff;
+    --surface-50: #f8fafc;
+    --surface-100: #f1f5f9;
+    --surface-200: #e2e8f0;
+    --surface-300: #cbd5e1;
+    --surface-400: #94a3b8;
+    --surface-500: #64748b;
+    --surface-600: #475569;
+    --surface-700: #334155;
+    --surface-800: #1e293b;
+    --surface-900: #0f172a;
+
+    /* Shadows */
+    --shadow-xs: 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06);
+    --shadow-lg: 0 8px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.06);
+    --shadow-xl: 0 16px 48px rgba(0,0,0,0.16), 0 4px 12px rgba(0,0,0,0.08);
+
+    /* Radius */
+    --r-sm: 6px;
+    --r-md: 10px;
+    --r-lg: 14px;
+    --r-xl: 20px;
+    --r-full: 9999px;
+
+    /* Transitions */
+    --t-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --t-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    --t-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--surface-100);
+    color: var(--surface-900);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* ====== TOP NAVIGATION ====== */
+  .top-nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(16px) saturate(180%);
+    border-bottom: 1px solid var(--surface-200);
+    padding: 0 24px;
+    height: 56px;
+    display: flex; align-items: center; gap: 20px;
+  }
+  .top-nav .logo-area {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 700; font-size: 15px; color: var(--surface-800);
+    white-space: nowrap;
+  }
+  .top-nav .logo-dot {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--brand-500), var(--brand-700));
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 8px rgba(99,102,241,0.3);
+  }
+  .top-nav .logo-dot svg { width: 16px; height: 16px; color: white; }
+  .top-nav .tab-group {
+    display: flex; gap: 2px; background: var(--surface-100); border-radius: var(--r-md);
+    padding: 3px;
+  }
+  .top-nav .tab-btn {
+    padding: 7px 16px; border-radius: 8px;
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    border: none; background: transparent; color: var(--surface-500);
+    transition: all var(--t-fast);
+    white-space: nowrap;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .top-nav .tab-btn:hover { color: var(--surface-700); background: rgba(0,0,0,0.04); }
+  .top-nav .tab-btn.active {
+    background: white; color: var(--brand-600);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .top-nav .tab-num {
+    width: 20px; height: 20px; border-radius: 6px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+    background: var(--surface-200); color: var(--surface-500);
+  }
+  .top-nav .tab-btn.active .tab-num {
+    background: var(--brand-100); color: var(--brand-600);
+  }
+  .top-nav .badge-new {
+    font-size: 10px; font-weight: 600; padding: 2px 6px;
+    border-radius: var(--r-full);
+    background: linear-gradient(135deg, var(--brand-500), var(--ai-500));
+    color: white;
+  }
+
+  /* ====== PAGE CONTAINER ====== */
+  .pages { margin-top: 56px; }
+  .page { display: none; min-height: calc(100vh - 56px); }
+  .page.active { display: block; }
+
+  /* ============================================================
+     TOP 1: HOME "TODAY WORKSPACE"
+     ============================================================ */
+
+  /* -- Command Bar -- */
+  .cmd-bar {
+    height: 48px; background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(16px) saturate(180%);
+    border-bottom: 1px solid var(--surface-200);
+    display: flex; align-items: center; padding: 0 20px; gap: 12px;
+    position: sticky; top: 0; z-index: 50;
+  }
+  .cmd-logo {
+    display: flex; align-items: center; gap: 8px;
+    font-weight: 700; font-size: 14px; color: var(--surface-800);
+  }
+  .cmd-logo-icon {
+    width: 22px; height: 22px; border-radius: 6px;
+    background: linear-gradient(135deg, var(--brand-500), var(--brand-700));
+  }
+  .cmd-breadcrumb {
+    font-size: 12px; color: var(--surface-400);
+    display: flex; align-items: center; gap: 4px;
+  }
+  .cmd-breadcrumb span { color: var(--surface-600); font-weight: 500; }
+  .cmd-search {
+    flex: 1; max-width: 480px; margin: 0 auto;
+    height: 32px; border-radius: var(--r-md);
+    border: 1px solid var(--surface-200);
+    background: var(--surface-50);
+    display: flex; align-items: center; padding: 0 12px; gap: 8px;
+    cursor: pointer; transition: all var(--t-fast);
+  }
+  .cmd-search:hover { border-color: var(--brand-300); background: white; }
+  .cmd-search-icon { color: var(--surface-400); font-size: 14px; }
+  .cmd-search-text { font-size: 13px; color: var(--surface-400); flex: 1; }
+  .cmd-search-kbd {
+    font-size: 11px; color: var(--surface-400); font-weight: 500;
+    padding: 2px 6px; border-radius: 4px;
+    background: var(--surface-200); font-family: inherit;
+  }
+  .cmd-actions { display: flex; align-items: center; gap: 2px; }
+  .cmd-icon-btn {
+    width: 32px; height: 32px; border-radius: 8px;
+    border: none; background: transparent;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--surface-500); font-size: 16px;
+    transition: all var(--t-fast);
+  }
+  .cmd-icon-btn:hover { background: var(--surface-100); color: var(--surface-700); }
+  .cmd-avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--brand-400), var(--brand-600));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600; color: white; margin-left: 6px;
+  }
+
+  /* -- Today Focus Area -- */
+  .today-focus {
+    padding: 20px 20px 0;
+    max-width: 1280px; margin: 0 auto;
+  }
+  .today-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .today-greeting {
+    font-size: 20px; font-weight: 700; color: var(--surface-800);
+  }
+  .today-greeting span { color: var(--brand-600); }
+  .today-date {
+    font-size: 13px; color: var(--surface-500); margin-top: 2px;
+  }
+  .today-quick-stats {
+    display: flex; gap: 8px;
+  }
+  .quick-stat {
+    padding: 4px 12px; border-radius: var(--r-full);
+    font-size: 12px; font-weight: 500;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .quick-stat.urgent { background: var(--danger-bg); color: var(--danger-text); }
+  .quick-stat.progress { background: var(--success-bg); color: var(--success-text); }
+  .quick-stat.todo { background: var(--warning-bg); color: var(--warning-text); }
+
+  .today-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  /* Today Todo Panel */
+  .today-todo {
+    background: white;
+    border-radius: var(--r-lg);
+    border: 1px solid var(--surface-200);
+    box-shadow: var(--shadow-xs);
+    overflow: hidden;
+  }
+  .todo-panel-header {
+    padding: 14px 16px 10px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--surface-100);
+  }
+  .todo-panel-title {
+    font-size: 14px; font-weight: 600; color: var(--surface-800);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .todo-panel-title .icon-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--danger);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.3); }
+  }
+  .todo-count {
+    font-size: 11px; font-weight: 600; padding: 2px 8px;
+    border-radius: var(--r-full);
+    background: var(--danger-bg); color: var(--danger-text);
+  }
+  .todo-list { padding: 8px; }
+  .todo-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 12px; border-radius: var(--r-md);
+    cursor: pointer; transition: all var(--t-fast);
+    position: relative;
+  }
+  .todo-item:hover { background: var(--surface-50); }
+  .todo-item.overdue { border-left: 3px solid var(--danger); padding-left: 9px; }
+  .todo-item.today-task { border-left: 3px solid var(--warning); padding-left: 9px; }
+  .todo-item.upcoming { border-left: 3px solid var(--surface-300); padding-left: 9px; }
+  .todo-checkbox {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 2px solid var(--surface-300);
+    flex-shrink: 0; margin-top: 1px;
+    transition: all var(--t-fast);
+    cursor: pointer;
+  }
+  .todo-checkbox:hover { border-color: var(--brand-500); background: var(--brand-50); }
+  .todo-item.completed .todo-checkbox {
+    background: var(--success); border-color: var(--success);
+    position: relative;
+  }
+  .todo-item.completed .todo-checkbox::after {
+    content: '✓'; position: absolute; top: -1px; left: 2px;
+    font-size: 12px; color: white; font-weight: 700;
+  }
+  .todo-info { flex: 1; }
+  .todo-title {
+    font-size: 13px; font-weight: 500; color: var(--surface-800);
+    line-height: 1.4;
+  }
+  .todo-item.completed .todo-title {
+    text-decoration: line-through; color: var(--surface-400);
+  }
+  .todo-meta {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 4px; font-size: 11px; color: var(--surface-400);
+  }
+  .todo-tag {
+    padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 500;
+  }
+  .todo-tag.work { background: var(--brand-50); color: var(--brand-600); }
+  .todo-tag.urgent { background: var(--danger-bg); color: var(--danger-text); }
+  .todo-tag.study { background: var(--success-bg); color: var(--success-text); }
+  .todo-priority {
+    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  }
+  .todo-priority.p-urgent { background: var(--danger); }
+  .todo-priority.p-high { background: var(--warning); }
+  .todo-priority.p-normal { background: var(--surface-300); }
+  .todo-progress-mini {
+    width: 48px; height: 4px; border-radius: 2px;
+    background: var(--surface-200); overflow: hidden;
+  }
+  .todo-progress-fill {
+    height: 100%; border-radius: 2px;
+    background: linear-gradient(90deg, var(--brand-500), var(--brand-400));
+  }
+
+  /* AI Insight Panel */
+  .ai-insight {
+    background: linear-gradient(135deg, var(--ai-50), white, var(--brand-50));
+    border-radius: var(--r-lg);
+    border: 1px solid var(--surface-200);
+    box-shadow: var(--shadow-xs);
+    padding: 16px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .ai-insight-header {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 14px; font-weight: 600; color: var(--ai-600);
+  }
+  .ai-insight-header .ai-sparkle {
+    width: 20px; height: 20px; border-radius: 6px;
+    background: linear-gradient(135deg, var(--ai-500), var(--ai-600));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; color: white;
+    box-shadow: 0 2px 6px rgba(124,58,237,0.3);
+  }
+  .insight-card {
+    padding: 12px; border-radius: var(--r-md);
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.8);
+    cursor: pointer;
+    transition: all var(--t-fast);
+  }
+  .insight-card:hover {
+    background: white;
+    box-shadow: var(--shadow-sm);
+    transform: translateY(-1px);
+  }
+  .insight-icon-row {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+  }
+  .insight-icon {
+    width: 28px; height: 28px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .insight-icon.warn { background: var(--warning-bg); }
+  .insight-icon.info { background: var(--info-bg); }
+  .insight-icon.success { background: var(--success-bg); }
+  .insight-label { font-size: 12px; font-weight: 600; color: var(--surface-700); }
+  .insight-desc { font-size: 12px; color: var(--surface-500); line-height: 1.5; }
+  .insight-action {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 500; color: var(--brand-600);
+    margin-top: 6px; cursor: pointer;
+  }
+  .insight-action:hover { color: var(--brand-700); }
+
+  /* -- Smart Card Grid with Visual Weight -- */
+  .card-section {
+    padding: 0 20px 24px;
+    max-width: 1280px; margin: 0 auto;
+  }
+  .card-section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .card-section-title {
+    font-size: 14px; font-weight: 600; color: var(--surface-700);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .view-toggle {
+    display: flex; gap: 2px; background: var(--surface-100);
+    border-radius: var(--r-sm); padding: 2px;
+  }
+  .view-toggle-btn {
+    padding: 4px 8px; border-radius: 4px; border: none;
+    background: transparent; font-size: 12px; color: var(--surface-400);
+    cursor: pointer; transition: all var(--t-fast);
+  }
+  .view-toggle-btn.active { background: white; color: var(--surface-700); box-shadow: var(--shadow-xs); }
+
+  .smart-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+  .smart-card {
+    background: white;
+    border-radius: var(--r-md);
+    border: 1px solid var(--surface-200);
+    padding: 14px;
+    cursor: pointer;
+    transition: all var(--t-normal);
+    box-shadow: var(--shadow-xs);
+    display: flex; flex-direction: column; gap: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+  .smart-card::before {
+    content: '';
+    position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    border-radius: 0 2px 2px 0;
+  }
+  .smart-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+  .smart-card.urgent-large {
+    grid-column: span 2;
+    border-color: rgba(244,63,94,0.2);
+  }
+  .smart-card.urgent-large::before { background: var(--danger); }
+  .smart-card.urgent-large .sc-title { font-size: 15px; }
+  .smart-card.in-progress {
+    border-color: rgba(99,102,241,0.15);
+  }
+  .smart-card.in-progress::before { background: var(--brand-500); }
+  .smart-card.normal {
+    border-color: var(--surface-200);
+  }
+  .smart-card.normal::before { background: var(--surface-300); }
+  .smart-card.done-card {
+    opacity: 0.6;
+  }
+  .smart-card.done-card::before { background: var(--success); }
+  .smart-card.done-card .sc-title { text-decoration: line-through; color: var(--surface-400); }
+
+  .sc-badges { display: flex; gap: 4px; flex-wrap: wrap; }
+  .sc-badge {
+    padding: 2px 7px; border-radius: 4px;
+    font-size: 10px; font-weight: 600;
+  }
+  .sc-badge.urgent { background: var(--danger-bg); color: var(--danger-text); }
+  .sc-badge.progress { background: var(--success-bg); color: var(--success-text); }
+  .sc-badge.todo { background: var(--warning-bg); color: var(--warning-text); }
+  .sc-badge.done { background: var(--surface-100); color: var(--surface-500); }
+  .sc-badge.memo { background: var(--info-bg); color: var(--info-text); }
+
+  .sc-title {
+    font-size: 13px; font-weight: 600; color: var(--surface-800);
+    line-height: 1.4;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .sc-preview {
+    font-size: 12px; color: var(--surface-500); line-height: 1.5;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .sc-progress {
+    height: 4px; border-radius: 2px; background: var(--surface-100); overflow: hidden;
+  }
+  .sc-progress-fill {
+    height: 100%; border-radius: 2px;
+    background: linear-gradient(90deg, var(--brand-500), var(--brand-400));
+    transition: width 0.5s ease;
+  }
+  .sc-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: auto;
+  }
+  .sc-tags { display: flex; gap: 3px; }
+  .sc-tag {
+    padding: 1px 5px; border-radius: 3px;
+    font-size: 10px; color: var(--surface-500);
+    background: var(--surface-100);
+  }
+  .sc-date { font-size: 10px; color: var(--surface-400); }
+  .sc-due {
+    font-size: 10px; font-weight: 600;
+    display: flex; align-items: center; gap: 3px;
+  }
+  .sc-due.overdue { color: var(--danger); }
+  .sc-due.due-soon { color: var(--warning); }
+  .sc-subtask-count {
+    font-size: 10px; color: var(--surface-400);
+    display: flex; align-items: center; gap: 3px;
+  }
+
+  /* Animation for urgent card */
+  @keyframes subtle-pulse {
+    0%, 100% { box-shadow: var(--shadow-xs), 0 0 0 0 rgba(244,63,94,0); }
+    50% { box-shadow: var(--shadow-sm), 0 0 0 3px rgba(244,63,94,0.08); }
+  }
+  .smart-card.urgent-large {
+    animation: subtle-pulse 3s ease-in-out infinite;
+  }
+
+  /* ============================================================
+     TOP 2: EDITOR "IMMERSIVE AI FUSION"
+     ============================================================ */
+  .editor-concept {
+    min-height: calc(100vh - 56px);
+    background: rgba(15,23,42,0.4);
+    backdrop-filter: blur(6px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 32px 20px;
+  }
+  .editor-frame {
+    background: white;
+    border-radius: var(--r-xl);
+    box-shadow: var(--shadow-xl);
+    width: 100%; max-width: 1060px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    animation: editor-in 0.3s ease-out;
+    max-height: calc(100vh - 120px);
+  }
+  @keyframes editor-in {
+    from { opacity: 0; transform: translateY(12px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* Editor header */
+  .ed-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--surface-200);
+  }
+  .ed-title-input {
+    flex: 1; border: none; outline: none;
+    font-size: 18px; font-weight: 700; font-family: inherit;
+    color: var(--surface-800);
+  }
+  .ed-title-input::placeholder { color: var(--surface-300); }
+  .ed-header-actions { display: flex; gap: 4px; }
+
+  /* Editor meta bar */
+  .ed-meta {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 20px;
+    background: var(--surface-50);
+    border-bottom: 1px solid var(--surface-200);
+    flex-wrap: wrap;
+  }
+  .ed-meta-chip {
+    padding: 4px 10px; border-radius: var(--r-sm);
+    font-size: 12px; font-weight: 500;
+    border: 1px solid var(--surface-200); background: white;
+    color: var(--surface-600);
+    display: flex; align-items: center; gap: 5px;
+    cursor: pointer; transition: all var(--t-fast);
+  }
+  .ed-meta-chip:hover { border-color: var(--brand-300); }
+  .ed-meta-chip .chip-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+  .ed-meta-chip .chip-dot.status-progress { background: var(--brand-500); }
+  .ed-meta-chip .chip-dot.priority-high { background: var(--warning); }
+  .ed-meta-chip select {
+    border: none; background: transparent; font-size: 12px;
+    font-family: inherit; color: var(--surface-600); outline: none;
+    cursor: pointer;
+  }
+
+  /* Editor body */
+  .ed-body {
+    display: flex; flex-direction: column; flex: 1;
+    overflow: hidden;
+  }
+  .ed-content {
+    flex: 1; padding: 24px 28px;
+    overflow-y: auto;
+    min-height: 260px;
+  }
+  .ed-content p {
+    font-size: 14.5px; line-height: 1.85; color: var(--surface-700);
+    margin-bottom: 12px;
+  }
+  .ed-content h2 {
+    font-size: 16px; font-weight: 700; color: var(--surface-800);
+    margin: 20px 0 8px; position: relative; padding-left: 14px;
+  }
+  .ed-content h2::before {
+    content: ''; position: absolute; left: 0; top: 2px; bottom: 2px;
+    width: 3px; border-radius: 2px;
+    background: linear-gradient(180deg, var(--brand-400), var(--brand-600));
+  }
+  .ed-content ul { padding-left: 20px; margin-bottom: 12px; }
+  .ed-content li {
+    font-size: 14px; line-height: 1.7; color: var(--surface-600);
+    margin-bottom: 4px;
+  }
+  .ed-content .code-block {
+    background: var(--surface-900); color: var(--brand-300);
+    padding: 12px 16px; border-radius: var(--r-md);
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    line-height: 1.6; margin: 12px 0; overflow-x: auto;
+  }
+
+  /* Selected text + floating toolbar */
+  .selected-text-area {
+    position: relative; display: inline;
+  }
+  .text-selection-highlight {
+    background: rgba(99,102,241,0.15);
+    border-radius: 3px;
+    padding: 1px 0;
+    position: relative;
+  }
+  .floating-toolbar {
+    position: absolute;
+    top: -44px; left: 50%; transform: translateX(-50%);
+    background: var(--surface-900);
+    border-radius: var(--r-md);
+    padding: 4px;
+    display: flex; gap: 2px;
+    box-shadow: var(--shadow-lg);
+    z-index: 10;
+    animation: ft-in 0.15s ease-out;
+  }
+  @keyframes ft-in {
+    from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+  .floating-toolbar::after {
+    content: ''; position: absolute;
+    bottom: -5px; left: 50%; transform: translateX(-50%);
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid var(--surface-900);
+  }
+  .ft-btn {
+    padding: 6px 10px; border-radius: 6px;
+    border: none; background: transparent;
+    color: var(--surface-300); font-size: 12px; font-weight: 500;
+    cursor: pointer; transition: all var(--t-fast);
+    display: flex; align-items: center; gap: 4px;
+    white-space: nowrap; font-family: inherit;
+  }
+  .ft-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+  .ft-btn.ai-btn { color: var(--ai-400); }
+  .ft-btn.ai-btn:hover { background: rgba(139,92,246,0.15); color: var(--ai-400); }
+  .ft-divider {
+    width: 1px; background: var(--surface-700); margin: 4px 2px;
+  }
+
+  /* AI Bottom Panel (collapsed) */
+  .ai-panel-collapsed {
+    border-top: 1px solid var(--surface-200);
+    background: linear-gradient(90deg, var(--ai-50), var(--brand-50), var(--surface-50));
+    padding: 0 20px;
+    height: 40px;
+    display: flex; align-items: center; gap: 12px;
+    cursor: pointer;
+    transition: all var(--t-fast);
+  }
+  .ai-panel-collapsed:hover { background: linear-gradient(90deg, var(--ai-100), var(--brand-100), var(--surface-100)); }
+  .ai-panel-tag {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 12px; font-weight: 600; color: var(--ai-600);
+  }
+  .ai-panel-tag .ai-icon {
+    width: 18px; height: 18px; border-radius: 5px;
+    background: linear-gradient(135deg, var(--ai-500), var(--ai-600));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: white;
+  }
+  .ai-suggestion-chips {
+    display: flex; gap: 6px; flex: 1; overflow-x: auto;
+  }
+  .ai-s-chip {
+    padding: 3px 10px; border-radius: var(--r-full);
+    font-size: 11px; font-weight: 500;
+    background: rgba(255,255,255,0.7); color: var(--ai-600);
+    border: 1px solid rgba(139,92,246,0.15);
+    white-space: nowrap; cursor: pointer;
+    transition: all var(--t-fast);
+  }
+  .ai-s-chip:hover { background: white; box-shadow: var(--shadow-xs); }
+  .ai-panel-toggle {
+    font-size: 11px; color: var(--surface-400);
+    display: flex; align-items: center; gap: 3px;
+    white-space: nowrap;
+  }
+
+  /* AI Bottom Panel (expanded) */
+  .ai-panel-expanded {
+    border-top: 1px solid var(--surface-200);
+    background: var(--surface-50);
+    height: 200px;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    animation: panel-expand 0.25s ease-out;
+  }
+  @keyframes panel-expand {
+    from { height: 40px; }
+    to { height: 200px; }
+  }
+  .ai-panel-expanded.visible { display: flex; }
+  .ai-expanded-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 20px 8px;
+    border-bottom: 1px solid var(--surface-200);
+  }
+  .ai-expanded-title {
+    font-size: 13px; font-weight: 600; color: var(--ai-600);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .ai-expanded-close {
+    font-size: 12px; color: var(--surface-400); cursor: pointer;
+    padding: 4px 8px; border-radius: 4px;
+    border: none; background: transparent;
+  }
+  .ai-expanded-close:hover { background: var(--surface-200); }
+  .ai-expanded-body {
+    display: flex; gap: 16px; padding: 12px 20px;
+    flex: 1; overflow: hidden;
+  }
+  .ai-col { flex: 1; min-width: 0; }
+  .ai-col-label {
+    font-size: 10px; font-weight: 600; color: var(--surface-400);
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+  .ai-tag-cloud { display: flex; flex-wrap: wrap; gap: 4px; }
+  .ai-t {
+    padding: 3px 10px; border-radius: var(--r-full);
+    font-size: 11px; font-weight: 500;
+    background: var(--ai-50); color: var(--ai-600);
+    border: 1px solid rgba(139,92,246,0.1);
+    cursor: pointer; transition: all var(--t-fast);
+  }
+  .ai-t:hover { background: var(--ai-100); }
+  .ai-related-list { display: flex; flex-direction: column; gap: 6px; }
+  .ai-rel-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px; border-radius: var(--r-sm);
+    background: white; border: 1px solid var(--surface-200);
+    font-size: 12px; cursor: pointer;
+    transition: all var(--t-fast);
+  }
+  .ai-rel-item:hover { border-color: var(--brand-300); box-shadow: var(--shadow-xs); }
+  .ai-rel-icon {
+    width: 22px; height: 22px; border-radius: 5px;
+    background: var(--brand-50); color: var(--brand-500);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; flex-shrink: 0;
+  }
+  .ai-rel-title { font-weight: 500; color: var(--surface-700); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ai-rel-meta { font-size: 10px; color: var(--surface-400); }
+  .ai-continue-box {
+    padding: 10px 12px; border-radius: var(--r-md);
+    background: white; border: 1px solid var(--surface-200);
+    font-size: 12px; color: var(--surface-600);
+    line-height: 1.6;
+    cursor: pointer; transition: all var(--t-fast);
+  }
+  .ai-continue-box:hover { border-color: var(--ai-300); background: var(--ai-50); }
+  .ai-continue-action {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 11px; color: var(--ai-600); font-weight: 500;
+    margin-top: 4px;
+  }
+
+  /* Auto-save indicator */
+  .ed-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 20px;
+    border-top: 1px solid var(--surface-100);
+    font-size: 11px; color: var(--surface-400);
+    background: var(--surface-50);
+  }
+  .save-status {
+    display: flex; align-items: center; gap: 5px;
+  }
+  .save-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+  .save-dot.saved { background: var(--success); }
+  .save-dot.saving { background: var(--warning); animation: pulse-dot 1s infinite; }
+  .save-dot.unsaved { background: var(--surface-300); }
+
+  /* ============================================================
+     TOP 3: PERCEIVED PERFORMANCE SYSTEM
+     ============================================================ */
+  .perf-concept {
+    min-height: calc(100vh - 56px);
+    background: var(--surface-100);
+    padding: 24px 20px;
+  }
+  .perf-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    max-width: 1200px; margin: 0 auto;
+  }
+  .perf-section {
+    background: white;
+    border-radius: var(--r-lg);
+    border: 1px solid var(--surface-200);
+    box-shadow: var(--shadow-xs);
+    overflow: hidden;
+  }
+  .perf-section.full-width { grid-column: span 2; }
+  .perf-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--surface-100);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .perf-title {
+    font-size: 14px; font-weight: 600; color: var(--surface-800);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .perf-label {
+    font-size: 10px; font-weight: 600; padding: 3px 8px;
+    border-radius: var(--r-full);
+  }
+  .perf-label.before { background: var(--danger-bg); color: var(--danger-text); }
+  .perf-label.after { background: var(--success-bg); color: var(--success-text); }
+  .perf-label.new { background: var(--ai-50); color: var(--ai-600); }
+  .perf-body { padding: 18px; }
+
+  /* Skeleton Demo */
+  .skeleton-demo { display: flex; gap: 12px; }
+  .skeleton-card {
+    flex: 1; padding: 14px;
+    border-radius: var(--r-md);
+    border: 1px solid var(--surface-200);
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .skel-line {
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--surface-100) 25%, var(--surface-200) 50%, var(--surface-100) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  .skel-badge { width: 52px; height: 18px; }
+  .skel-title { height: 16px; width: 80%; }
+  .skel-text { height: 12px; width: 100%; }
+  .skel-text.short { width: 60%; }
+  .skel-progress { height: 4px; width: 100%; }
+  .skel-tags { display: flex; gap: 4px; }
+  .skel-tag { width: 40px; height: 14px; border-radius: 3px; }
+  .skel-row { display: flex; justify-content: space-between; }
+
+  /* Toast Demo */
+  .toast-stack { display: flex; flex-direction: column; gap: 10px; }
+  .toast-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px;
+    border-radius: var(--r-md);
+    box-shadow: var(--shadow-md);
+    animation: toast-in 0.3s ease-out;
+    font-size: 13px;
+    position: relative;
+  }
+  @keyframes toast-in {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  .toast-item.success {
+    background: white;
+    border: 1px solid var(--success);
+    border-left: 4px solid var(--success);
+  }
+  .toast-item.error {
+    background: white;
+    border: 1px solid var(--danger);
+    border-left: 4px solid var(--danger);
+  }
+  .toast-item.undo {
+    background: var(--surface-900);
+    color: white;
+    border: none;
+  }
+  .toast-icon {
+    width: 24px; height: 24px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; flex-shrink: 0;
+  }
+  .toast-icon.success { background: var(--success-bg); color: var(--success); }
+  .toast-icon.error { background: var(--danger-bg); color: var(--danger); }
+  .toast-icon.undo { background: rgba(255,255,255,0.15); color: white; }
+  .toast-text { flex: 1; }
+  .toast-text strong { font-weight: 600; }
+  .toast-text .toast-sub { font-size: 11px; color: var(--surface-400); display: block; margin-top: 2px; }
+  .toast-item.undo .toast-sub { color: var(--surface-400); }
+  .toast-action {
+    padding: 4px 10px; border-radius: var(--r-sm);
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    border: none; transition: all var(--t-fast);
+  }
+  .toast-action.undo-btn {
+    background: rgba(255,255,255,0.15); color: white;
+  }
+  .toast-action.undo-btn:hover { background: rgba(255,255,255,0.25); }
+  .toast-action.retry-btn {
+    background: var(--danger-bg); color: var(--danger);
+  }
+  .toast-action.retry-btn:hover { background: var(--danger); color: white; }
+  .toast-close {
+    font-size: 14px; color: var(--surface-400); cursor: pointer;
+    background: none; border: none; padding: 4px;
+  }
+  .toast-timer {
+    position: absolute; bottom: 0; left: 4px; right: 0;
+    height: 2px; border-radius: 0 0 var(--r-md) 0;
+    overflow: hidden;
+  }
+  .toast-timer-fill {
+    height: 100%; background: var(--success);
+    animation: timer-shrink 3s linear forwards;
+    border-radius: 2px;
+  }
+  @keyframes timer-shrink {
+    from { width: 100%; }
+    to { width: 0%; }
+  }
+
+  /* Optimistic Update Demo */
+  .optimistic-demo {
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .opt-step {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 10px 12px; border-radius: var(--r-md);
+    background: var(--surface-50);
+    border: 1px solid var(--surface-200);
+    position: relative;
+  }
+  .opt-step.highlight {
+    background: var(--brand-50);
+    border-color: var(--brand-200);
+  }
+  .opt-step-num {
+    width: 24px; height: 24px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; flex-shrink: 0;
+    background: var(--surface-200); color: var(--surface-600);
+  }
+  .opt-step.highlight .opt-step-num {
+    background: var(--brand-500); color: white;
+  }
+  .opt-step-content { flex: 1; }
+  .opt-step-title { font-size: 12px; font-weight: 600; color: var(--surface-700); }
+  .opt-step-desc { font-size: 11px; color: var(--surface-500); margin-top: 2px; }
+  .opt-step-time {
+    font-size: 10px; color: var(--surface-400);
+    white-space: nowrap; margin-top: 2px;
+  }
+  .opt-arrow {
+    text-align: center; font-size: 16px; color: var(--surface-300);
+    padding: 2px 0;
+  }
+
+  /* Confirm Dialog Demo */
+  .confirm-demo-area {
+    display: flex; gap: 16px; align-items: flex-start;
+  }
+  .confirm-old {
+    flex: 1;
+    padding: 16px; border-radius: var(--r-md);
+    background: var(--surface-50); border: 1px solid var(--surface-200);
+  }
+  .confirm-old-label {
+    font-size: 10px; font-weight: 600; color: var(--danger);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .confirm-old-box {
+    background: var(--surface-200);
+    border: 1px solid var(--surface-300);
+    border-radius: 4px;
+    padding: 16px;
+    text-align: center;
+  }
+  .confirm-old-text { font-size: 13px; color: var(--surface-600); margin-bottom: 12px; }
+  .confirm-old-btns { display: flex; justify-content: center; gap: 8px; }
+  .confirm-old-btn {
+    padding: 5px 20px; border-radius: 4px;
+    font-size: 12px; font-weight: 500; cursor: pointer;
+    border: 1px solid var(--surface-400);
+    background: var(--surface-300); color: var(--surface-600);
+    font-family: inherit;
+  }
+  .confirm-old-btn.primary { background: var(--brand-500); color: white; border-color: var(--brand-500); }
+
+  .confirm-new {
+    flex: 1;
+    padding: 16px; border-radius: var(--r-md);
+    background: var(--surface-50); border: 1px solid var(--surface-200);
+  }
+  .confirm-new-label {
+    font-size: 10px; font-weight: 600; color: var(--success);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .confirm-new-box {
+    background: white;
+    border: 1px solid var(--surface-200);
+    border-radius: var(--r-lg);
+    padding: 20px;
+    box-shadow: var(--shadow-md);
+  }
+  .confirm-new-title {
+    font-size: 14px; font-weight: 600; color: var(--surface-800);
+    margin-bottom: 6px;
+  }
+  .confirm-new-desc {
+    font-size: 12px; color: var(--surface-500); margin-bottom: 16px;
+    line-height: 1.5;
+  }
+  .confirm-new-btns { display: flex; justify-content: flex-end; gap: 8px; }
+  .confirm-new-btn {
+    padding: 7px 16px; border-radius: var(--r-sm);
+    font-size: 12px; font-weight: 500; cursor: pointer;
+    border: 1px solid var(--surface-200);
+    background: white; color: var(--surface-700);
+    font-family: inherit; transition: all var(--t-fast);
+  }
+  .confirm-new-btn:hover { background: var(--surface-50); }
+  .confirm-new-btn.danger {
+    background: var(--danger); color: white; border-color: var(--danger);
+  }
+  .confirm-new-btn.danger:hover { background: #e11d48; }
+
+  /* Micro Animation Demo */
+  .anim-demo-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+  }
+  .anim-card {
+    padding: 16px; border-radius: var(--r-md);
+    border: 1px solid var(--surface-200);
+    background: white;
+    text-align: center;
+    cursor: pointer;
+    transition: all var(--t-normal);
+  }
+  .anim-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--brand-300);
+  }
+  .anim-card:active {
+    transform: translateY(0) scale(0.97);
+  }
+  .anim-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    margin: 0 auto 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    transition: all var(--t-normal);
+  }
+  .anim-card:hover .anim-icon { transform: scale(1.1); }
+  .anim-icon.blue { background: var(--brand-50); }
+  .anim-icon.violet { background: var(--ai-50); }
+  .anim-icon.green { background: var(--success-bg); }
+  .anim-icon.amber { background: var(--warning-bg); }
+  .anim-icon.rose { background: var(--danger-bg); }
+  .anim-icon.slate { background: var(--surface-100); }
+  .anim-card-label { font-size: 12px; font-weight: 600; color: var(--surface-700); }
+  .anim-card-desc { font-size: 10px; color: var(--surface-400); margin-top: 3px; }
+
+  /* State transition demo */
+  .state-transition {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px;
+    border-radius: var(--r-md);
+    background: var(--surface-50);
+  }
+  .state-badge-demo {
+    padding: 5px 12px; border-radius: var(--r-full);
+    font-size: 12px; font-weight: 600;
+    transition: all 0.4s ease;
+  }
+  .state-badge-demo.todo-state { background: var(--warning-bg); color: var(--warning-text); }
+  .state-badge-demo.progress-state { background: var(--success-bg); color: var(--success-text); }
+  .state-badge-demo.done-state { background: var(--surface-100); color: var(--surface-500); }
+  .state-arrow { color: var(--surface-300); font-size: 14px; }
+
+  /* ====== ANNOTATIONS ====== */
+  .annotation {
+    position: relative;
+    display: inline-flex;
+  }
+  .anno-dot {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--brand-600); color: white;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700;
+    cursor: help; flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(79,70,229,0.3);
+    position: relative; z-index: 2;
+  }
+  .anno-tooltip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+    background: var(--surface-900); color: white;
+    padding: 8px 12px; border-radius: var(--r-sm);
+    font-size: 11px; line-height: 1.5;
+    width: 220px; z-index: 100;
+    box-shadow: var(--shadow-lg);
+    pointer-events: none;
+  }
+  .anno-tooltip::after {
+    content: ''; position: absolute;
+    top: 100%; left: 50%; transform: translateX(-50%);
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid var(--surface-900);
+  }
+  .annotation:hover .anno-tooltip { display: block; }
+
+  /* Page section label */
+  .page-label {
+    position: sticky; top: 0; z-index: 50;
+    background: var(--surface-900);
+    color: white;
+    padding: 10px 20px;
+    font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .page-label .label-badge {
+    padding: 3px 10px; border-radius: var(--r-full);
+    font-size: 11px; font-weight: 600;
+    background: linear-gradient(135deg, var(--brand-500), var(--ai-500));
+  }
+  .page-label .label-desc {
+    font-weight: 400; color: var(--surface-400); margin-left: auto;
+    font-size: 12px;
+  }
+
+  /* ====== RESPONSIVE ====== */
+  @media (max-width: 900px) {
+    .today-grid { grid-template-columns: 1fr; }
+    .smart-grid { grid-template-columns: repeat(2, 1fr); }
+    .smart-card.urgent-large { grid-column: span 2; }
+    .perf-grid { grid-template-columns: 1fr; }
+    .perf-section.full-width { grid-column: span 1; }
+    .confirm-demo-area { flex-direction: column; }
+  }
+  @media (max-width: 600px) {
+    .smart-grid { grid-template-columns: 1fr; }
+    .smart-card.urgent-large { grid-column: span 1; }
+    .top-nav { padding: 0 12px; gap: 8px; }
+    .top-nav .tab-btn { padding: 6px 10px; font-size: 12px; }
+    .anim-demo-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ====== TOP NAVIGATION ====== -->
+<nav class="top-nav">
+  <div class="logo-area">
+    <div class="logo-dot">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+      </svg>
+    </div>
+    Oner UI 优化方案
+    <span class="badge-new">NEW</span>
+  </div>
+  <div class="tab-group">
+    <button class="tab-btn active" onclick="showPage('home')">
+      <span class="tab-num">1</span> 今日工作台
+    </button>
+    <button class="tab-btn" onclick="showPage('editor')">
+      <span class="tab-num">2</span> 沉浸式AI编辑器
+    </button>
+    <button class="tab-btn" onclick="showPage('perf')">
+      <span class="tab-num">3</span> 感知性能系统
+    </button>
+  </div>
+</nav>
+
+<div class="pages">
+
+<!-- ================================================================
+     TOP 1: HOME "TODAY WORKSPACE"
+     ================================================================ -->
+<div class="page active" id="page-home">
+  <div class="page-label">
+    <span class="label-badge">TOP 1</span>
+    首页 · 今日工作台
+    <span class="label-desc">Command Bar + 今日焦点 + 视觉权重卡片</span>
+  </div>
+
+  <!-- Command Bar (替代双行Toolbar) -->
+  <div class="cmd-bar">
+    <div class="cmd-logo">
+      <div class="cmd-logo-icon"></div>
+      Oner
+    </div>
+    <div class="cmd-breadcrumb">
+      / <span>首页</span>
+    </div>
+    <div class="cmd-search">
+      <span class="cmd-search-icon">⌕</span>
+      <span class="cmd-search-text">搜索、创建或输入命令...</span>
+      <span class="cmd-search-kbd">⌘K</span>
+    </div>
+    <div class="cmd-actions">
+      <button class="cmd-icon-btn" title="同步">↻</button>
+      <button class="cmd-icon-btn" title="通知">🔔</button>
+      <button class="cmd-icon-btn" title="设置">⚙</button>
+    </div>
+    <div class="cmd-avatar">U</div>
+    <div class="annotation" style="position:absolute;right:12px;top:-8px;">
+      <span class="anno-dot">1</span>
+      <span class="anno-tooltip">单行Command Bar替代双行Toolbar，释放约40px垂直空间。搜索、命令、创建合一入口。</span>
+    </div>
+  </div>
+
+  <!-- Today Focus Area -->
+  <div class="today-focus">
+    <div class="today-header">
+      <div>
+        <div class="today-greeting">下午好，<span>准备开始工作吧</span></div>
+        <div class="today-date">2026年6月9日 · 星期一 · 你有 3 个待办事项需要关注</div>
+      </div>
+      <div class="today-quick-stats">
+        <span class="quick-stat urgent">🔴 1 紧急</span>
+        <span class="quick-stat progress">🟢 2 进行中</span>
+        <span class="quick-stat todo">🟡 3 待办</span>
+      </div>
+    </div>
+
+    <div class="today-grid">
+      <!-- Today Todo Panel -->
+      <div class="today-todo">
+        <div class="todo-panel-header">
+          <div class="todo-panel-title">
+            <span class="icon-dot"></span>
+            今日待办
+          </div>
+          <span class="todo-count">6 项</span>
+        </div>
+        <div class="todo-list">
+          <div class="todo-item overdue">
+            <div class="todo-checkbox"></div>
+            <div class="todo-info">
+              <div class="todo-title">完成季度产品规划文档</div>
+              <div class="todo-meta">
+                <span class="todo-tag urgent">紧急</span>
+                <span class="todo-tag work">工作</span>
+                <span style="color:var(--danger)">⚠ 已过期</span>
+                <div class="todo-progress-mini"><div class="todo-progress-fill" style="width:60%"></div></div>
+                <span>60%</span>
+              </div>
+            </div>
+            <div class="todo-priority p-urgent"></div>
+          </div>
+          <div class="todo-item today-task">
+            <div class="todo-checkbox"></div>
+            <div class="todo-info">
+              <div class="todo-title">准备周报文档</div>
+              <div class="todo-meta">
+                <span class="todo-tag work">工作</span>
+                <span>📅 截止今天</span>
+              </div>
+            </div>
+            <div class="todo-priority p-high"></div>
+          </div>
+          <div class="todo-item today-task">
+            <div class="todo-checkbox"></div>
+            <div class="todo-info">
+              <div class="todo-title">用户访谈记录整理</div>
+              <div class="todo-meta">
+                <span class="todo-tag work">调研</span>
+                <span>📅 截止明天</span>
+              </div>
+            </div>
+            <div class="todo-priority p-normal"></div>
+          </div>
+          <div class="todo-item upcoming">
+            <div class="todo-checkbox"></div>
+            <div class="todo-info">
+              <div class="todo-title">开发UI组件库 — 按钮组件重构</div>
+              <div class="todo-meta">
+                <span class="todo-tag study">前端</span>
+                <div class="todo-progress-mini"><div class="todo-progress-fill" style="width:35%"></div></div>
+                <span>35%</span>
+              </div>
+            </div>
+            <div class="todo-priority p-normal"></div>
+          </div>
+          <div class="todo-item completed">
+            <div class="todo-checkbox"></div>
+            <div class="todo-info">
+              <div class="todo-title">服务器迁移方案评审</div>
+              <div class="todo-meta">
+                <span style="color:var(--success)">✓ 已完成</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Insight Panel -->
+      <div class="ai-insight">
+        <div class="ai-insight-header">
+          <span class="ai-sparkle">✦</span>
+          AI 洞察
+        </div>
+
+        <div class="insight-card">
+          <div class="insight-icon-row">
+            <div class="insight-icon warn">⚠</div>
+            <div class="insight-label">到期提醒</div>
+          </div>
+          <div class="insight-desc">「产品规划文档」已过期 1 天，建议调整截止日期或优先处理。</div>
+          <div class="insight-action">→ 立即处理</div>
+        </div>
+
+        <div class="insight-card">
+          <div class="insight-icon-row">
+            <div class="insight-icon info">📊</div>
+            <div class="insight-label">本周概览</div>
+          </div>
+          <div class="insight-desc">本周新增 12 条笔记，完成 4 个任务。工作类笔记占比 67%。</div>
+          <div class="insight-action">→ 查看完整报告</div>
+        </div>
+
+        <div class="insight-card">
+          <div class="insight-icon-row">
+            <div class="insight-icon success">🔗</div>
+            <div class="insight-label">智能关联</div>
+          </div>
+          <div class="insight-desc">发现「竞品分析报告」与「产品规划文档」高度相关，建议一起查阅。</div>
+          <div class="insight-action">→ 打开关联笔记</div>
+        </div>
+      </div>
+    </div>
+    <div class="annotation" style="margin-top:-16px;margin-bottom:16px;">
+      <span class="anno-dot">2</span>
+      <span class="anno-tooltip" style="left:0;transform:none;">今日焦点区：左侧待办列表（按截止日期+优先级排序）+ 右侧AI洞察卡片。品牌色渐变背景区分于下方笔记区。</span>
+    </div>
+  </div>
+
+  <!-- Smart Card Grid -->
+  <div class="card-section">
+    <div class="card-section-header">
+      <div class="card-section-title">
+        📝 最近笔记
+      </div>
+      <div class="view-toggle">
+        <button class="view-toggle-btn active">▦ 网格</button>
+        <button class="view-toggle-btn">☰ 列表</button>
+        <button class="view-toggle-btn">≡ 紧凑</button>
+      </div>
+    </div>
+
+    <div class="smart-grid">
+      <!-- Urgent Large Card (span 2) -->
+      <div class="smart-card urgent-large">
+        <div class="sc-badges">
+          <span class="sc-badge progress">进行中</span>
+          <span class="sc-badge urgent">紧急</span>
+        </div>
+        <div class="sc-title">完成季度产品规划文档</div>
+        <div class="sc-preview">本周需要整理的产品需求文档，包括用户调研反馈汇总、竞品功能对比矩阵和优先级排序建议...</div>
+        <div class="sc-progress"><div class="sc-progress-fill" style="width:60%"></div></div>
+        <div class="sc-footer">
+          <div class="sc-tags">
+            <span class="sc-tag">#规划</span>
+            <span class="sc-tag">#Q3</span>
+            <span class="sc-tag">#产品</span>
+          </div>
+          <div class="sc-due overdue">⚠ 已过期1天</div>
+        </div>
+      </div>
+
+      <!-- In-progress card -->
+      <div class="smart-card in-progress">
+        <div class="sc-badges"><span class="sc-badge progress">进行中</span></div>
+        <div class="sc-title">开发UI组件库</div>
+        <div class="sc-preview">原子组件重构，基于新Design Token系统...</div>
+        <div class="sc-progress"><div class="sc-progress-fill" style="width:35%"></div></div>
+        <div class="sc-footer">
+          <div class="sc-tags"><span class="sc-tag">#前端</span></div>
+          <div class="sc-subtask-count">☑ 3/8 子任务</div>
+        </div>
+      </div>
+
+      <!-- Todo card -->
+      <div class="smart-card normal">
+        <div class="sc-badges"><span class="sc-badge todo">待办</span></div>
+        <div class="sc-title">准备周报文档</div>
+        <div class="sc-preview">汇总团队本周工作进展和下周计划...</div>
+        <div class="sc-footer">
+          <div class="sc-tags"><span class="sc-tag">#工作</span></div>
+          <div class="sc-due due-soon">📅 今天</div>
+        </div>
+      </div>
+
+      <!-- Normal memo card -->
+      <div class="smart-card normal">
+        <div class="sc-badges"><span class="sc-badge memo">备忘</span></div>
+        <div class="sc-title">《认知觉醒》读书笔记</div>
+        <div class="sc-preview">元认知是人类最高级的认知能力，它能让我们跳出自身视角...</div>
+        <div class="sc-footer">
+          <div class="sc-tags"><span class="sc-tag">#阅读</span><span class="sc-tag">#成长</span></div>
+          <div class="sc-date">1周前</div>
+        </div>
+      </div>
+
+      <!-- Normal todo card -->
+      <div class="smart-card normal">
+        <div class="sc-badges"><span class="sc-badge todo">待办</span></div>
+        <div class="sc-title">用户访谈记录整理</div>
+        <div class="sc-preview">整理本周三用户访谈的录音和笔记...</div>
+        <div class="sc-footer">
+          <div class="sc-tags"><span class="sc-tag">#调研</span></div>
+          <div class="sc-due due-soon">📅 明天</div>
+        </div>
+      </div>
+
+      <!-- Done card (faded) -->
+      <div class="smart-card done-card">
+        <div class="sc-badges"><span class="sc-badge done">已完成</span></div>
+        <div class="sc-title">服务器迁移方案</div>
+        <div class="sc-preview">已完成从旧服务器到新服务器的数据迁移...</div>
+        <div class="sc-footer">
+          <div class="sc-tags"><span class="sc-tag">#运维</span></div>
+          <div class="sc-date">5天前</div>
+        </div>
+      </div>
+
+      <!-- Normal card -->
+      <div class="smart-card normal">
+        <div class="sc-badges"><span class="sc-badge memo">备忘</span></div>
+        <div class="sc-title">设计灵感收集</div>
+        <div class="sc-preview">Linear的Command Bar设计、Craft的块级排版...</div>
+        <div class="sc-footer">
+          <div class="sc-tags"><span class="sc-tag">#设计</span></div>
+          <div class="sc-date">3天前</div>
+        </div>
+      </div>
+    </div>
+    <div class="annotation" style="margin-top:8px;">
+      <span class="anno-dot">3</span>
+      <span class="anno-tooltip" style="left:0;transform:none;">视觉权重系统：紧急任务占2格+红色边框+脉动动画，进行中=蓝色边，普通=灰色边，已完成=半透明。一眼分辨优先级。</span>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     TOP 2: EDITOR "IMMERSIVE AI FUSION"
+     ================================================================ -->
+<div class="page" id="page-editor">
+  <div class="page-label">
+    <span class="label-badge">TOP 2</span>
+    编辑器 · 沉浸式AI融合
+    <span class="label-desc">自动保存 + 浮动AI工具栏 + 可折叠AI面板</span>
+  </div>
+
+  <div class="editor-concept">
+    <div class="editor-frame">
+      <!-- Editor Header -->
+      <div class="ed-header">
+        <input class="ed-title-input" value="完成季度产品规划文档" />
+        <div class="ed-header-actions">
+          <button class="cmd-icon-btn" title="预览模式">👁</button>
+          <button class="cmd-icon-btn" title="专注模式">◎</button>
+          <button class="cmd-icon-btn" title="关闭">✕</button>
+        </div>
+        <div class="annotation">
+          <span class="anno-dot">4</span>
+          <span class="anno-tooltip">新增"专注模式"按钮（◎），点击后隐藏所有UI元素，只留文本和光标，提供沉浸式写作体验。</span>
+        </div>
+      </div>
+
+      <!-- Meta Bar -->
+      <div class="ed-meta">
+        <div class="ed-meta-chip">
+          <span class="chip-dot status-progress"></span>
+          <select>
+            <option>进行中</option>
+            <option>待办</option>
+            <option>备忘</option>
+          </select>
+        </div>
+        <div class="ed-meta-chip">
+          <span class="chip-dot priority-high"></span>
+          <select>
+            <option>高优先级</option>
+            <option>中优先级</option>
+            <option>紧急</option>
+          </select>
+        </div>
+        <div class="ed-meta-chip">📅 截止 06/10</div>
+        <div class="ed-meta-chip">📂 工作</div>
+        <div class="ed-meta-chip" style="margin-left:auto;color:var(--ai-600);border-color:rgba(139,92,246,0.2);">
+          ✦ AI 助手
+        </div>
+      </div>
+
+      <!-- Editor Body -->
+      <div class="ed-body">
+        <div class="ed-content">
+          <p>本周需要整理的产品需求文档，包括以下几个方面：</p>
+
+          <h2>1. 用户调研反馈汇总</h2>
+          <ul>
+            <li>整理了最近的用户访谈记录</li>
+            <li>总结了用户痛点和功能需求</li>
+            <li>提炼出 Top 5 高频需求场景</li>
+          </ul>
+
+          <h2>2. 竞品功能对比矩阵</h2>
+          <ul>
+            <li><strong>Notion</strong>：协作强但隐私弱</li>
+            <li><strong>Obsidian</strong>：隐私好但AI弱</li>
+            <li><strong>Mem.ai</strong>：AI强但不自托管</li>
+          </ul>
+
+          <h2>3. 优先级排序建议</h2>
+          <p>基于 RICE 模型评估，<span class="text-selection-highlight">P0 级别为 AI 原生功能开发，包括浮动输入框和自动分类。P1 级别为 MCP 协议支持，这是 Oner 的核心差异化方向。</span></p>
+
+          <!-- Floating Toolbar on selected text -->
+          <div style="position:relative;display:inline-block;width:100%;">
+            <div class="floating-toolbar">
+              <button class="ft-btn">𝐁</button>
+              <button class="ft-btn">𝐼</button>
+              <button class="ft-btn">🔗</button>
+              <div class="ft-divider"></div>
+              <button class="ft-btn ai-btn">✦ AI续写</button>
+              <button class="ft-btn ai-btn">✎ 改写</button>
+              <button class="ft-btn ai-btn">🌐 翻译</button>
+              <button class="ft-btn ai-btn">📋 总结</button>
+            </div>
+          </div>
+          <div class="annotation" style="margin-top:52px;">
+            <span class="anno-dot">5</span>
+            <span class="anno-tooltip" style="left:0;transform:none;">选中文字时弹出浮动AI工具栏：格式化 + AI操作（续写/改写/翻译/总结）。无需侧栏，直接在编辑流中使用AI。</span>
+          </div>
+
+          <p style="margin-top:12px;">技术实现方案建议使用 TipTap 编辑器替换当前 textarea，以获得更好的富文本编辑体验和插件扩展能力。</p>
+
+          <div class="code-block">
+// 推荐技术栈
+const editorStack = {
+  editor: 'TipTap (ProseMirror)',
+  markdown: '原生支持',
+  ai: 'Floating Toolbar + Bottom Panel',
+  collaboration: 'Yjs (future)'
+};
+          </div>
+        </div>
+
+        <!-- AI Panel Collapsed (default state) -->
+        <div class="ai-panel-collapsed" id="aiPanelCollapsed" onclick="toggleAIPanel()">
+          <div class="ai-panel-tag">
+            <span class="ai-icon">✦</span>
+            AI 建议
+          </div>
+          <div class="ai-suggestion-chips">
+            <span class="ai-s-chip">+ 添加标签 #产品需求</span>
+            <span class="ai-s-chip">📎 关联：竞品分析报告</span>
+            <span class="ai-s-chip">✎ 建议补充技术方案</span>
+          </div>
+          <div class="ai-panel-toggle">展开 ▾</div>
+        </div>
+
+        <!-- AI Panel Expanded -->
+        <div class="ai-panel-expanded" id="aiPanelExpanded">
+          <div class="ai-expanded-header">
+            <div class="ai-expanded-title">
+              <span class="ai-icon" style="width:18px;height:18px;border-radius:5px;background:linear-gradient(135deg,var(--ai-500),var(--ai-600));display:inline-flex;align-items:center;justify-content:center;font-size:10px;color:white;">✦</span>
+              AI 助手面板
+            </div>
+            <button class="ai-expanded-close" onclick="toggleAIPanel()">收起 ▴</button>
+          </div>
+          <div class="ai-expanded-body">
+            <div class="ai-col">
+              <div class="ai-col-label">💡 建议标签</div>
+              <div class="ai-tag-cloud">
+                <span class="ai-t">#产品需求</span>
+                <span class="ai-t">#用户调研</span>
+                <span class="ai-t">#2026Q3</span>
+                <span class="ai-t">#RICE</span>
+              </div>
+              <div class="ai-col-label" style="margin-top:12px;">✍ 续写建议</div>
+              <div class="ai-continue-box">
+                根据当前内容，建议补充：
+                <strong>技术选型详细对比</strong>、实施时间线（Gantt图）和资源分配方案...
+                <div class="ai-continue-action">✦ 一键插入续写 →</div>
+              </div>
+            </div>
+            <div class="ai-col">
+              <div class="ai-col-label">🔗 相关笔记 (3)</div>
+              <div class="ai-related-list">
+                <div class="ai-rel-item">
+                  <div class="ai-rel-icon">📄</div>
+                  <div>
+                    <div class="ai-rel-title">竞品分析报告</div>
+                    <div class="ai-rel-meta">相关度 94% · 3天前</div>
+                  </div>
+                </div>
+                <div class="ai-rel-item">
+                  <div class="ai-rel-icon">📄</div>
+                  <div>
+                    <div class="ai-rel-title">用户访谈记录</div>
+                    <div class="ai-rel-meta">相关度 87% · 昨天</div>
+                  </div>
+                </div>
+                <div class="ai-rel-item">
+                  <div class="ai-rel-icon">📄</div>
+                  <div>
+                    <div class="ai-rel-title">Q2 回顾总结</div>
+                    <div class="ai-rel-meta">相关度 72% · 1周前</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="annotation" style="position:absolute;bottom:8px;right:20px;">
+          <span class="anno-dot">6</span>
+          <span class="anno-tooltip" style="right:0;left:auto;transform:none;">AI面板从右侧栏改为底部可折叠面板。默认收起仅显示一行建议（36px），展开后200px。释放横向空间给正文编辑。</span>
+        </div>
+      </div>
+
+      <!-- Editor Footer (auto-save indicator) -->
+      <div class="ed-footer">
+        <div class="save-status">
+          <span class="save-dot saved"></span>
+          已自动保存
+        </div>
+        <span>⌘/ 展开AI · ⌘⇧F 专注模式 · Esc 关闭</span>
+        <span>1,234 字 · 阅读约 4 分钟</span>
+      </div>
+      <div class="annotation" style="position:absolute;bottom:0;left:20px;">
+        <span class="anno-dot">7</span>
+        <span class="anno-tooltip" style="left:0;transform:none;">自动保存状态指示器：绿色=已保存、黄色脉动=保存中、灰色=未保存。消除手动保存按钮和"保存焦虑"。</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     TOP 3: PERCEIVED PERFORMANCE SYSTEM
+     ================================================================ -->
+<div class="page" id="page-perf">
+  <div class="page-label">
+    <span class="label-badge">TOP 3</span>
+    感知性能系统
+    <span class="label-desc">骨架屏 · 乐观更新 · Toast通知 · 微动画 · 统一图标</span>
+  </div>
+
+  <div class="perf-concept">
+    <div class="perf-grid">
+
+      <!-- 1. Skeleton Loading -->
+      <div class="perf-section">
+        <div class="perf-header">
+          <div class="perf-title">
+            ◻ 骨架屏加载
+            <span class="perf-label after">NEW</span>
+          </div>
+          <span style="font-size:11px;color:var(--surface-400);">替代全页 Spinner</span>
+        </div>
+        <div class="perf-body">
+          <div class="skeleton-demo">
+            <div class="skeleton-card">
+              <div class="skel-row">
+                <div class="skel-line skel-badge"></div>
+                <div class="skel-line" style="width:48px;height:14px;"></div>
+              </div>
+              <div class="skel-line skel-title"></div>
+              <div class="skel-line skel-text"></div>
+              <div class="skel-line skel-text short"></div>
+              <div class="skel-line skel-progress"></div>
+              <div class="skel-tags">
+                <div class="skel-line skel-tag"></div>
+                <div class="skel-line skel-tag"></div>
+              </div>
+            </div>
+            <div class="skeleton-card">
+              <div class="skel-row">
+                <div class="skel-line skel-badge"></div>
+                <div class="skel-line" style="width:48px;height:14px;"></div>
+              </div>
+              <div class="skel-line skel-title" style="width:65%;"></div>
+              <div class="skel-line skel-text"></div>
+              <div class="skel-line skel-text short" style="width:45%;"></div>
+              <div class="skel-tags">
+                <div class="skel-line skel-tag"></div>
+              </div>
+            </div>
+          </div>
+          <p style="font-size:11px;color:var(--surface-400);margin-top:12px;text-align:center;">
+            ↑ 骨架屏占位 → 数据到达后淡入填充，感知加载时间减少 50-60%
+          </p>
+        </div>
+      </div>
+
+      <!-- 2. Toast Notification System -->
+      <div class="perf-section">
+        <div class="perf-header">
+          <div class="perf-title">
+            🔔 Toast 通知系统
+            <span class="perf-label after">NEW</span>
+          </div>
+          <span style="font-size:11px;color:var(--surface-400);">替代 window.confirm()</span>
+        </div>
+        <div class="perf-body">
+          <div class="toast-stack">
+            <!-- Success Toast -->
+            <div class="toast-item success">
+              <div class="toast-icon success">✓</div>
+              <div class="toast-text">
+                <strong>笔记已创建</strong>
+                <span class="toast-sub">「用户访谈记录整理」已添加到工作分类</span>
+              </div>
+              <button class="toast-close">×</button>
+              <div class="toast-timer"><div class="toast-timer-fill"></div></div>
+            </div>
+
+            <!-- Undo Toast -->
+            <div class="toast-item undo">
+              <div class="toast-icon undo">↩</div>
+              <div class="toast-text">
+                <strong>已删除「服务器迁移方案」</strong>
+                <span class="toast-sub">5秒后可撤销</span>
+              </div>
+              <button class="toast-action undo-btn">撤销</button>
+            </div>
+
+            <!-- Error Toast -->
+            <div class="toast-item error">
+              <div class="toast-icon error">!</div>
+              <div class="toast-text">
+                <strong>保存失败</strong>
+                <span class="toast-sub">网络连接中断，编辑已缓存到本地</span>
+              </div>
+              <button class="toast-action retry-btn">重试</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Optimistic Update -->
+      <div class="perf-section">
+        <div class="perf-header">
+          <div class="perf-title">
+            ⚡ 乐观更新流程
+            <span class="perf-label new">NEW</span>
+          </div>
+          <span style="font-size:11px;color:var(--surface-400);">消除操作等待感</span>
+        </div>
+        <div class="perf-body">
+          <div class="optimistic-demo">
+            <div class="opt-step highlight">
+              <div class="opt-step-num">1</div>
+              <div class="opt-step-content">
+                <div class="opt-step-title">用户点击「创建笔记」</div>
+                <div class="opt-step-desc">立即触发 UI 更新</div>
+              </div>
+              <div class="opt-step-time">0ms</div>
+            </div>
+            <div class="opt-arrow">↓</div>
+            <div class="opt-step highlight">
+              <div class="opt-step-num">2</div>
+              <div class="opt-step-content">
+                <div class="opt-step-title">卡片立刻出现在列表中</div>
+                <div class="opt-step-desc">不等 API 返回，先更新 UI（乐观更新）</div>
+              </div>
+              <div class="opt-step-time">~16ms</div>
+            </div>
+            <div class="opt-arrow">↓</div>
+            <div class="opt-step">
+              <div class="opt-step-num">3</div>
+              <div class="opt-step-content">
+                <div class="opt-step-title">后台异步提交到服务器</div>
+                <div class="opt-step-desc">成功后 Toast 提示「已创建」，失败则回滚 + 错误提示</div>
+              </div>
+              <div class="opt-step-time">~200ms</div>
+            </div>
+          </div>
+          <p style="font-size:11px;color:var(--surface-400);margin-top:12px;text-align:center;">
+            用户感知到的操作延迟：16ms（1帧动画）而非 200ms+（网络往返）
+          </p>
+        </div>
+      </div>
+
+      <!-- 4. Confirm Dialog -->
+      <div class="perf-section">
+        <div class="perf-header">
+          <div class="perf-title">
+            💬 确认对话框
+            <span class="perf-label after">优化</span>
+          </div>
+          <span style="font-size:11px;color:var(--surface-400);">替代浏览器原生弹窗</span>
+        </div>
+        <div class="perf-body">
+          <div class="confirm-demo-area">
+            <div class="confirm-old">
+              <div class="confirm-old-label">✕ 旧方案</div>
+              <div class="confirm-old-box">
+                <div class="confirm-old-text">确定要删除这条笔记吗？</div>
+                <div class="confirm-old-btns">
+                  <button class="confirm-old-btn">取消</button>
+                  <button class="confirm-old-btn primary">确定</button>
+                </div>
+              </div>
+              <p style="font-size:10px;color:var(--danger);margin-top:8px;text-align:center;">
+                window.confirm() — 样式突兀，阻塞主线程
+              </p>
+            </div>
+            <div class="confirm-new">
+              <div class="confirm-new-label">✓ 新方案</div>
+              <div class="confirm-new-box">
+                <div class="confirm-new-title">删除笔记？</div>
+                <div class="confirm-new-desc">
+                  「产品规划文档」将被移入回收站。<br>
+                  你可以在 30 天内恢复已删除的笔记。
+                </div>
+                <div class="confirm-new-btns">
+                  <button class="confirm-new-btn">取消</button>
+                  <button class="confirm-new-btn danger">删除</button>
+                </div>
+              </div>
+              <p style="font-size:10px;color:var(--success);margin-top:8px;text-align:center;">
+                内嵌确认 — 风格统一，信息完整，不阻塞
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Micro Animations -->
+      <div class="perf-section full-width">
+        <div class="perf-header">
+          <div class="perf-title">
+            ✨ 微动画系统
+            <span class="perf-label new">NEW</span>
+          </div>
+          <span style="font-size:11px;color:var(--surface-400);">hover 试试 → 所有过渡基于 4px 网格和 200ms 缓动曲线 · 尊重 prefers-reduced-motion</span>
+        </div>
+        <div class="perf-body">
+          <div class="anim-demo-grid">
+            <div class="anim-card">
+              <div class="anim-icon blue">📝</div>
+              <div class="anim-card-label">卡片 Hover</div>
+              <div class="anim-card-desc">translateY(-3px) + shadow</div>
+            </div>
+            <div class="anim-card">
+              <div class="anim-icon violet">✦</div>
+              <div class="anim-card-label">AI 呼吸灯</div>
+              <div class="anim-card-desc">opacity + scale 脉动</div>
+            </div>
+            <div class="anim-card">
+              <div class="anim-icon green">✓</div>
+              <div class="anim-card-label">完成动画</div>
+              <div class="anim-card-desc">scale(1.2→1) + fade</div>
+            </div>
+            <div class="anim-card">
+              <div class="anim-icon amber">↻</div>
+              <div class="anim-card-label">状态切换</div>
+              <div class="anim-card-desc">颜色渐变 200ms</div>
+            </div>
+            <div class="anim-card">
+              <div class="anim-icon rose">🗑</div>
+              <div class="anim-card-label">删除退出</div>
+              <div class="anim-card-desc">slide-out + height collapse</div>
+            </div>
+            <div class="anim-card">
+              <div class="anim-icon slate">📋</div>
+              <div class="anim-card-label">列表新增</div>
+              <div class="anim-card-desc">slide-in + fade-in 200ms</div>
+            </div>
+          </div>
+
+          <div style="margin-top:20px;">
+            <p style="font-size:12px;font-weight:600;color:var(--surface-700);margin-bottom:10px;">状态转换动画示例：看板拖拽</p>
+            <div class="state-transition">
+              <span class="state-badge-demo todo-state">待办</span>
+              <span class="state-arrow">→ → →</span>
+              <span class="state-badge-demo progress-state">进行中</span>
+              <span class="state-arrow">→ → →</span>
+              <span class="state-badge-demo done-state">已完成</span>
+              <span style="font-size:11px;color:var(--surface-400);margin-left:8px;">颜色 + 背景 + 文字 同步渐变过渡</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. Icon Unification -->
+      <div class="perf-section full-width">
+        <div class="perf-header">
+          <div class="perf-title">
+            🔣 SVG 图标统一
+            <span class="perf-label after">优化</span>
+          </div>
+          <span style="font-size:11px;color:var(--surface-400);">Emoji → Lucide React SVG · 跨平台视觉一致</span>
+        </div>
+        <div class="perf-body">
+          <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:center;">
+            <div style="text-align:center;">
+              <div style="font-size:24px;margin-bottom:4px;">🔄</div>
+              <div style="font-size:20px;color:var(--surface-500);margin-bottom:4px;">↓</div>
+              <div style="width:28px;height:28px;border-radius:6px;background:var(--surface-100);display:flex;align-items:center;justify-content:center;margin:0 auto;color:var(--surface-600);font-size:14px;">↻</div>
+              <div style="font-size:10px;color:var(--surface-400);margin-top:4px;">同步</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:24px;margin-bottom:4px;">💾</div>
+              <div style="font-size:20px;color:var(--surface-500);margin-bottom:4px;">↓</div>
+              <div style="width:28px;height:28px;border-radius:6px;background:var(--surface-100);display:flex;align-items:center;justify-content:center;margin:0 auto;color:var(--surface-600);font-size:14px;">⬇</div>
+              <div style="font-size:10px;color:var(--surface-400);margin-top:4px;">备份</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:24px;margin-bottom:4px;">🌙</div>
+              <div style="font-size:20px;color:var(--surface-500);margin-bottom:4px;">↓</div>
+              <div style="width:28px;height:28px;border-radius:6px;background:var(--surface-100);display:flex;align-items:center;justify-content:center;margin:0 auto;color:var(--surface-600);font-size:14px;">◐</div>
+              <div style="font-size:10px;color:var(--surface-400);margin-top:4px;">主题</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:24px;margin-bottom:4px;">⚙️</div>
+              <div style="font-size:20px;color:var(--surface-500);margin-bottom:4px;">↓</div>
+              <div style="width:28px;height:28px;border-radius:6px;background:var(--surface-100);display:flex;align-items:center;justify-content:center;margin:0 auto;color:var(--surface-600);font-size:14px;">⚙</div>
+              <div style="font-size:10px;color:var(--surface-400);margin-top:4px;">设置</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:24px;margin-bottom:4px;">🤖</div>
+              <div style="font-size:20px;color:var(--surface-500);margin-bottom:4px;">↓</div>
+              <div style="width:28px;height:28px;border-radius:6px;background:var(--ai-50);display:flex;align-items:center;justify-content:center;margin:0 auto;color:var(--ai-600);font-size:14px;">✦</div>
+              <div style="font-size:10px;color:var(--surface-400);margin-top:4px;">AI</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:24px;margin-bottom:4px;">📋</div>
+              <div style="font-size:20px;color:var(--surface-500);margin-bottom:4px;">↓</div>
+              <div style="width:28px;height:28px;border-radius:6px;background:var(--surface-100);display:flex;align-items:center;justify-content:center;margin:0 auto;color:var(--surface-600);font-size:14px;">☰</div>
+              <div style="font-size:10px;color:var(--surface-400);margin-top:4px;">看板</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:24px;margin-bottom:4px;">🔒</div>
+              <div style="font-size:20px;color:var(--surface-500);margin-bottom:4px;">↓</div>
+              <div style="width:28px;height:28px;border-radius:6px;background:var(--success-bg);display:flex;align-items:center;justify-content:center;margin:0 auto;color:var(--success-text);font-size:14px;">🔐</div>
+              <div style="font-size:10px;color:var(--surface-400);margin-top:4px;">保险库</div>
+            </div>
+            <div style="margin-left:auto;padding:12px 16px;border-radius:var(--r-md);background:var(--surface-50);border:1px solid var(--surface-200);max-width:260px;">
+              <div style="font-size:12px;font-weight:600;color:var(--surface-700);margin-bottom:4px;">约 30 处 Emoji 替换</div>
+              <div style="font-size:11px;color:var(--surface-500);line-height:1.5;">
+                SVG 图标在所有操作系统上渲染一致，支持自定义主题色着色，暗色模式下自动适配。
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  event.currentTarget.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function toggleAIPanel() {
+  const collapsed = document.getElementById('aiPanelCollapsed');
+  const expanded = document.getElementById('aiPanelExpanded');
+  if (expanded.classList.contains('visible')) {
+    expanded.classList.remove('visible');
+    collapsed.style.display = 'flex';
+  } else {
+    expanded.classList.add('visible');
+    collapsed.style.display = 'none';
+  }
+}
+</script>
+</body>
+</html>

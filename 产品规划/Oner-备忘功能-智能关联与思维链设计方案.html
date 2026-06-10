@@ -1,0 +1,1596 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oner 备忘功能 — 智能关联·思维链·分类管理 设计方案</title>
+<style>
+:root {
+  --accent: #4f46e5;
+  --accent-light: #eef2ff;
+  --accent-100: #e0e7ff;
+  --accent-200: #c7d2fe;
+  --accent-400: #818cf8;
+  --accent-600: #4f46e5;
+  --accent-700: #4338ca;
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --border-light: #f1f5f9;
+  --text: #1e293b;
+  --text-sec: #475569;
+  --text-muted: #94a3b8;
+  --green: #10b981; --green-bg: #d1fae5; --green-text: #065f46;
+  --amber: #f59e0b; --amber-bg: #fef3c7; --amber-text: #92400e;
+  --red: #ef4444; --red-bg: #fef2f2;
+  --blue: #3b82f6; --blue-bg: #eff6ff; --blue-light: #dbeafe;
+  --purple: #8b5cf6; --purple-bg: #f5f3ff; --purple-100: #ede9fe;
+  --teal: #14b8a6; --teal-bg: #f0fdfa;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+/* ====== HEADER ====== */
+.page-header {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 60%, #2563eb 100%);
+  color: white;
+  padding: 48px 36px 36px;
+  position: relative;
+  overflow: hidden;
+}
+.page-header::before {
+  content: '';
+  position: absolute;
+  width: 400px; height: 400px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.05);
+  top: -120px; right: -80px;
+}
+.page-header::after {
+  content: '';
+  position: absolute;
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.04);
+  bottom: -60px; left: 60px;
+}
+.page-header h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; position: relative; }
+.page-header .sub { font-size: 14px; opacity: 0.85; margin-bottom: 24px; position: relative; }
+.header-tags { display: flex; gap: 8px; flex-wrap: wrap; position: relative; }
+.header-tag {
+  font-size: 11px; padding: 4px 14px; border-radius: 20px;
+  background: rgba(255,255,255,0.15); backdrop-filter: blur(8px);
+  color: white; font-weight: 600; border: 1px solid rgba(255,255,255,0.2);
+}
+
+/* ====== NAV ====== */
+.sticky-nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(255,255,255,0.96);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  display: flex; gap: 2px;
+  padding: 6px 24px;
+  overflow-x: auto;
+}
+.sticky-nav::-webkit-scrollbar { display: none; }
+.nav-pill {
+  padding: 7px 16px; border-radius: 8px; border: none;
+  background: transparent; font-size: 12px; font-weight: 600;
+  color: var(--text-muted); cursor: pointer; transition: all 0.15s;
+  white-space: nowrap; display: flex; align-items: center; gap: 5px;
+  font-family: inherit;
+}
+.nav-pill:hover { background: var(--accent-light); color: var(--accent); }
+.nav-pill.active { background: var(--accent-light); color: var(--accent); }
+.nav-pill .num {
+  width: 18px; height: 18px; border-radius: 5px;
+  background: var(--accent); color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700;
+}
+
+/* ====== SECTIONS ====== */
+.section { max-width: 1200px; margin: 0 auto; padding: 40px 28px; }
+.section + .section { border-top: 1px solid var(--border-light); }
+.sec-head { margin-bottom: 28px; }
+.sec-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 10px;
+  background: var(--accent); color: white; font-size: 13px; font-weight: 800;
+  margin-bottom: 10px;
+}
+.sec-title { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+.sec-desc { font-size: 14px; color: var(--text-sec); max-width: 680px; line-height: 1.6; }
+.sec-tags { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+.sec-tag {
+  font-size: 10px; padding: 3px 10px; border-radius: 6px;
+  font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+}
+
+/* ====== CARDS ====== */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+}
+.card + .card { margin-top: 16px; }
+
+/* ====== TWO-COL ====== */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.three-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+@media (max-width: 800px) { .two-col, .three-col { grid-template-columns: 1fr; } }
+
+/* ====== CONCEPT DEMO — 智能关联 ====== */
+.demo-wrapper {
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--bg);
+}
+.demo-topbar {
+  background: white; border-bottom: 1px solid var(--border);
+  padding: 10px 16px;
+  display: flex; align-items: center; gap: 10px;
+}
+.demo-dots { display: flex; gap: 4px; }
+.demo-dot { width: 10px; height: 10px; border-radius: 50%; }
+.demo-title { font-size: 12px; font-weight: 600; color: var(--text-sec); margin-left: 4px; }
+
+/* Memo editor */
+.memo-editor {
+  background: white; padding: 20px 24px;
+}
+.memo-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.memo-title-area { flex: 1; }
+.memo-h { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+.memo-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.meta-tag {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 8px; border-radius: 5px; font-size: 11px; font-weight: 600;
+}
+.memo-actions { display: flex; gap: 6px; }
+.icon-btn {
+  width: 30px; height: 30px; border-radius: 7px;
+  border: 1px solid var(--border); background: white;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 13px; transition: all 0.12s;
+}
+.icon-btn:hover { border-color: var(--accent); background: var(--accent-light); }
+.icon-btn.ai-btn { background: var(--purple-bg); border-color: var(--purple-100); color: var(--purple); }
+.memo-body { font-size: 13px; color: var(--text-sec); line-height: 1.7; }
+
+/* Smart association panel */
+.assoc-panel {
+  border-top: 1px solid var(--border);
+  background: linear-gradient(180deg, #f8f7ff 0%, white 100%);
+  padding: 14px 20px;
+}
+.assoc-header {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+}
+.ai-icon-sm {
+  width: 22px; height: 22px; border-radius: 6px;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: white; flex-shrink: 0;
+}
+.assoc-title { font-size: 13px; font-weight: 700; color: var(--text); }
+.assoc-count {
+  margin-left: auto; font-size: 11px; padding: 2px 8px; border-radius: 6px;
+  background: var(--accent-light); color: var(--accent); font-weight: 600;
+}
+.related-items { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+@media (max-width: 700px) { .related-items { grid-template-columns: 1fr; } }
+.related-item {
+  padding: 10px 12px; border-radius: 10px;
+  border: 1px solid var(--border); background: white;
+  cursor: pointer; transition: all 0.14s;
+  position: relative;
+}
+.related-item:hover { border-color: var(--accent-400); box-shadow: 0 2px 8px rgba(79,70,229,0.1); }
+.ri-score {
+  position: absolute; top: 8px; right: 8px;
+  display: flex; gap: 1.5px; align-items: center;
+}
+.ri-seg { width: 4px; height: 8px; border-radius: 1px; }
+.ri-pct { font-size: 10px; color: var(--accent); font-weight: 700; margin-left: 3px; }
+.ri-title { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 3px; padding-right: 40px; }
+.ri-reason { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+.ri-tags { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
+.ri-tag { font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: 500; }
+.assoc-actions { display: flex; gap: 8px; margin-top: 10px; }
+.assoc-btn {
+  padding: 6px 14px; border-radius: 8px; font-size: 11px; font-weight: 600;
+  border: 1px solid var(--border); background: white; color: var(--text-sec);
+  cursor: pointer; transition: all 0.12s;
+  font-family: inherit;
+}
+.assoc-btn:hover { border-color: var(--accent); color: var(--accent); }
+.assoc-btn.primary { background: var(--accent-light); border-color: var(--accent-200); color: var(--accent); }
+
+/* ====== CHAIN VIEW ====== */
+.chain-demo {
+  background: white; border-radius: 12px; border: 1px solid var(--border);
+  overflow: hidden;
+}
+.chain-toolbar {
+  padding: 10px 16px; background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+}
+.chain-body { padding: 16px 20px; }
+.chain-row { display: flex; align-items: stretch; }
+.chain-line-col {
+  display: flex; flex-direction: column; align-items: center;
+  width: 28px; flex-shrink: 0;
+}
+.chain-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  flex-shrink: 0; margin-top: 10px; border: 2px solid white;
+  box-shadow: 0 0 0 2px;
+}
+.chain-vert { width: 1.5px; flex: 1; margin: 2px 0; }
+.chain-content {
+  flex: 1; padding: 8px 0 8px 10px;
+}
+.chain-node-card {
+  padding: 10px 14px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--card);
+  cursor: pointer; transition: all 0.14s;
+  display: flex; align-items: flex-start; gap: 10px;
+}
+.chain-node-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.chain-node-card.is-root { border-color: var(--accent-200); background: var(--accent-light); }
+.chain-node-card.is-current { border-color: var(--green); background: var(--teal-bg); }
+.node-type-badge {
+  padding: 2px 7px; border-radius: 5px; font-size: 10px; font-weight: 700;
+  flex-shrink: 0; margin-top: 1px;
+}
+.node-info { flex: 1; }
+.node-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+.node-meta { font-size: 11px; color: var(--text-muted); }
+.chain-indent-1 { padding-left: 28px; }
+.chain-indent-2 { padding-left: 56px; }
+.chain-controls {
+  padding: 12px 20px; border-top: 1px solid var(--border-light);
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+.ctrl-btn {
+  padding: 6px 14px; border-radius: 8px; font-size: 11px; font-weight: 600;
+  border: 1px solid var(--border); background: white; color: var(--text-sec);
+  cursor: pointer; transition: all 0.12s; font-family: inherit;
+}
+.ctrl-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+.ctrl-btn.ai { background: var(--purple-bg); border-color: var(--purple-100); color: var(--purple); }
+.ctrl-btn.ai:hover { background: var(--purple-100); }
+
+/* ====== CATEGORY VIEW ====== */
+.cat-overview {
+  display: grid; grid-template-columns: 220px 1fr; gap: 16px;
+}
+@media (max-width: 700px) { .cat-overview { grid-template-columns: 1fr; } }
+.cat-sidebar { display: flex; flex-direction: column; gap: 8px; }
+.cat-stat-bar {
+  background: white; border: 1px solid var(--border); border-radius: 12px;
+  padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;
+}
+.stat-row { display: flex; align-items: center; gap: 10px; }
+.stat-icon {
+  width: 32px; height: 32px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; flex-shrink: 0;
+}
+.stat-label { font-size: 12px; color: var(--text-sec); }
+.stat-value { font-size: 18px; font-weight: 800; }
+.cat-list { display: flex; flex-direction: column; gap: 4px; }
+.cat-list-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-radius: 9px; cursor: pointer;
+  transition: all 0.12s; border: 1px solid transparent;
+}
+.cat-list-item:hover { background: var(--accent-light); border-color: var(--accent-200); }
+.cat-list-item.active { background: var(--accent-light); border-color: var(--accent); }
+.cat-list-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.cat-list-name { flex: 1; font-size: 13px; font-weight: 600; }
+.cat-list-count {
+  font-size: 11px; padding: 1px 7px; border-radius: 5px;
+  background: var(--bg); color: var(--text-muted); font-weight: 600;
+}
+.cat-list-count.warn { background: var(--red-bg); color: var(--red); }
+.cat-main { display: flex; flex-direction: column; gap: 10px; }
+.cat-main-header {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.filter-chips { display: flex; gap: 5px; flex-wrap: wrap; }
+.chip {
+  padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  border: 1px solid var(--border); background: white; color: var(--text-muted);
+  cursor: pointer; transition: all 0.12s;
+}
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+.chip.active { background: var(--accent); color: white; border-color: var(--accent); }
+.search-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border: 1px solid var(--border); border-radius: 9px;
+  background: white; transition: all 0.12s;
+}
+.search-row:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,70,229,0.08); }
+.search-row input {
+  flex: 1; border: none; outline: none; font-size: 12px; color: var(--text);
+  font-family: inherit; background: transparent;
+}
+.search-row .icon { font-size: 13px; color: var(--text-muted); }
+.search-row .count-tag { font-size: 11px; color: var(--text-muted); }
+.memo-list-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border);
+  background: white; cursor: pointer; transition: all 0.14s; position: relative;
+}
+.memo-list-item:hover { border-color: var(--accent-200); box-shadow: 0 2px 6px rgba(79,70,229,0.06); }
+.memo-list-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+.memo-list-body { flex: 1; }
+.memo-list-title { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+.memo-list-meta { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.memo-badge { font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: 600; }
+.link-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 10px; padding: 2px 7px; border-radius: 5px;
+  background: var(--accent-light); color: var(--accent); font-weight: 600;
+}
+.chain-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 10px; padding: 2px 7px; border-radius: 5px;
+  background: var(--purple-bg); color: var(--purple); font-weight: 600;
+}
+.time-label {
+  font-size: 11px; color: var(--text-muted);
+  padding: 4px 0 2px;
+}
+.group-items { display: flex; flex-direction: column; gap: 6px; }
+
+/* ====== SPEC TABLE ====== */
+.spec-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.spec-table th {
+  text-align: left; padding: 10px 14px; background: var(--bg);
+  font-size: 11px; font-weight: 700; color: var(--text-sec);
+  text-transform: uppercase; letter-spacing: 0.4px;
+  border-bottom: 1px solid var(--border);
+}
+.spec-table td {
+  padding: 10px 14px; border-bottom: 1px solid var(--border-light);
+  vertical-align: top; line-height: 1.5; color: var(--text-sec);
+}
+.spec-table tr:last-child td { border-bottom: none; }
+.spec-table .label { font-weight: 600; color: var(--text); white-space: nowrap; }
+.spec-table .code { font-family: monospace; font-size: 11px; color: var(--purple); }
+
+/* ====== INSIGHT BOX ====== */
+.insight-box {
+  background: linear-gradient(135deg, var(--accent-light), var(--purple-bg));
+  border: 1px solid var(--accent-200); border-radius: 12px; padding: 16px;
+  margin-top: 16px;
+}
+.insight-box p { font-size: 13px; color: var(--text-sec); line-height: 1.7; }
+
+/* ====== FOOTER ====== */
+.page-footer {
+  background: var(--text); color: white;
+  padding: 32px 36px; margin-top: 48px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px;
+}
+.footer-info { font-size: 12px; opacity: 0.7; line-height: 1.8; }
+.footer-brand { font-size: 16px; font-weight: 800; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="page-header">
+  <h1>🔗 Oner 备忘功能增强设计方案</h1>
+  <p class="sub">智能关联 · 思维链视图 · 分类堆积快速浏览 — 让每一条备忘都不孤立</p>
+  <div class="header-tags">
+    <span class="header-tag">🤖 智能关联</span>
+    <span class="header-tag">🧠 思维链</span>
+    <span class="header-tag">📂 分类管理</span>
+    <span class="header-tag">🔍 快速检索</span>
+    <span class="header-tag">2026-06-10</span>
+  </div>
+</div>
+
+<!-- NAV -->
+<div class="sticky-nav">
+  <button class="nav-pill active" onclick="scrollTo(0,'problem')"><span class="num">0</span>问题分析</button>
+  <button class="nav-pill" onclick="scrollTo(0,'assoc')"><span class="num">1</span>智能关联</button>
+  <button class="nav-pill" onclick="scrollTo(0,'chain')"><span class="num">2</span>思维链视图</button>
+  <button class="nav-pill" onclick="scrollTo(0,'category')"><span class="num">3</span>分类快速浏览</button>
+  <button class="nav-pill" onclick="scrollTo(0,'spec')"><span class="num">4</span>交互规格</button>
+  <button class="nav-pill" onclick="scrollTo(0,'memo-page')" style="background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; border-radius: 8px;"><span style="background: rgba(255,255,255,0.25); width: 18px; height: 18px; border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700;">★</span>备忘主页面</button>
+</div>
+
+<!-- ====== SECTION 0: PROBLEM ====== -->
+<section class="section" id="problem">
+  <div class="sec-head">
+    <div class="sec-num">0</div>
+    <div class="sec-title">问题背景与设计目标</div>
+    <div class="sec-desc">当前 Oner 备忘模块只有「列表堆积」，缺少知识之间的连接层。随着备忘数量增长，用户陷入"记了找不到、找到不关联"的困境。</div>
+  </div>
+
+  <div class="three-col">
+    <div class="card" style="border-left: 4px solid var(--red);">
+      <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--red)">😞 痛点一：堆积难查</div>
+      <p style="font-size: 12px; color: var(--text-sec); line-height: 1.6">备忘一多就变成「信息黑洞」——全是列表，无分类入口，只能靠搜索，而很多时候连关键词都想不起来。</p>
+    </div>
+    <div class="card" style="border-left: 4px solid var(--amber);">
+      <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--amber)">🔗 痛点二：知识孤岛</div>
+      <p style="font-size: 12px; color: var(--text-sec); line-height: 1.6">相关备忘互不知晓，同一个话题的想法分散在不同时间，无法看到「想法是如何演化的」，知识无法沉淀。</p>
+    </div>
+    <div class="card" style="border-left: 4px solid var(--accent);">
+      <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--accent)">🧠 痛点三：无思维脉络</div>
+      <p style="font-size: 12px; color: var(--text-sec); line-height: 1.6">缺少「思路发展路径」的可视化。用户记录了调研→分析→结论三步，但三者之间的关联只存在于用户脑子里。</p>
+    </div>
+  </div>
+
+  <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(3,1fr); gap: 12px;">
+    <div style="background: white; border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center;">
+      <div style="font-size: 28px; font-weight: 800; color: var(--accent); margin-bottom: 4px;">3</div>
+      <div style="font-size: 12px; color: var(--text-sec);">新增核心功能</div>
+    </div>
+    <div style="background: white; border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center;">
+      <div style="font-size: 28px; font-weight: 800; color: var(--green); margin-bottom: 4px;">3</div>
+      <div style="font-size: 12px; color: var(--text-sec);">备忘浏览视图</div>
+    </div>
+    <div style="background: white; border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center;">
+      <div style="font-size: 28px; font-weight: 800; color: var(--purple); margin-bottom: 4px;">0</div>
+      <div style="font-size: 12px; color: var(--text-sec);">需要手动整理</div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== SECTION 1: 智能关联 ====== -->
+<section class="section" id="assoc">
+  <div class="sec-head">
+    <div class="sec-num">1</div>
+    <div class="sec-title">智能关联 — 每条备忘不再孤立</div>
+    <div class="sec-desc">AI自动分析备忘语义，找出相关内容推荐给用户。以「底部抽屉」形式附加，默认收起不打扰阅读，1.5秒延迟加载不阻塞正文展示。</div>
+    <div class="sec-tags">
+      <span class="sec-tag" style="background: var(--accent-light); color: var(--accent);">AI 自动触发</span>
+      <span class="sec-tag" style="background: var(--green-bg); color: var(--green-text);">非侵入式</span>
+      <span class="sec-tag" style="background: var(--purple-bg); color: var(--purple);">语义分析</span>
+    </div>
+  </div>
+
+  <div class="two-col" style="margin-bottom: 20px;">
+    <div>
+      <div style="font-size: 14px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+        <span style="width: 20px; height: 20px; border-radius: 5px; background: var(--accent-light); color: var(--accent); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800;">A</span>
+        关联触发时机
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div class="card" style="padding: 12px 14px;">
+          <div style="font-size: 12px; font-weight: 600; margin-bottom: 3px;">🕐 自动触发 — 打开备忘后 1.5s</div>
+          <p style="font-size: 11px; color: var(--text-muted);">进入备忘详情页后延迟1.5秒，加载AI关联推荐。不阻塞正文渲染，骨架屏占位。</p>
+        </div>
+        <div class="card" style="padding: 12px 14px;">
+          <div style="font-size: 12px; font-weight: 600; margin-bottom: 3px;">✏️ 自动触发 — 编辑停顿 1.5s 后</div>
+          <p style="font-size: 11px; color: var(--text-muted);">用户编辑备忘内容，停止输入1.5秒后重新计算关联（内容变化时才触发，节流处理）。</p>
+        </div>
+        <div class="card" style="padding: 12px 14px;">
+          <div style="font-size: 12px; font-weight: 600; margin-bottom: 3px;">👆 手动触发 — 点击「查关联」</div>
+          <p style="font-size: 11px; color: var(--text-muted);">关联面板顶部「刷新」按钮可手动重新计算，适用于用户觉得推荐结果不准确时。</p>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div style="font-size: 14px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+        <span style="width: 20px; height: 20px; border-radius: 5px; background: var(--purple-bg); color: var(--purple); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800;">B</span>
+        相似度计算维度
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div class="card" style="padding: 12px 14px; border-left: 3px solid var(--accent);">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+            <span style="font-size: 12px; font-weight: 600;">语义相似度</span>
+            <span style="font-size: 11px; color: var(--accent); font-weight: 700;">权重 50%</span>
+          </div>
+          <p style="font-size: 11px; color: var(--text-muted);">通过嵌入向量计算备忘内容的语义距离，相同话题不同措辞也能关联。</p>
+        </div>
+        <div class="card" style="padding: 12px 14px; border-left: 3px solid var(--teal);">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+            <span style="font-size: 12px; font-weight: 600;">共享标签</span>
+            <span style="font-size: 11px; color: var(--teal); font-weight: 700;">权重 25%</span>
+          </div>
+          <p style="font-size: 11px; color: var(--text-muted);">拥有相同 #标签 的备忘默认具有较高关联度，用户标注的分类是强信号。</p>
+        </div>
+        <div class="card" style="padding: 12px 14px; border-left: 3px solid var(--amber);">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+            <span style="font-size: 12px; font-weight: 600;">时间邻近 + 共阅</span>
+            <span style="font-size: 11px; color: var(--amber); font-weight: 700;">权重 25%</span>
+          </div>
+          <p style="font-size: 11px; color: var(--text-muted);">同一时间段创建、以及用户曾在同一会话中打开过的备忘，关联度加权。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIVE DEMO -->
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <div style="padding: 12px 18px; background: var(--bg); border-bottom: 1px solid var(--border); font-size: 12px; font-weight: 700; color: var(--text-sec); display: flex; align-items: center; gap: 6px;">
+      <span>📱</span> 界面示意图 — 备忘详情页 + 智能关联面板
+    </div>
+    <div style="padding: 20px;">
+      <!-- Memo -->
+      <div style="background: white; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 12px;">
+        <div style="padding: 16px 20px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+            <div>
+              <div style="font-size: 17px; font-weight: 700; margin-bottom: 5px;">Q3 产品功能规划</div>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <span class="meta-tag" style="background: var(--accent-light); color: var(--accent);">#产品规划</span>
+                <span class="meta-tag" style="background: var(--blue-bg); color: var(--blue);">#Q3</span>
+                <span style="font-size: 11px; color: var(--text-muted);">工作 · 2026-06-08</span>
+              </div>
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <div class="icon-btn">✏️</div>
+              <div class="icon-btn ai-btn">🔗 查关联</div>
+            </div>
+          </div>
+          <p style="font-size: 13px; color: var(--text-sec); line-height: 1.7; padding: 10px; background: var(--bg); border-radius: 8px;">
+            本季度核心目标：完成智能关联功能上线、优化AI对话体验、新增思维导图视图。重点突破备忘「知识沉淀」问题，对标 Capacities 的对象化设计理念……
+          </p>
+        </div>
+
+        <!-- Smart Association Panel -->
+        <div style="border-top: 1px solid var(--border); background: linear-gradient(180deg, #f9f8ff 0%, white 100%); padding: 14px 20px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <div class="ai-icon-sm">✦</div>
+            <span style="font-size: 13px; font-weight: 700;">智能关联</span>
+            <span style="font-size: 10px; padding: 2px 7px; border-radius: 5px; background: var(--accent-light); color: var(--accent); font-weight: 700;">AI</span>
+            <span style="margin-left: auto; font-size: 11px; color: var(--text-muted);">找到 4 条相关备忘</span>
+            <button style="font-size: 11px; padding: 3px 8px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); cursor: pointer;">↻ 刷新</button>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+            <!-- Related 1 -->
+            <div class="related-item">
+              <div class="ri-score">
+                <div style="display: flex; gap: 1.5px;">
+                  <div class="ri-seg" style="background: var(--accent);"></div>
+                  <div class="ri-seg" style="background: var(--accent);"></div>
+                  <div class="ri-seg" style="background: var(--accent);"></div>
+                  <div class="ri-seg" style="background: var(--accent);"></div>
+                  <div class="ri-seg" style="background: #e2e8f0;"></div>
+                </div>
+                <span class="ri-pct">92%</span>
+              </div>
+              <div class="ri-title">竞品分析报告 — H1</div>
+              <div class="ri-reason">共同提及「用户增长」「功能对比」，同属产品规划标签</div>
+              <div class="ri-tags">
+                <span class="ri-tag" style="background: var(--green-bg); color: var(--green-text);">#竞品</span>
+                <span class="ri-tag" style="background: var(--accent-light); color: var(--accent);">#产品规划</span>
+              </div>
+            </div>
+            <!-- Related 2 -->
+            <div class="related-item">
+              <div class="ri-score">
+                <div style="display: flex; gap: 1.5px;">
+                  <div class="ri-seg" style="background: var(--accent);"></div>
+                  <div class="ri-seg" style="background: var(--accent);"></div>
+                  <div class="ri-seg" style="background: var(--accent);"></div>
+                  <div class="ri-seg" style="background: #e2e8f0;"></div>
+                  <div class="ri-seg" style="background: #e2e8f0;"></div>
+                </div>
+                <span class="ri-pct">78%</span>
+              </div>
+              <div class="ri-title">用户访谈记录 · 6月</div>
+              <div class="ri-reason">用户痛点反馈与Q3规划方向高度重叠，3天内交叉打开</div>
+              <div class="ri-tags">
+                <span class="ri-tag" style="background: var(--amber-bg); color: var(--amber-text);">#调研</span>
+              </div>
+            </div>
+            <!-- Related 3 -->
+            <div class="related-item">
+              <div class="ri-score">
+                <div style="display: flex; gap: 1.5px;">
+                  <div class="ri-seg" style="background: var(--accent);"></div>
+                  <div class="ri-seg" style="background: var(--accent);"></div>
+                  <div class="ri-seg" style="background: #e2e8f0;"></div>
+                  <div class="ri-seg" style="background: #e2e8f0;"></div>
+                  <div class="ri-seg" style="background: #e2e8f0;"></div>
+                </div>
+                <span class="ri-pct">61%</span>
+              </div>
+              <div class="ri-title">OKR 看板 Q3 目标</div>
+              <div class="ri-reason">同期文档，时间段吻合，同属工作类分类</div>
+              <div class="ri-tags">
+                <span class="ri-tag" style="background: var(--teal-bg); color: var(--teal);">#目标</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 8px; margin-top: 10px;">
+            <button class="assoc-btn primary">全部关联 (4) →</button>
+            <button class="assoc-btn">建立手动关联</button>
+            <button class="assoc-btn" style="margin-left: auto;">在思维链中查看</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="insight-box" style="margin-top: 16px;">
+    <p><strong>💡 设计决策：</strong>关联面板以「薄带」形式贴在备忘底部，默认收起（仅显示一行摘要「找到 4 条相关备忘」），用户点击展开详情。相似度用 5 格进度条 + 百分比双重呈现，配合简要理由说明「为什么」相关。用户可将AI推荐升级为「手动强关联」（永久绑定，不受AI重新计算影响）。</p>
+  </div>
+</section>
+
+<!-- ====== SECTION 2: 思维链 ====== -->
+<section class="section" id="chain">
+  <div class="sec-head">
+    <div class="sec-num">2</div>
+    <div class="sec-title">思维链视图 — 看见想法如何演化</div>
+    <div class="sec-desc">备忘不只是「时间点」，而是「演化路径上的节点」。思维链将相互关联的备忘按「想法演化关系」组织为可视化树状结构，帮助用户看清一个话题从萌芽到行动的完整脉络。</div>
+    <div class="sec-tags">
+      <span class="sec-tag" style="background: var(--purple-bg); color: var(--purple);">AI 自动建链</span>
+      <span class="sec-tag" style="background: var(--teal-bg); color: var(--teal);">可手动调整</span>
+      <span class="sec-tag" style="background: var(--green-bg); color: var(--green-text);">导出大纲</span>
+    </div>
+  </div>
+
+  <div class="two-col" style="margin-bottom: 20px;">
+    <div class="card">
+      <div style="font-size: 13px; font-weight: 700; margin-bottom: 10px;">🔑 节点类型说明</div>
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="display: flex; gap: 8px; align-items: center; padding: 6px 10px; border-radius: 7px; background: var(--accent-light);">
+          <span style="font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: var(--accent); color: white;">起点</span>
+          <span style="font-size: 12px; color: var(--text-sec);">最初的想法/问题/灵感，链的根节点</span>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center; padding: 6px 10px; border-radius: 7px; background: var(--blue-bg);">
+          <span style="font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: var(--blue); color: white;">延伸</span>
+          <span style="font-size: 12px; color: var(--text-sec);">对上级节点的进一步探索/调研</span>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center; padding: 6px 10px; border-radius: 7px; background: var(--green-bg);">
+          <span style="font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: var(--green); color: white;">细化</span>
+          <span style="font-size: 12px; color: var(--text-sec);">对某个方面的深度分析/拆解</span>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center; padding: 6px 10px; border-radius: 7px; background: var(--amber-bg);">
+          <span style="font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: var(--amber); color: white;">结论</span>
+          <span style="font-size: 12px; color: var(--text-sec);">汇总多条探索后得出的判断</span>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center; padding: 6px 10px; border-radius: 7px; background: var(--teal-bg);">
+          <span style="font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: var(--teal); color: white;">行动</span>
+          <span style="font-size: 12px; color: var(--text-sec);">从思考到执行的落地计划</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-size: 13px; font-weight: 700; margin-bottom: 10px;">🤖 AI 如何识别关系</div>
+      <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12px; color: var(--text-sec); line-height: 1.6;">
+        <div style="padding: 8px 10px; border-radius: 7px; background: var(--bg); border-left: 3px solid var(--accent);">
+          <strong style="color: var(--text);">引用信号：</strong>备忘中出现「基于...」「参考...」「延伸自...」等关键词，或直接链接了另一条备忘 ID。
+        </div>
+        <div style="padding: 8px 10px; border-radius: 7px; background: var(--bg); border-left: 3px solid var(--teal);">
+          <strong style="color: var(--text);">时序信号：</strong>同一话题的备忘按创建时间自动排列，时间早的倾向「起点/延伸」，时间晚的倾向「结论/行动」。
+        </div>
+        <div style="padding: 8px 10px; border-radius: 7px; background: var(--bg); border-left: 3px solid var(--amber);">
+          <strong style="color: var(--text);">内容信号：</strong>备忘正文开头的句式——「问题：」→起点，「发现：」→延伸，「因此：」→结论，「下一步：」→行动。
+        </div>
+        <div style="padding: 8px 10px; border-radius: 7px; background: var(--bg); border-left: 3px solid var(--purple);">
+          <strong style="color: var(--text);">用户可修正：</strong>拖拽节点调整父子关系，或点击节点类型标签手动修改，AI 会从修正中学习。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chain Demo -->
+  <div class="chain-demo">
+    <div class="chain-toolbar">
+      <div style="font-size: 12px; font-weight: 700; color: var(--text-sec);">🧠 思维链 — 「Oner AI 备忘体验」</div>
+      <div style="margin-left: auto; display: flex; gap: 6px;">
+        <button class="ctrl-btn" style="font-size: 10px; padding: 4px 10px;">展开全部</button>
+        <button class="ctrl-btn" style="font-size: 10px; padding: 4px 10px;">折叠全部</button>
+      </div>
+    </div>
+
+    <div class="chain-body">
+      <!-- Root -->
+      <div class="chain-row">
+        <div class="chain-line-col">
+          <div class="chain-dot" style="background: var(--accent); box-shadow: 0 0 0 2px var(--accent-200);"></div>
+          <div class="chain-vert" style="background: var(--border);"></div>
+        </div>
+        <div class="chain-content">
+          <div class="chain-node-card is-root">
+            <span class="node-type-badge" style="background: var(--accent); color: white;">起点</span>
+            <div class="node-info">
+              <div class="node-name">最初灵感 · Oner 如何做「AI原生」备忘</div>
+              <div class="node-meta">2026-04-15 · 想法 · 链的起点</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Level 1: 竞品调研 -->
+      <div class="chain-row chain-indent-1">
+        <div class="chain-line-col">
+          <div class="chain-dot" style="background: var(--blue); box-shadow: 0 0 0 2px var(--blue-light);"></div>
+          <div class="chain-vert" style="background: var(--border);"></div>
+        </div>
+        <div class="chain-content">
+          <div class="chain-node-card">
+            <span class="node-type-badge" style="background: var(--blue-bg); color: var(--blue);">延伸</span>
+            <div class="node-info">
+              <div class="node-name">竞品调研 — Notion / Obsidian / Capacities</div>
+              <div class="node-meta">2026-04-22 · 调研 · 由「最初灵感」延伸</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Level 2: 双向链接分析 -->
+      <div class="chain-row chain-indent-2">
+        <div class="chain-line-col">
+          <div class="chain-dot" style="background: var(--green); box-shadow: 0 0 0 2px var(--green-bg);"></div>
+          <div class="chain-vert" style="background: var(--border);"></div>
+        </div>
+        <div class="chain-content">
+          <div class="chain-node-card">
+            <span class="node-type-badge" style="background: var(--green-bg); color: var(--green-text);">细化</span>
+            <div class="node-info">
+              <div class="node-name">「双向链接」功能点深度分析</div>
+              <div class="node-meta">2026-04-28 · 分析 · 由「竞品调研」衍生</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Level 2: 语义检索分析 -->
+      <div class="chain-row chain-indent-2">
+        <div class="chain-line-col">
+          <div class="chain-dot" style="background: var(--green); box-shadow: 0 0 0 2px var(--green-bg);"></div>
+          <div class="chain-vert" style="background: var(--border);"></div>
+        </div>
+        <div class="chain-content">
+          <div class="chain-node-card">
+            <span class="node-type-badge" style="background: var(--green-bg); color: var(--green-text);">细化</span>
+            <div class="node-info">
+              <div class="node-name">语义检索 vs 关键词检索 对比实验</div>
+              <div class="node-meta">2026-05-03 · 分析 · 由「竞品调研」衍生</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Level 1: 结论 -->
+      <div class="chain-row chain-indent-1">
+        <div class="chain-line-col">
+          <div class="chain-dot" style="background: var(--amber); box-shadow: 0 0 0 2px var(--amber-bg);"></div>
+          <div class="chain-vert" style="background: var(--border);"></div>
+        </div>
+        <div class="chain-content">
+          <div class="chain-node-card">
+            <span class="node-type-badge" style="background: var(--amber-bg); color: var(--amber);">结论</span>
+            <div class="node-info">
+              <div class="node-name">Q3 方向确定 — AI语义关联 + 思维链两轨并行</div>
+              <div class="node-meta">2026-05-10 · 规划 · 多条调研汇总</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Level 1: 行动 (current) -->
+      <div class="chain-row chain-indent-1">
+        <div class="chain-line-col">
+          <div class="chain-dot" style="background: var(--teal); box-shadow: 0 0 0 2px var(--teal-bg);"></div>
+        </div>
+        <div class="chain-content">
+          <div class="chain-node-card is-current">
+            <span class="node-type-badge" style="background: var(--teal-bg); color: var(--teal);">行动</span>
+            <div class="node-info">
+              <div class="node-name" style="color: var(--teal);">UI 设计方案 · 智能关联界面原型 ← 当前</div>
+              <div class="node-meta">2026-06-08 · 设计 · 正在进行</div>
+            </div>
+            <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--green);" id="liveDot"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chain-controls">
+      <button class="ctrl-btn">+ 添加下一步</button>
+      <button class="ctrl-btn">✂ 拆分节点</button>
+      <button class="ctrl-btn">🔗 合并节点</button>
+      <button class="ctrl-btn">📄 导出为大纲</button>
+      <button class="ctrl-btn ai">✦ AI 补全链条</button>
+    </div>
+  </div>
+
+  <div class="insight-box" style="margin-top: 16px;">
+    <p><strong>💡 设计决策：</strong>思维链不是强制填写的模板字段，而是 AI 自动从已有备忘中「发现并构建」的关系图谱。用户零配置即可使用，AI 先生成初稿，用户再按需调整。「AI 补全链条」功能会扫描所有备忘，将孤立的备忘找到合适的链条接入，或自动创建新的链条起点。节点可折叠/展开，支持拖拽重排父子关系，「导出为大纲」直接生成 Markdown 层级结构。</p>
+  </div>
+</section>
+
+<!-- ====== SECTION 3: 分类快速浏览 ====== -->
+<section class="section" id="category">
+  <div class="sec-head">
+    <div class="sec-num">3</div>
+    <div class="sec-title">分类快速浏览 — 堆积备忘的解法</div>
+    <div class="sec-desc">备忘堆积的根本解法是「让用户以最快的路径找到目标备忘」。三种视图切换：时间线（默认）、分类磁贴、思维链。分类磁贴视图给用户一个「全局总览」入口。</div>
+    <div class="sec-tags">
+      <span class="sec-tag" style="background: var(--accent-light); color: var(--accent);">3种视图</span>
+      <span class="sec-tag" style="background: var(--amber-bg); color: var(--amber-text);">分类磁贴</span>
+      <span class="sec-tag" style="background: var(--green-bg); color: var(--green-text);">实时搜索</span>
+      <span class="sec-tag" style="background: var(--purple-bg); color: var(--purple);">智能筛选</span>
+    </div>
+  </div>
+
+  <!-- Category Overview Demo -->
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <div style="padding: 12px 18px; background: var(--bg); border-bottom: 1px solid var(--border); font-size: 12px; font-weight: 700; color: var(--text-sec);">
+      📱 分类磁贴视图 — 选中「工作」分类后的列表状态
+    </div>
+    <div style="padding: 18px;">
+      <!-- Top stats -->
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px;">
+        <div style="background: var(--bg); border-radius: 10px; padding: 12px; text-align: center;">
+          <div style="font-size: 24px; font-weight: 800; color: var(--accent);">47</div>
+          <div style="font-size: 11px; color: var(--text-muted);">全部备忘</div>
+        </div>
+        <div style="background: var(--bg); border-radius: 10px; padding: 12px; text-align: center;">
+          <div style="font-size: 24px; font-weight: 800; color: var(--accent);">18</div>
+          <div style="font-size: 11px; color: var(--text-muted);">工作 (当前)</div>
+        </div>
+        <div style="background: var(--bg); border-radius: 10px; padding: 12px; text-align: center;">
+          <div style="font-size: 24px; font-weight: 800; color: var(--green);">12</div>
+          <div style="font-size: 11px; color: var(--text-muted);">有关联</div>
+        </div>
+        <div style="background: var(--bg); border-radius: 10px; padding: 12px; text-align: center;">
+          <div style="font-size: 24px; font-weight: 800; color: var(--amber);">3</div>
+          <div style="font-size: 11px; color: var(--text-muted);">在思维链中</div>
+        </div>
+      </div>
+
+      <div class="cat-overview">
+        <!-- Sidebar -->
+        <div class="cat-sidebar">
+          <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">全部分类</div>
+          <div class="cat-list">
+            <div class="cat-list-item active">
+              <div class="cat-list-dot" style="background: var(--accent);"></div>
+              <span class="cat-list-name">工作</span>
+              <span class="cat-list-count">18</span>
+            </div>
+            <div class="cat-list-item">
+              <div class="cat-list-dot" style="background: var(--teal);"></div>
+              <span class="cat-list-name">学习</span>
+              <span class="cat-list-count">11</span>
+            </div>
+            <div class="cat-list-item">
+              <div class="cat-list-dot" style="background: var(--amber);"></div>
+              <span class="cat-list-name">灵感</span>
+              <span class="cat-list-count">8</span>
+            </div>
+            <div class="cat-list-item">
+              <div class="cat-list-dot" style="background: var(--purple);"></div>
+              <span class="cat-list-name">个人</span>
+              <span class="cat-list-count">6</span>
+            </div>
+            <div class="cat-list-item">
+              <div class="cat-list-dot" style="background: var(--blue);"></div>
+              <span class="cat-list-name">会议</span>
+              <span class="cat-list-count">4</span>
+            </div>
+            <div class="cat-list-item">
+              <div class="cat-list-dot" style="background: var(--text-muted);"></div>
+              <span class="cat-list-name">未分类</span>
+              <span class="cat-list-count warn">0</span>
+            </div>
+          </div>
+          <div style="margin-top: 8px;">
+            <button style="width: 100%; padding: 8px; border-radius: 8px; border: 1px dashed var(--border); background: transparent; font-size: 11px; color: var(--text-muted); cursor: pointer; font-family: inherit;">
+              + 新建分类
+            </button>
+          </div>
+        </div>
+
+        <!-- Main list -->
+        <div class="cat-main">
+          <div class="cat-main-header">
+            <div style="font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+              <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent);"></div>
+              工作
+            </div>
+            <div class="filter-chips">
+              <button class="chip active">全部</button>
+              <button class="chip">本周</button>
+              <button class="chip">有关联</button>
+              <button class="chip">有任务</button>
+              <button class="chip">思维链</button>
+            </div>
+            <div style="margin-left: auto; display: flex; gap: 6px;">
+              <button class="ctrl-btn" style="font-size: 10px; padding: 4px 8px;">⏱ 时间线</button>
+              <button class="ctrl-btn" style="font-size: 10px; padding: 4px 8px; background: var(--accent-light); border-color: var(--accent-200); color: var(--accent);">▦ 磁贴</button>
+            </div>
+          </div>
+
+          <div class="search-row">
+            <span class="icon">⌕</span>
+            <input placeholder="搜索「工作」分类中的备忘内容..." />
+            <span class="count-tag">18 条</span>
+          </div>
+
+          <!-- Date group: Today -->
+          <div class="time-label">今天 · 2026-06-10</div>
+          <div class="group-items">
+            <div class="memo-list-item">
+              <div class="memo-list-dot" style="background: var(--accent);"></div>
+              <div class="memo-list-body">
+                <div class="memo-list-title">Q3 产品功能规划</div>
+                <div class="memo-list-meta">
+                  <span class="memo-badge" style="background: var(--accent-light); color: var(--accent);">#产品规划</span>
+                  <span class="link-badge">🔗 4 条关联</span>
+                  <span class="chain-badge">🧠 在链中</span>
+                  <span style="font-size: 11px; color: var(--text-muted);">进行中</span>
+                </div>
+              </div>
+            </div>
+            <div class="memo-list-item">
+              <div class="memo-list-dot" style="background: var(--green);"></div>
+              <div class="memo-list-body">
+                <div class="memo-list-title">用户增长复盘 · 5月数据汇总</div>
+                <div class="memo-list-meta">
+                  <span class="memo-badge" style="background: var(--green-bg); color: var(--green-text);">#复盘</span>
+                  <span class="link-badge">🔗 2 条关联</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Date group: Yesterday -->
+          <div class="time-label">昨天 · 2026-06-09</div>
+          <div class="group-items">
+            <div class="memo-list-item">
+              <div class="memo-list-dot" style="background: var(--amber);"></div>
+              <div class="memo-list-body">
+                <div class="memo-list-title">竞品分析报告 — 2026 H1</div>
+                <div class="memo-list-meta">
+                  <span class="memo-badge" style="background: var(--amber-bg); color: var(--amber-text);">#竞品</span>
+                  <span class="link-badge">🔗 1 条关联</span>
+                  <span class="chain-badge">🧠 在链中</span>
+                </div>
+              </div>
+            </div>
+            <div class="memo-list-item">
+              <div class="memo-list-dot" style="background: var(--text-muted);"></div>
+              <div class="memo-list-body">
+                <div class="memo-list-title">下季度招聘计划草稿</div>
+                <div class="memo-list-meta">
+                  <span style="font-size: 11px; color: var(--text-muted);">无关联 · 草稿</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="insight-box" style="margin-top: 16px;">
+    <p><strong>💡 设计决策：</strong>备忘列表默认显示「今日时间线」，右上角可切换为「分类磁贴」。在磁贴视图下，左侧固定分类导航（含数量），右侧为当前分类的内容区（含搜索 + 筛选 + 时间线组）。每条备忘显示「关联数」「在链中」角标，用户一眼扫描即知哪些备忘已成网络、哪些还是孤立信息岛。关联/思维链角标可直接点击，无需进入详情再查找。</p>
+  </div>
+</section>
+
+<!-- ====== SECTION 4: 交互规格 ====== -->
+<section class="section" id="spec">
+  <div class="sec-head">
+    <div class="sec-num">4</div>
+    <div class="sec-title">交互规格说明</div>
+    <div class="sec-desc">开发实现参考规格，含触发条件、API 调用时机、性能指标与降级策略。</div>
+  </div>
+
+  <div class="two-col" style="margin-bottom: 20px;">
+    <!-- 智能关联规格 -->
+    <div class="card" style="padding: 0; overflow: hidden;">
+      <div style="padding: 12px 16px; background: var(--accent-light); border-bottom: 1px solid var(--accent-200);">
+        <div style="font-size: 13px; font-weight: 700; color: var(--accent);">🔗 智能关联 — 规格</div>
+      </div>
+      <table class="spec-table">
+        <tr>
+          <td class="label">触发条件</td>
+          <td>进入详情后 1.5s / 编辑停顿 1.5s（内容变化才触发）</td>
+        </tr>
+        <tr>
+          <td class="label">API 调用</td>
+          <td class="code">POST /api/memo/:id/related<br>Body: { limit: 5 }</td>
+        </tr>
+        <tr>
+          <td class="label">推荐数量</td>
+          <td>默认展示 3 条，「查看全部」展开最多 10 条</td>
+        </tr>
+        <tr>
+          <td class="label">相似度阈值</td>
+          <td>≥ 50% 才展示，避免低质量推荐</td>
+        </tr>
+        <tr>
+          <td class="label">加载状态</td>
+          <td>骨架屏 3 格占位，不使用全屏 Spinner</td>
+        </tr>
+        <tr>
+          <td class="label">降级策略</td>
+          <td>AI 不可用时，仅按标签精确匹配，显示「基于标签匹配」说明</td>
+        </tr>
+        <tr>
+          <td class="label">手动关联</td>
+          <td>存入 memo_links 表，手动关联优先级高于 AI 推荐</td>
+        </tr>
+        <tr>
+          <td class="label">性能指标</td>
+          <td>API 响应 ≤ 800ms (P90)，骨架屏消失在 800ms 内</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- 思维链规格 -->
+    <div class="card" style="padding: 0; overflow: hidden;">
+      <div style="padding: 12px 16px; background: var(--purple-bg); border-bottom: 1px solid var(--purple-100);">
+        <div style="font-size: 13px; font-weight: 700; color: var(--purple);">🧠 思维链 — 规格</div>
+      </div>
+      <table class="spec-table">
+        <tr>
+          <td class="label">数据结构</td>
+          <td class="code">memo_chain_nodes { id, memo_id, parent_id, type, ai_confidence }</td>
+        </tr>
+        <tr>
+          <td class="label">AI 建链时机</td>
+          <td>手动触发（「AI 补全链条」按钮）+ 每天凌晨全量重算</td>
+        </tr>
+        <tr>
+          <td class="label">节点类型</td>
+          <td>起点 / 延伸 / 细化 / 结论 / 行动（AI 标注，可手动修改）</td>
+        </tr>
+        <tr>
+          <td class="label">层级深度</td>
+          <td>最多 5 层，超出自动提示「考虑合并层级」</td>
+        </tr>
+        <tr>
+          <td class="label">入口</td>
+          <td>备忘列表右上角「链」图标 + 备忘详情关联面板「在思维链中查看」</td>
+        </tr>
+        <tr>
+          <td class="label">操作</td>
+          <td>拖拽调整父子 / 点击修改类型 / 添加下一步节点 / 导出 Markdown 大纲</td>
+        </tr>
+        <tr>
+          <td class="label">角标联动</td>
+          <td>列表中「🧠 在链中」角标点击直接跳转至该备忘在链中的位置</td>
+        </tr>
+        <tr>
+          <td class="label">降级策略</td>
+          <td>AI 不可用时，用户仍可手动构建链条</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 分类视图规格 -->
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <div style="padding: 12px 16px; background: var(--amber-bg); border-bottom: 1px solid #fde68a;">
+      <div style="font-size: 13px; font-weight: 700; color: var(--amber);">📂 分类快速浏览 — 规格</div>
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0;">
+      <table class="spec-table" style="border-right: 1px solid var(--border);">
+        <tr>
+          <td class="label">视图切换</td>
+          <td>时间线（默认）· 分类磁贴 · 思维链，存入 localStorage</td>
+        </tr>
+        <tr>
+          <td class="label">分类筛选</td>
+          <td>点击左侧分类名，右侧内容区实时过滤，不刷新页面</td>
+        </tr>
+        <tr>
+          <td class="label">搜索范围</td>
+          <td>仅搜索当前分类内容（标题 + 正文 + 标签），实时模糊匹配</td>
+        </tr>
+        <tr>
+          <td class="label">时间分组</td>
+          <td>今天 / 昨天 / 本周 / 上周 / 更早 · 空时不渲染组头</td>
+        </tr>
+      </table>
+      <table class="spec-table">
+        <tr>
+          <td class="label">快速筛选</td>
+          <td>本周 / 有关联 / 有任务 / 思维链 四个胶囊 Tab</td>
+        </tr>
+        <tr>
+          <td class="label">关联角标</td>
+          <td>「🔗 N条」角标直接点击展开关联面板（不跳转详情）</td>
+        </tr>
+        <tr>
+          <td class="label">空分类</td>
+          <td>未分类数量为 0 时不渲染该分类（或弱化显示）</td>
+        </tr>
+        <tr>
+          <td class="label">性能</td>
+          <td>分类切换渲染 ≤ 100ms（虚拟列表 when > 100 条）</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ====== SECTION 5: 备忘主页面 ====== -->
+<section class="section" id="memo-page">
+  <div class="sec-head">
+    <div class="sec-num" style="background: linear-gradient(135deg, #4f46e5, #7c3aed);">★</div>
+    <div class="sec-title">备忘主页面 — 完整界面设计</div>
+    <div class="sec-desc">从工作台跳转后的完整备忘专属页面：左侧分类树 + 右侧多视图列表，整合智能关联角标、思维链入口、快速搜索与新建。</div>
+    <div class="sec-tags">
+      <span class="sec-tag" style="background: var(--accent-light); color: var(--accent);">/memos 独立路由</span>
+      <span class="sec-tag" style="background: var(--green-bg); color: var(--green-text);">3种跳转入口</span>
+      <span class="sec-tag" style="background: var(--purple-bg); color: var(--purple);">4种视图切换</span>
+    </div>
+  </div>
+
+  <!-- 跳转入口说明 -->
+  <div style="margin-bottom: 24px;">
+    <div style="font-size: 14px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+      <span style="width: 20px; height: 20px; border-radius: 5px; background: var(--accent-light); color: var(--accent); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800;">→</span>
+      从工作台如何跳转到备忘页
+    </div>
+    <div class="three-col">
+      <!-- 入口1 -->
+      <div class="card" style="border-top: 3px solid var(--accent); padding: 0; overflow: hidden;">
+        <div style="padding: 14px 16px 10px;">
+          <div style="font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 6px;">① 底部导航 Tab（推荐）</div>
+          <p style="font-size: 11px; color: var(--text-sec); line-height: 1.6; margin-bottom: 10px;">在 <code style="font-size: 10px; padding: 1px 5px; border-radius: 4px; background: var(--bg); border: 1px solid var(--border);">BottomNav.jsx</code> 中新增「备忘」tab，路由到 <code style="font-size: 10px; padding: 1px 5px; border-radius: 4px; background: var(--bg); border: 1px solid var(--border);">/memos</code>，5个 tab 保持不变。</p>
+        </div>
+        <div style="background: var(--bg); border-top: 1px solid var(--border); padding: 8px 4px;">
+          <div style="display: flex; justify-content: space-around; align-items: center;">
+            <div style="text-align: center; opacity: 0.45;"><div style="font-size: 17px; margin-bottom: 2px;">🏠</div><div style="font-size: 9px; color: var(--text-muted);">首页</div></div>
+            <div style="text-align: center; opacity: 0.45;"><div style="font-size: 17px; margin-bottom: 2px;">✦</div><div style="font-size: 9px; color: var(--text-muted);">AI</div></div>
+            <div style="text-align: center; position: relative;">
+              <div style="position: absolute; top: -2px; left: 50%; transform: translateX(-50%); width: 32px; height: 3px; border-radius: 2px; background: var(--accent);"></div>
+              <div style="font-size: 17px; margin-bottom: 2px;">📝</div>
+              <div style="font-size: 9px; color: var(--accent); font-weight: 700;">备忘</div>
+            </div>
+            <div style="text-align: center; opacity: 0.45;"><div style="font-size: 17px; margin-bottom: 2px;">🔑</div><div style="font-size: 9px; color: var(--text-muted);">密码</div></div>
+            <div style="text-align: center; opacity: 0.45;"><div style="font-size: 17px; margin-bottom: 2px;">👤</div><div style="font-size: 9px; color: var(--text-muted);">我的</div></div>
+          </div>
+        </div>
+        <div style="padding: 8px 16px 12px;"><div style="padding: 5px 10px; background: var(--green-bg); border-radius: 6px; font-size: 10px; color: var(--green-text); font-weight: 600;">✓ 最优 — 随时可达，与整体导航体系一致</div></div>
+      </div>
+
+      <!-- 入口2 -->
+      <div class="card" style="border-top: 3px solid var(--teal); padding: 0; overflow: hidden;">
+        <div style="padding: 14px 16px 10px;">
+          <div style="font-size: 12px; font-weight: 700; color: var(--teal); margin-bottom: 6px;">② 工作台快捷卡片</div>
+          <p style="font-size: 11px; color: var(--text-sec); line-height: 1.6; margin-bottom: 10px;">在 <code style="font-size: 10px; padding: 1px 5px; border-radius: 4px; background: var(--bg); border: 1px solid var(--border);">TodayFocus.jsx</code> 工作台区域新增「最近备忘」快捷卡片。</p>
+        </div>
+        <div style="background: var(--bg); border-top: 1px solid var(--border); padding: 10px 12px;">
+          <div style="background: white; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; cursor: pointer;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+              <span style="font-size: 12px; font-weight: 700;">📝 最近备忘</span>
+              <span style="font-size: 10px; padding: 2px 8px; border-radius: 5px; background: var(--accent-light); color: var(--accent); font-weight: 600;">12 条 →</span>
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted);">Q3 产品功能规划 · 2分钟前</div>
+            <div style="font-size: 11px; color: var(--text-muted);">用户访谈记录 · 今天</div>
+          </div>
+        </div>
+        <div style="padding: 8px 16px 12px;"><div style="padding: 5px 10px; background: var(--blue-bg); border-radius: 6px; font-size: 10px; color: var(--blue); font-weight: 600;">◎ 上下文感知 — 在做事时顺手跳转</div></div>
+      </div>
+
+      <!-- 入口3 -->
+      <div class="card" style="border-top: 3px solid var(--amber); padding: 0; overflow: hidden;">
+        <div style="padding: 14px 16px 10px;">
+          <div style="font-size: 12px; font-weight: 700; color: var(--amber); margin-bottom: 6px;">③ 状态筛选 Tab 升级</div>
+          <p style="font-size: 11px; color: var(--text-sec); line-height: 1.6; margin-bottom: 10px;">将 <code style="font-size: 10px; padding: 1px 5px; border-radius: 4px; background: var(--bg); border: 1px solid var(--border);">Home.jsx</code> 中「备忘」筛选 tab 改为跳转 /memos 页面，而非原地过滤。</p>
+        </div>
+        <div style="background: var(--bg); border-top: 1px solid var(--border); padding: 10px 12px;">
+          <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+            <span style="padding: 4px 10px; border-radius: 20px; font-size: 11px; background: white; border: 1px solid var(--border); color: var(--text-muted);">全部</span>
+            <span style="padding: 4px 10px; border-radius: 20px; font-size: 11px; background: var(--accent); color: white; font-weight: 700;">📝 备忘 →</span>
+            <span style="padding: 4px 10px; border-radius: 20px; font-size: 11px; background: white; border: 1px solid var(--border); color: var(--text-muted);">待办</span>
+            <span style="padding: 4px 10px; border-radius: 20px; font-size: 11px; background: white; border: 1px solid var(--border); color: var(--text-muted);">进行中</span>
+          </div>
+        </div>
+        <div style="padding: 8px 16px 12px;"><div style="padding: 5px 10px; background: var(--amber-bg); border-radius: 6px; font-size: 10px; color: var(--amber-text); font-weight: 600;">△ 过渡方案 — 改动最小，适合早期迭代</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 代码实现路径 -->
+  <div style="margin-bottom: 24px;">
+    <div style="font-size: 14px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+      <span style="width: 20px; height: 20px; border-radius: 5px; background: var(--purple-bg); color: var(--purple); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800;">⌨</span>
+      前端实现路径（对应现有代码结构）
+    </div>
+    <div class="two-col">
+      <div class="card" style="padding: 16px;">
+        <div style="font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+          <span style="padding: 2px 7px; border-radius: 5px; background: var(--accent-light); color: var(--accent); font-size: 10px;">App.jsx</span>
+          新增路由
+        </div>
+        <div style="background: #1e1e2e; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 11px; line-height: 1.7; color: #cdd6f4;">
+          <div><span style="color: #89dceb;">import</span> <span style="color: #cba6f7;">MemosPage</span> <span style="color: #89dceb;">from</span> <span style="color: #a6e3a1;">'./pages/MemosPage'</span>;</div>
+          <div style="margin-top: 8px;"><span style="color: #89b4fa;">&lt;Route</span></div>
+          <div style="padding-left: 16px;"><span style="color: #89dceb;">path</span>=<span style="color: #a6e3a1;">"/memos"</span></div>
+          <div style="padding-left: 16px;"><span style="color: #89dceb;">element</span>=&#123;</div>
+          <div style="padding-left: 32px;"><span style="color: #89b4fa;">&lt;AuthGuard&gt;&lt;MemosPage /&gt;&lt;/AuthGuard&gt;</span></div>
+          <div style="padding-left: 16px;">&#125;</div>
+          <div><span style="color: #89b4fa;">/&gt;</span></div>
+        </div>
+      </div>
+      <div class="card" style="padding: 16px;">
+        <div style="font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+          <span style="padding: 2px 7px; border-radius: 5px; background: var(--green-bg); color: var(--green-text); font-size: 10px;">BottomNav.jsx</span>
+          新增备忘 tab
+        </div>
+        <div style="background: #1e1e2e; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 11px; line-height: 1.7; color: #cdd6f4;">
+          <div><span style="color: #89dceb;">import</span> &#123; <span style="color: #cba6f7;">BookMarked</span> &#125; <span style="color: #89dceb;">from</span> <span style="color: #a6e3a1;">'lucide-react'</span>;</div>
+          <div style="margin-top: 6px; color: #6c7086;">// 在 NAV_ITEMS 中添加：</div>
+          <div style="color: #a6e3a1;">&#123; path: '/memos',</div>
+          <div style="padding-left: 16px; color: #a6e3a1;">icon: BookMarked,</div>
+          <div style="padding-left: 16px; color: #a6e3a1;">label: '备忘' &#125;</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 备忘主页面完整原型 -->
+  <div style="font-size: 14px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+    <span style="width: 20px; height: 20px; border-radius: 5px; background: linear-gradient(135deg, var(--accent), var(--purple)); color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800;">P</span>
+    /memos 备忘主页面 — 完整界面原型（可点击交互）
+  </div>
+
+  <div class="demo-wrapper">
+    <!-- 顶部 CommandBar -->
+    <div style="height: 48px; background: rgba(255,255,255,0.96); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; padding: 0 16px;">
+      <div class="demo-dots"><div class="demo-dot" style="background:#ff5f57;"></div><div class="demo-dot" style="background:#ffbd2e;"></div><div class="demo-dot" style="background:#28c840;"></div></div>
+      <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--text-sec);">
+        <span style="font-size: 15px;">📝</span><span>Oner</span>
+        <span style="color: var(--border);">|</span>
+        <span style="color: var(--accent);">备忘</span>
+      </div>
+      <div style="flex: 1; max-width: 380px; margin: 0 auto; height: 30px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); display: flex; align-items: center; gap: 8px; padding: 0 10px;">
+        <span style="font-size: 12px; color: var(--text-muted);">🔍</span>
+        <span style="font-size: 12px; color: var(--text-muted);">搜索、创建或输入命令...</span>
+        <span style="margin-left: auto; font-size: 10px; padding: 1px 5px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text-muted);">⌘K</span>
+      </div>
+      <div style="width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--purple)); display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: 700; margin-left: auto;">Z</div>
+    </div>
+
+    <!-- 主体：左侧分类 + 右侧内容 -->
+    <div style="display: grid; grid-template-columns: 200px 1fr; min-height: 520px; background: var(--bg);">
+
+      <!-- 左侧分类导航 -->
+      <div style="background: white; border-right: 1px solid var(--border); padding: 16px 12px; display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; padding: 0 4px;">分类</div>
+
+        <div class="cat-list-item active" onclick="filterCategory(this, '全部')">
+          <span style="font-size: 13px;">📚</span>
+          <span style="font-size: 12px; font-weight: 700; flex: 1;">全部备忘</span>
+          <span style="font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--accent); color: white; font-weight: 700;">47</span>
+        </div>
+        <div class="cat-list-item" onclick="filterCategory(this, '工作')">
+          <span class="cat-list-dot" style="background: var(--red);"></span>
+          <span class="cat-list-name">工作</span>
+          <span class="cat-list-count">18</span>
+        </div>
+        <div class="cat-list-item" onclick="filterCategory(this, '个人')">
+          <span class="cat-list-dot" style="background: var(--amber);"></span>
+          <span class="cat-list-name">个人</span>
+          <span class="cat-list-count">12</span>
+        </div>
+        <div class="cat-list-item" onclick="filterCategory(this, '学习')">
+          <span class="cat-list-dot" style="background: var(--blue);"></span>
+          <span class="cat-list-name">学习</span>
+          <span class="cat-list-count">9</span>
+        </div>
+        <div class="cat-list-item" onclick="filterCategory(this, '创意')">
+          <span class="cat-list-dot" style="background: var(--green);"></span>
+          <span class="cat-list-name">创意</span>
+          <span class="cat-list-count">8</span>
+        </div>
+        <div class="cat-list-item" onclick="filterCategory(this, '产品规划')">
+          <span class="cat-list-dot" style="background: var(--purple);"></span>
+          <span class="cat-list-name">产品规划</span>
+          <span class="cat-list-count">6</span>
+        </div>
+        <div style="margin-top: 4px; padding: 7px 10px; border-radius: 8px; border: 1px dashed var(--border); display: flex; align-items: center; gap: 7px; cursor: pointer; color: var(--text-muted);">
+          <span style="font-size: 13px;">＋</span><span style="font-size: 12px;">新建分类</span>
+        </div>
+
+        <div style="margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border-light);">
+          <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; padding: 0 4px;">视图</div>
+          <div id="viewList" style="padding: 6px 10px; border-radius: 7px; background: var(--accent-light); border: 1px solid var(--accent-200); font-size: 11px; color: var(--accent); font-weight: 600; cursor: pointer; margin-bottom: 3px;" onclick="switchMemoView('list')">☰ 列表视图</div>
+          <div id="viewTimeline" style="padding: 6px 10px; border-radius: 7px; font-size: 11px; color: var(--text-sec); cursor: pointer; margin-bottom: 3px;" onclick="switchMemoView('timeline')">◫ 时间线</div>
+          <div id="viewChain" style="padding: 6px 10px; border-radius: 7px; font-size: 11px; color: var(--text-sec); cursor: pointer; margin-bottom: 3px;" onclick="switchMemoView('chain')">🧠 思维链</div>
+          <div id="viewGraph" style="padding: 6px 10px; border-radius: 7px; font-size: 11px; color: var(--text-sec); cursor: pointer;" onclick="switchMemoView('graph')">◎ 关系图</div>
+        </div>
+      </div>
+
+      <!-- 右侧内容区 -->
+      <div style="display: flex; flex-direction: column; overflow: hidden;">
+        <div style="background: white; border-bottom: 1px solid var(--border); padding: 10px 16px; display: flex; align-items: center; gap: 8px;">
+          <div style="flex: 1; height: 32px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); display: flex; align-items: center; gap: 8px; padding: 0 10px;">
+            <span style="font-size: 13px; color: var(--text-muted);">🔍</span>
+            <input type="text" placeholder="搜索备忘内容..." style="flex: 1; border: none; outline: none; font-size: 12px; color: var(--text); background: transparent; font-family: inherit;" />
+          </div>
+          <button style="padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); background: white; font-size: 11px; color: var(--text-sec); cursor: pointer; font-family: inherit;">▾ 筛选</button>
+          <button style="padding: 6px 16px; border-radius: 8px; border: none; background: var(--accent); color: white; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;" onclick="openMemoModal()">＋ 新建备忘</button>
+        </div>
+
+        <div style="flex: 1; overflow-y: auto; padding: 16px;">
+          <!-- 列表视图 -->
+          <div id="memoContentList">
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.5px;">
+              <span>今天</span><span style="width: 8px; height: 8px; border-radius: 50%; background: var(--green);" id="liveDot2"></span><span>2026-06-10</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px;">
+              <div class="memo-list-item">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; margin-top: 5px;"></span>
+                <div style="flex: 1;">
+                  <div style="font-size: 13px; font-weight: 700; margin-bottom: 3px;">Q3 产品功能规划</div>
+                  <div style="font-size: 11px; color: var(--text-sec); margin-bottom: 5px; line-height: 1.5;">本季度核心目标：完成智能关联功能上线、优化AI对话体验...</div>
+                  <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                    <span style="font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--accent-light); color: var(--accent); font-weight: 600;">#产品规划</span>
+                    <span style="font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--blue-bg); color: var(--blue); font-weight: 600;">#Q3</span>
+                  </div>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0;">
+                  <span style="font-size: 10px; color: var(--text-muted);">14:32</span>
+                  <div style="display: flex; gap: 4px;"><span class="link-badge">🔗 4</span><span class="chain-badge">🧠 链</span></div>
+                </div>
+              </div>
+              <div class="memo-list-item">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--amber); flex-shrink: 0; margin-top: 5px;"></span>
+                <div style="flex: 1;">
+                  <div style="font-size: 13px; font-weight: 700; margin-bottom: 3px;">用户访谈记录 · 6月</div>
+                  <div style="font-size: 11px; color: var(--text-sec); margin-bottom: 5px;">核心痛点：备忘堆积找不到、知识碎片无连接...</div>
+                  <span style="font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--amber-bg); color: var(--amber-text); font-weight: 600;">#调研</span>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0;">
+                  <span style="font-size: 10px; color: var(--text-muted);">11:05</span>
+                  <span class="link-badge">🔗 2</span>
+                </div>
+              </div>
+              <div class="memo-list-item">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink: 0; margin-top: 5px;"></span>
+                <div style="flex: 1;">
+                  <div style="font-size: 13px; font-weight: 700; margin-bottom: 3px;">竞品分析 — Capacities 对象化设计</div>
+                  <div style="font-size: 11px; color: var(--text-sec); margin-bottom: 5px;">Capacities 把每条内容都视为有类型的「对象」...</div>
+                  <div style="display: flex; gap: 5px;"><span style="font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--green-bg); color: var(--green-text); font-weight: 600;">#竞品</span><span style="font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--accent-light); color: var(--accent); font-weight: 600;">#产品规划</span></div>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0;">
+                  <span style="font-size: 10px; color: var(--text-muted);">09:18</span>
+                  <div style="display: flex; gap: 4px;"><span class="link-badge">🔗 5</span><span class="chain-badge">🧠 链</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">昨天 · 2026-06-09</div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div class="memo-list-item">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--purple); flex-shrink: 0; margin-top: 5px;"></span>
+                <div style="flex: 1;"><div style="font-size: 13px; font-weight: 700; margin-bottom: 3px;">OKR 看板 Q3 目标设定</div><div style="font-size: 11px; color: var(--text-sec);">北极星指标：MAU 增长 40%，备忘活跃率 65%...</div></div>
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0;"><span style="font-size: 10px; color: var(--text-muted);">昨天</span><span class="link-badge">🔗 3</span></div>
+              </div>
+              <div class="memo-list-item">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--teal); flex-shrink: 0; margin-top: 5px;"></span>
+                <div style="flex: 1;"><div style="font-size: 13px; font-weight: 700; margin-bottom: 3px;">学习笔记 — LLM 嵌入向量原理</div><div style="font-size: 11px; color: var(--text-sec);">Embedding 是将文本映射到高维语义空间的向量表示...</div></div>
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0;"><span style="font-size: 10px; color: var(--text-muted);">昨天</span><span class="chain-badge">🧠 链</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 思维链视图 -->
+          <div id="memoContentChain" style="display: none;">
+            <div style="padding: 12px; background: white; border-radius: 12px; border: 1px solid var(--border);">
+              <div style="font-size: 12px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+                <span style="width: 20px; height: 20px; border-radius: 5px; background: linear-gradient(135deg, var(--accent), var(--purple)); display: inline-flex; align-items: center; justify-content: center; color: white; font-size: 10px;">AI</span>
+                产品研究思维链 · 自动生成
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 3px;">
+                <div style="display: flex; align-items: stretch;">
+                  <div style="display: flex; flex-direction: column; align-items: center; width: 24px; flex-shrink: 0;">
+                    <div style="width: 10px; height: 10px; border-radius: 50%; background: var(--accent); margin-top: 8px; border: 2px solid white; box-shadow: 0 0 0 2px var(--accent);"></div>
+                    <div style="width: 1.5px; flex: 1; background: var(--accent-200); margin: 2px 0;"></div>
+                  </div>
+                  <div style="flex: 1; padding: 6px 0 8px 8px;">
+                    <div style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--accent-200); background: var(--accent-light);">
+                      <span style="font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--accent); color: white; font-weight: 700; margin-right: 6px;">起点</span>
+                      <span style="font-size: 12px; font-weight: 600;">用户访谈记录 · 6月</span>
+                      <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">发现「备忘堆积」核心痛点</div>
+                    </div>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: stretch; padding-left: 20px;">
+                  <div style="display: flex; flex-direction: column; align-items: center; width: 24px; flex-shrink: 0;">
+                    <div style="width: 10px; height: 10px; border-radius: 50%; background: var(--teal); margin-top: 8px; border: 2px solid white; box-shadow: 0 0 0 2px var(--teal);"></div>
+                    <div style="width: 1.5px; flex: 1; background: #d1fae5; margin: 2px 0;"></div>
+                  </div>
+                  <div style="flex: 1; padding: 6px 0 8px 8px;">
+                    <div style="padding: 8px 12px; border-radius: 8px; border: 1px solid #d1fae5; background: var(--teal-bg);">
+                      <span style="font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--teal); color: white; font-weight: 700; margin-right: 6px;">延伸</span>
+                      <span style="font-size: 12px; font-weight: 600;">竞品分析 — Capacities 对象化设计</span>
+                      <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">研究业界解决方案</div>
+                    </div>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: stretch; padding-left: 40px;">
+                  <div style="display: flex; flex-direction: column; align-items: center; width: 24px; flex-shrink: 0;">
+                    <div style="width: 10px; height: 10px; border-radius: 50%; background: var(--purple); margin-top: 8px; border: 2px solid white; box-shadow: 0 0 0 2px var(--purple);"></div>
+                    <div style="width: 1.5px; flex: 1; background: var(--purple-100); margin: 2px 0;"></div>
+                  </div>
+                  <div style="flex: 1; padding: 6px 0 8px 8px;">
+                    <div style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--purple-100); background: var(--purple-bg);">
+                      <span style="font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--purple); color: white; font-weight: 700; margin-right: 6px;">细化</span>
+                      <span style="font-size: 12px; font-weight: 600;">Q3 产品功能规划</span>
+                      <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">转化为可执行的产品方案</div>
+                    </div>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: stretch; padding-left: 60px;">
+                  <div style="display: flex; flex-direction: column; align-items: center; width: 24px; flex-shrink: 0;">
+                    <div style="width: 10px; height: 10px; border-radius: 50%; background: var(--green); margin-top: 8px; border: 2px solid white; box-shadow: 0 0 0 2px var(--green);"></div>
+                  </div>
+                  <div style="flex: 1; padding: 6px 0 8px 8px;">
+                    <div style="padding: 8px 12px; border-radius: 8px; border: 1px solid #a7f3d0; background: var(--green-bg);">
+                      <span style="font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--green); color: white; font-weight: 700; margin-right: 6px;">结论</span>
+                      <span style="font-size: 12px; font-weight: 600;">OKR 看板 Q3 目标设定</span>
+                      <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">北极星指标确定</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div style="display: flex; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-light);">
+                <button class="ctrl-btn ai">🤖 AI 自动补全链条</button>
+                <button class="ctrl-btn">＋ 手动添加节点</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 时间线占位 -->
+          <div id="memoContentTimeline" style="display: none; padding: 30px; text-align: center; color: var(--text-muted);">
+            <div style="font-size: 36px; margin-bottom: 8px;">◫</div>
+            <div style="font-size: 13px; font-weight: 600; color: var(--text);">时间线视图</div>
+            <div style="font-size: 11px; margin-top: 4px;">按时间轴展示备忘创建历程</div>
+          </div>
+
+          <!-- 关系图占位 -->
+          <div id="memoContentGraph" style="display: none; padding: 30px; text-align: center; color: var(--text-muted);">
+            <div style="font-size: 36px; margin-bottom: 8px;">◎</div>
+            <div style="font-size: 13px; font-weight: 600; color: var(--text);">关系图视图</div>
+            <div style="font-size: 11px; margin-top: 4px;">节点关系可视化，查看备忘知识网络</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 移动端底部导航 -->
+    <div style="background: rgba(255,255,255,0.96); border-top: 1px solid var(--border); padding: 8px 0 4px; display: flex; justify-content: space-around; align-items: center;">
+      <div style="text-align: center; opacity: 0.45; cursor: pointer;"><div style="font-size: 18px;">🏠</div><div style="font-size: 9px; color: var(--text-muted);">首页</div></div>
+      <div style="text-align: center; opacity: 0.45; cursor: pointer;"><div style="font-size: 18px;">✦</div><div style="font-size: 9px; color: var(--text-muted);">AI</div></div>
+      <div style="text-align: center; position: relative;">
+        <div style="position: absolute; top: -3px; left: 50%; transform: translateX(-50%); width: 32px; height: 3px; border-radius: 2px; background: var(--accent);"></div>
+        <div style="font-size: 18px;">📝</div>
+        <div style="font-size: 9px; color: var(--accent); font-weight: 700;">备忘</div>
+      </div>
+      <div style="text-align: center; opacity: 0.45; cursor: pointer;"><div style="font-size: 18px;">🔑</div><div style="font-size: 9px; color: var(--text-muted);">密码</div></div>
+      <div style="text-align: center; opacity: 0.45; cursor: pointer;"><div style="font-size: 18px;">👤</div><div style="font-size: 9px; color: var(--text-muted);">我的</div></div>
+    </div>
+  </div>
+
+  <!-- 新建备忘模态框 -->
+  <div id="memoCreateModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 999; align-items: center; justify-content: center;" onclick="if(event.target===this) closeMemoModal()">
+    <div style="background: white; border-radius: 16px; width: 540px; max-width: 90vw; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.2);">
+      <div style="padding: 16px 20px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;">
+        <span style="font-size: 15px; font-weight: 700;">📝 新建备忘</span>
+        <button onclick="closeMemoModal()" style="width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border); background: transparent; cursor: pointer; font-size: 14px; color: var(--text-muted); font-family: inherit;">✕</button>
+      </div>
+      <div style="padding: 16px 20px;">
+        <input type="text" placeholder="备忘标题..." style="width: 100%; border: none; outline: none; font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 10px; font-family: inherit;" />
+        <textarea placeholder="记录想法、信息或任何内容..." style="width: 100%; border: none; outline: none; font-size: 13px; color: var(--text-sec); line-height: 1.7; resize: none; height: 100px; font-family: inherit;"></textarea>
+        <div style="display: flex; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border-light); flex-wrap: wrap;">
+          <button style="padding: 5px 12px; border-radius: 7px; border: 1px solid var(--border); background: white; font-size: 11px; color: var(--text-sec); cursor: pointer; font-family: inherit;"># 标签</button>
+          <button style="padding: 5px 12px; border-radius: 7px; border: 1px solid var(--border); background: white; font-size: 11px; color: var(--text-sec); cursor: pointer; font-family: inherit;">📂 分类</button>
+          <button style="padding: 5px 12px; border-radius: 7px; border: 1px solid var(--border); background: white; font-size: 11px; color: var(--text-sec); cursor: pointer; font-family: inherit;">🔗 关联</button>
+          <button style="margin-left: auto; padding: 6px 20px; border-radius: 8px; border: none; background: var(--accent); color: white; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;" onclick="closeMemoModal()">保存备忘</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="insight-box" style="margin-top: 24px;">
+    <p style="font-size: 13px; color: var(--text-sec); line-height: 1.7;"><strong>设计决策：</strong>备忘主页面采用「左侧固定分类树 + 右侧弹性内容区」的两栏布局，而非直接嵌入首页。备忘将成为独立知识管理空间——拥有自己的视图切换（列表/时间线/思维链/关系图）、独立搜索域和持久化分类导航状态。移动端通过新增的底部导航 Tab 直达 /memos，桌面端通过工作台卡片或状态筛选 tab 升级为路由跳转。改动量极小：App.jsx 加一条 Route，BottomNav.jsx 加一个 tab item，TodayFocus.jsx 加一个卡片组件。</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<div class="page-footer">
+  <div>
+    <div class="footer-brand">Oner — 备忘功能增强设计方案</div>
+    <div class="footer-info">
+      UI 设计方案 v1.0 · 2026-06-10<br>
+      覆盖功能：智能关联 · 思维链视图 · 分类堆积快速浏览
+    </div>
+  </div>
+  <div style="text-align: right; font-size: 12px; opacity: 0.6; line-height: 1.8;">
+    配合参考文件<br>
+    Oner-超级看板-合并设计方案.html<br>
+    Oner-UI优化-12个方案概念图.html
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.nav-pill').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.nav-pill').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', function() {
+    const parent = this.closest('.filter-chips');
+    parent.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+document.querySelectorAll('.cat-list-item').forEach(item => {
+  item.addEventListener('click', function() {
+    document.querySelectorAll('.cat-list-item').forEach(i => i.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+setInterval(() => {
+  const dot = document.getElementById('liveDot');
+  if (dot) dot.style.opacity = dot.style.opacity === '0.3' ? '1' : '0.3';
+  const dot2 = document.getElementById('liveDot2');
+  if (dot2) dot2.style.opacity = dot2.style.opacity === '0.3' ? '1' : '0.3';
+}, 800);
+
+function switchMemoView(view) {
+  const views = ['list','chain','timeline','graph'];
+  views.forEach(v => {
+    const el = document.getElementById('memoContent' + v.charAt(0).toUpperCase() + v.slice(1));
+    if (el) el.style.display = 'none';
+    const btn = document.getElementById('view' + v.charAt(0).toUpperCase() + v.slice(1));
+    if (btn) { btn.style.background = 'transparent'; btn.style.border = 'none'; btn.style.color = 'var(--text-sec)'; btn.style.fontWeight = '400'; }
+  });
+  const target = document.getElementById('memoContent' + view.charAt(0).toUpperCase() + view.slice(1));
+  if (target) target.style.display = 'block';
+  const activeBtn = document.getElementById('view' + view.charAt(0).toUpperCase() + view.slice(1));
+  if (activeBtn) { activeBtn.style.background = 'var(--accent-light)'; activeBtn.style.border = '1px solid var(--accent-200)'; activeBtn.style.color = 'var(--accent)'; activeBtn.style.fontWeight = '600'; }
+}
+
+function filterCategory(el, cat) {
+  document.querySelectorAll('#memo-page .cat-list-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function openMemoModal() {
+  const m = document.getElementById('memoCreateModal');
+  if (m) { m.style.display = 'flex'; }
+}
+
+function closeMemoModal() {
+  const m = document.getElementById('memoCreateModal');
+  if (m) { m.style.display = 'none'; }
+}
+
+function scrollToSection(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+</script>
+</body>
+</html>

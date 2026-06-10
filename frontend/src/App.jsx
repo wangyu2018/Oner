@@ -18,6 +18,9 @@ import BottomNav from './components/BottomNav';
 import CommandPalette from './components/CommandPalette';
 import VoiceInput from './components/VoiceInput';
 import FloatingQuickEntry from './components/FloatingQuickEntry';
+import ToastContainer from './components/ToastContainer';
+import PageTransition from './components/PageTransition';
+import { useToast } from './hooks/useToast';
 import { api } from './utils/api';
 
 const ThemeContext = createContext();
@@ -47,6 +50,9 @@ export default function App() {
 
   // 语音输入状态
   const [showVoiceInput, setShowVoiceInput] = useState(false);
+
+  // Toast 通知
+  const { toasts, addToast, removeToast } = useToast();
 
   // 快捷键
   const paletteShortcuts = useCallback(() => setPaletteOpen(true), []);
@@ -105,10 +111,12 @@ export default function App() {
                 element={
                   <AuthGuard>
                     <ErrorBoundary>
-                      <Home
-                        categories={categories}
-                        onVoiceInput={handleOpenVoiceInput}
-                      />
+                      <PageTransition>
+                        <Home
+                          categories={categories}
+                          onVoiceInput={handleOpenVoiceInput}
+                        />
+                      </PageTransition>
                     </ErrorBoundary>
                   </AuthGuard>
                 }
@@ -118,7 +126,9 @@ export default function App() {
                 element={
                   <AuthGuard>
                     <ErrorBoundary>
-                      <BoardPage onVoiceInput={handleOpenVoiceInput} />
+                      <PageTransition>
+                        <BoardPage onVoiceInput={handleOpenVoiceInput} />
+                      </PageTransition>
                     </ErrorBoundary>
                   </AuthGuard>
                 }
@@ -128,7 +138,9 @@ export default function App() {
                 element={
                   <AuthGuard>
                     <ErrorBoundary>
-                      <ViewNote />
+                      <PageTransition>
+                        <ViewNote />
+                      </PageTransition>
                     </ErrorBoundary>
                   </AuthGuard>
                 }
@@ -138,7 +150,9 @@ export default function App() {
                 element={
                   <AuthGuard>
                     <ErrorBoundary>
-                      <Profile />
+                      <PageTransition>
+                        <Profile />
+                      </PageTransition>
                     </ErrorBoundary>
                   </AuthGuard>
                 }
@@ -148,7 +162,9 @@ export default function App() {
                 element={
                   <AuthGuard>
                     <ErrorBoundary>
-                      <PasswordVault />
+                      <PageTransition>
+                        <PasswordVault />
+                      </PageTransition>
                     </ErrorBoundary>
                   </AuthGuard>
                 }
@@ -158,12 +174,17 @@ export default function App() {
                 element={
                   <AuthGuard>
                     <ErrorBoundary>
-                      <AIChat />
+                      <PageTransition>
+                        <AIChat />
+                      </PageTransition>
                     </ErrorBoundary>
                   </AuthGuard>
                 }
               />
             </Routes>
+
+            {/* 全局Toast容器 */}
+            <ToastContainer toasts={toasts} onRemove={removeToast} />
 
             {/* 全局命令面板 */}
             <CommandPalette

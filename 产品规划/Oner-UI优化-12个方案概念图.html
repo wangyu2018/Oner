@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oner UI · 12个优化方案概念图</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap');
+:root{
+  --b50:#eef2ff;--b100:#e0e7ff;--b200:#c7d2fe;--b300:#a5b4fc;--b400:#818cf8;
+  --b500:#6366f1;--b600:#4f46e5;--b700:#4338ca;--b800:#3730a3;
+  --a50:#f5f3ff;--a100:#ede9fe;--a400:#a78bfa;--a500:#8b5cf6;--a600:#7c3aed;
+  --ok:#10b981;--okbg:#d1fae5;--oktx:#065f46;
+  --wn:#f59e0b;--wnbg:#fef3c7;--wntx:#92400e;
+  --dg:#f43f5e;--dgbg:#ffe4e6;--dgtx:#9f1239;
+  --s0:#fff;--s50:#f8fafc;--s100:#f1f5f9;--s200:#e2e8f0;--s300:#cbd5e1;
+  --s400:#94a3b8;--s500:#64748b;--s600:#475569;--s700:#334155;--s800:#1e293b;--s900:#0f172a;
+  --r-s:6px;--r-m:10px;--r-l:14px;--r-xl:20px;--r-f:9999px;
+  --sh-xs:0 1px 2px rgba(0,0,0,.04);
+  --sh-sm:0 1px 3px rgba(0,0,0,.08);
+  --sh-md:0 4px 12px rgba(0,0,0,.08);
+  --sh-lg:0 8px 24px rgba(0,0,0,.12);
+  --sh-xl:0 16px 48px rgba(0,0,0,.16);
+  --t:200ms cubic-bezier(.4,0,.2,1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter','Noto Sans SC',-apple-system,sans-serif;background:var(--s100);color:var(--s900);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+
+/* NAV */
+.nav{position:fixed;top:0;left:0;right:0;z-index:200;background:rgba(255,255,255,.94);backdrop-filter:blur(16px) saturate(180%);border-bottom:1px solid var(--s200);height:52px;display:flex;align-items:center;padding:0 16px;gap:8px}
+.nav-logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;color:var(--s800);white-space:nowrap;flex-shrink:0}
+.nav-logo .dot{width:24px;height:24px;border-radius:7px;background:linear-gradient(135deg,var(--b500),var(--b700));display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(99,102,241,.3)}
+.nav-logo .dot svg{width:14px;height:14px;color:#fff}
+.nav-scroll{display:flex;gap:2px;overflow-x:auto;flex:1;padding:3px;background:var(--s100);border-radius:var(--r-m);scrollbar-width:none}
+.nav-scroll::-webkit-scrollbar{display:none}
+.nav-btn{padding:6px 10px;border-radius:7px;font-size:11px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--s500);transition:all 150ms;white-space:nowrap;display:flex;align-items:center;gap:4px;font-family:inherit;flex-shrink:0}
+.nav-btn:hover{color:var(--s700);background:rgba(0,0,0,.03)}
+.nav-btn.active{background:#fff;color:var(--b600);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.nav-btn .n{width:17px;height:17px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;background:var(--s200);color:var(--s500)}
+.nav-btn.active .n{background:var(--b100);color:var(--b600)}
+
+/* PAGES */
+.pages{margin-top:52px}
+.pg{display:none;min-height:calc(100vh - 52px)}
+.pg.active{display:block}
+
+/* PAGE LABEL */
+.pl{position:sticky;top:0;z-index:50;background:var(--s900);color:#fff;padding:10px 20px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px}
+.pl .badge{padding:3px 10px;border-radius:var(--r-f);font-size:10px;font-weight:600;background:linear-gradient(135deg,var(--b500),var(--a500))}
+.pl .cat{padding:3px 8px;border-radius:var(--r-f);font-size:10px;font-weight:600}
+.pl .cat.qw{background:var(--okbg);color:var(--oktx)}
+.pl .cat.bb{background:var(--b100);color:var(--b700)}
+.pl .cat.fi{background:var(--wnbg);color:var(--wntx)}
+.pl .desc{font-weight:400;color:var(--s400);margin-left:auto;font-size:12px}
+
+/* SECTION WRAPPER */
+.sw{max-width:1200px;margin:0 auto;padding:20px}
+.demo-box{background:#fff;border-radius:var(--r-l);border:1px solid var(--s200);box-shadow:var(--sh-xs);overflow:hidden;margin-bottom:16px}
+.demo-header{padding:12px 16px;border-bottom:1px solid var(--s100);display:flex;align-items:center;gap:8px}
+.demo-title{font-size:13px;font-weight:600;color:var(--s800)}
+.demo-label{font-size:10px;font-weight:600;padding:2px 8px;border-radius:var(--r-f)}
+.demo-label.new{background:var(--a50);color:var(--a600)}
+.demo-label.opt{background:var(--okbg);color:var(--oktx)}
+.demo-label.old{background:var(--dgbg);color:var(--dgtx)}
+.demo-body{padding:16px}
+.demo-note{font-size:11px;color:var(--s400);padding:8px 16px;border-top:1px solid var(--s100);line-height:1.5}
+
+/* SKELETON */
+.sk{border-radius:4px;background:linear-gradient(90deg,var(--s100) 25%,var(--s200) 50%,var(--s100) 75%);background-size:200% 100%;animation:shimmer 1.5s ease-in-out infinite}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* TOAST */
+.toast{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:var(--r-m);box-shadow:var(--sh-md);font-size:13px;animation:toastin .3s ease-out}
+@keyframes toastin{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+.toast.ok{background:#fff;border:1px solid var(--ok);border-left:4px solid var(--ok)}
+.toast.err{background:#fff;border:1px solid var(--dg);border-left:4px solid var(--dg)}
+.toast.undo{background:var(--s900);color:#fff;border:none}
+.toast-icon{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.toast-text{flex:1}.toast-text strong{font-weight:600}.toast-text .sub{font-size:11px;color:var(--s400);display:block;margin-top:2px}
+.toast-act{padding:4px 10px;border-radius:var(--r-s);font-size:12px;font-weight:600;cursor:pointer;border:none;font-family:inherit}
+
+/* ANIMATIONS */
+.anim-card{padding:16px;border-radius:var(--r-m);border:1px solid var(--s200);background:#fff;text-align:center;cursor:pointer;transition:all var(--t)}
+.anim-card:hover{transform:translateY(-3px);box-shadow:var(--sh-md);border-color:var(--b300)}
+.anim-card:active{transform:translateY(0) scale(.97)}
+
+/* PULSE */
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.3)}}
+@keyframes subtle-pulse{0%,100%{box-shadow:var(--sh-xs)}50%{box-shadow:var(--sh-sm),0 0 0 3px rgba(244,63,94,.08)}}
+
+/* GRID HELPERS */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media(max-width:900px){.g2,.g3,.g4{grid-template-columns:1fr}}
+.flex{display:flex}.flex-col{flex-direction:column}.gap-8{gap:8px}.gap-12{gap:12px}.gap-16{gap:16px}
+.items-center{align-items:center}.justify-between{justify-content:space-between}
+.mt-8{margin-top:8px}.mt-12{margin-top:12px}.mt-16{margin-top:16px}.mt-20{margin-top:20px}
+.mb-8{margin-bottom:8px}.mb-12{margin-bottom:12px}
+.text-center{text-align:center}
+.text-xs{font-size:11px}.text-sm{font-size:12px}.text-md{font-size:13px}.text-lg{font-size:15px}
+.font-bold{font-weight:600}.font-bolder{font-weight:700}
+.c-s400{color:var(--s400)}.c-s500{color:var(--s500)}.c-s700{color:var(--s700)}
+.c-brand{color:var(--b600)}.c-ai{color:var(--a600)}.c-ok{color:var(--ok)}.c-dg{color:var(--dg)}
+
+/* COMPARE */
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:700px){.compare{grid-template-columns:1fr}}
+.compare-side{padding:16px;border-radius:var(--r-m);border:1px solid var(--s200);background:var(--s50)}
+.compare-side.old{border-color:var(--dgbg)}
+.compare-side.new{border-color:var(--okbg)}
+.compare-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;display:flex;align-items:center;gap:4px}
+.compare-label.old{color:var(--dg)}
+.compare-label.new{color:var(--ok)}
+
+/* SMART CARD */
+.sc{background:#fff;border-radius:var(--r-m);border:1px solid var(--s200);padding:14px;cursor:pointer;transition:all var(--t);box-shadow:var(--sh-xs);display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden}
+.sc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:0 2px 2px 0}
+.sc:hover{transform:translateY(-2px);box-shadow:var(--sh-md)}
+.sc.urg{grid-column:span 2;border-color:rgba(244,63,94,.2);animation:subtle-pulse 3s ease-in-out infinite}
+.sc.urg::before{background:var(--dg)}
+.sc.prog::before{background:var(--b500)}
+.sc.norm::before{background:var(--s300)}
+.sc.done{opacity:.55}.sc.done::before{background:var(--ok)}.sc.done .sc-t{text-decoration:line-through;color:var(--s400)}
+.sc-badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600}
+.sc-t{font-size:13px;font-weight:600;color:var(--s800);line-height:1.4}
+.sc-p{font-size:12px;color:var(--s500);line-height:1.5}
+.sc-bar{height:4px;border-radius:2px;background:var(--s100);overflow:hidden}
+.sc-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--b500),var(--b400))}
+.sc-foot{display:flex;align-items:center;justify-content:space-between;margin-top:auto}
+.sc-tag{padding:1px 5px;border-radius:3px;font-size:10px;color:var(--s500);background:var(--s100)}
+
+/* CMD BAR */
+.cmd-bar{height:48px;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--s200);display:flex;align-items:center;padding:0 20px;gap:12px}
+.cmd-logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px}
+.cmd-logo-i{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,var(--b500),var(--b700))}
+.cmd-search{flex:1;max-width:480px;margin:0 auto;height:32px;border-radius:var(--r-m);border:1px solid var(--s200);background:var(--s50);display:flex;align-items:center;padding:0 12px;gap:8px;cursor:pointer;transition:all 150ms}
+.cmd-search:hover{border-color:var(--b300);background:#fff}
+.cmd-kbd{font-size:11px;padding:2px 6px;border-radius:4px;background:var(--s200);color:var(--s400);font-family:inherit}
+.cmd-ib{width:32px;height:32px;border-radius:8px;border:none;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--s500);font-size:15px;transition:all 150ms;font-family:inherit}
+.cmd-ib:hover{background:var(--s100)}
+.cmd-av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--b400),var(--b600));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff}
+
+/* TODO ITEM */
+.ti{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:var(--r-m);cursor:pointer;transition:all 150ms}
+.ti:hover{background:var(--s50)}
+.ti-box{width:18px;height:18px;border-radius:50%;border:2px solid var(--s300);flex-shrink:0;margin-top:1px;cursor:pointer;transition:all 150ms}
+.ti-box:hover{border-color:var(--b500);background:var(--b50)}
+.ti-box.checked{background:var(--ok);border-color:var(--ok);position:relative}
+.ti-box.checked::after{content:'✓';position:absolute;top:-1px;left:2px;font-size:12px;color:#fff;font-weight:700}
+.ti.overdue{border-left:3px solid var(--dg);padding-left:9px}
+.ti.today{border-left:3px solid var(--wn);padding-left:9px}
+.ti.upcoming{border-left:3px solid var(--s300);padding-left:9px}
+.ti-title{font-size:13px;font-weight:500;color:var(--s800);line-height:1.4}
+.ti-meta{display:flex;align-items:center;gap:6px;margin-top:3px;font-size:11px;color:var(--s400);flex-wrap:wrap}
+.ti-tag{padding:1px 6px;border-radius:4px;font-size:10px;font-weight:500}
+.ti-prog{width:48px;height:4px;border-radius:2px;background:var(--s200);overflow:hidden}
+.ti-prog-f{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--b500),var(--b400))}
+
+/* AI INSIGHT */
+.ai-card{padding:12px;border-radius:var(--r-m);background:rgba(255,255,255,.7);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.8);cursor:pointer;transition:all 150ms}
+.ai-card:hover{background:#fff;box-shadow:var(--sh-sm);transform:translateY(-1px)}
+.ai-card-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.ai-act{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;color:var(--b600);margin-top:6px;cursor:pointer}
+
+/* CHAT LAYOUT */
+.chat-layout{display:flex;height:520px;border-radius:var(--r-l);overflow:hidden;border:1px solid var(--s200)}
+.chat-left{flex:1;display:flex;flex-direction:column;background:#fff}
+.chat-right{width:320px;background:var(--s50);border-left:1px solid var(--s200);display:flex;flex-direction:column}
+.chat-msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.msg{display:flex}.msg.user{justify-content:flex-end}
+.msg-b{max-width:75%;padding:10px 14px;border-radius:var(--r-l);font-size:13px;line-height:1.6}
+.msg.user .msg-b{background:var(--b500);color:#fff;border-bottom-right-radius:4px}
+.msg.ai .msg-b{background:var(--s50);border:1px solid var(--s200);border-bottom-left-radius:4px}
+.chat-input{display:flex;align-items:center;gap:8px;padding:10px 16px;border-top:1px solid var(--s200);background:#fff}
+.chat-input input{flex:1;padding:8px 14px;border:1px solid var(--s200);border-radius:var(--r-m);font-size:13px;outline:none;font-family:inherit}
+.chat-input input:focus{border-color:var(--b500)}
+.ref-card{padding:10px;border-radius:var(--r-m);background:#fff;border:1px solid var(--s200);cursor:pointer;transition:all 150ms;margin-bottom:8px}
+.ref-card:hover{border-color:var(--b300);box-shadow:var(--sh-xs)}
+
+/* AI THINK STEPS */
+.think-step{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:12px}
+.think-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.think-dot.done{background:var(--ok)}
+.think-dot.active{background:var(--b500);animation:pulse 1.5s infinite}
+.think-dot.pending{background:var(--s300)}
+.think-line{width:1px;height:16px;background:var(--s200);margin-left:3.5px}
+
+/* FLOATING TOOLBAR */
+.ft{background:var(--s900);border-radius:var(--r-m);padding:4px;display:inline-flex;gap:2px;box-shadow:var(--sh-lg);position:relative}
+.ft::after{content:'';position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);border-left:5px solid transparent;border-right:5px solid transparent;border-top:5px solid var(--s900)}
+.ft-b{padding:6px 10px;border-radius:6px;border:none;background:transparent;color:var(--s300);font-size:12px;font-weight:500;cursor:pointer;transition:all 150ms;font-family:inherit;white-space:nowrap}
+.ft-b:hover{background:rgba(255,255,255,.1);color:#fff}
+.ft-b.ai{color:var(--a400)}.ft-b.ai:hover{background:rgba(139,92,246,.15)}
+.ft-div{width:1px;background:var(--s700);margin:4px 2px}
+
+/* LOGIN */
+.login-wrap{min-height:500px;display:flex;border-radius:var(--r-l);overflow:hidden;border:1px solid var(--s200);box-shadow:var(--sh-md)}
+.login-brand{flex:1;background:linear-gradient(135deg,var(--b600),var(--a600),var(--b800));display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;padding:40px;position:relative;overflow:hidden}
+.login-brand::before{content:'';position:absolute;width:300px;height:300px;border-radius:50%;background:rgba(255,255,255,.08);top:-60px;right:-60px;animation:float 6s ease-in-out infinite}
+.login-brand::after{content:'';position:absolute;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,.05);bottom:-40px;left:-40px;animation:float 8s ease-in-out infinite reverse}
+@keyframes float{0%,100%{transform:translate(0,0)}50%{transform:translate(15px,-15px)}}
+.login-form{flex:1;background:#fff;display:flex;align-items:center;justify-content:center;padding:40px}
+.login-form-inner{width:100%;max-width:320px}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:12px;font-weight:500;color:var(--s700);margin-bottom:6px}
+.form-input{width:100%;padding:10px 14px;border:1px solid var(--s200);border-radius:var(--r-m);font-size:13px;outline:none;font-family:inherit;transition:all 150ms}
+.form-input:focus{border-color:var(--b500);box-shadow:0 0 0 3px rgba(99,102,241,.12)}
+.login-btn{width:100%;padding:11px;background:linear-gradient(135deg,var(--b500),var(--b600));color:#fff;border:none;border-radius:var(--r-m);font-size:14px;font-weight:600;cursor:pointer;transition:all 200ms;font-family:inherit}
+.login-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(99,102,241,.4)}
+.demo-btn{padding:8px 20px;border-radius:var(--r-m);font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--s200);background:#fff;color:var(--s700);transition:all 150ms;font-family:inherit}
+.demo-btn:hover{border-color:var(--b300);color:var(--b600)}
+.demo-btn.primary{background:var(--b500);color:#fff;border-color:var(--b500)}
+.demo-btn.primary:hover{background:var(--b600)}
+
+/* AI PANEL */
+.ai-panel-col{border-top:1px solid var(--s200);background:linear-gradient(90deg,var(--a50),var(--b50),var(--s50));padding:0 16px;height:36px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all 150ms}
+.ai-panel-col:hover{background:linear-gradient(90deg,var(--a100),var(--b100),var(--s100))}
+.ai-chip{padding:3px 10px;border-radius:var(--r-f);font-size:11px;font-weight:500;background:rgba(255,255,255,.7);color:var(--a600);border:1px solid rgba(139,92,246,.15);white-space:nowrap;cursor:pointer}
+.ai-chip:hover{background:#fff;box-shadow:var(--sh-xs)}
+.save-ind{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--s400)}
+.save-dot{width:6px;height:6px;border-radius:50%}
+.save-dot.saved{background:var(--ok)}.save-dot.saving{background:var(--wn);animation:pulse 1s infinite}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-logo"><div class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>Oner UI</div>
+  <div class="nav-scroll" id="navScroll">
+    <button class="nav-btn active" onclick="go(0)"><span class="n">1</span>Command Bar</button>
+    <button class="nav-btn" onclick="go(1)"><span class="n">2</span>今日焦点</button>
+    <button class="nav-btn" onclick="go(2)"><span class="n">3</span>视觉权重卡片</button>
+    <button class="nav-btn" onclick="go(3)"><span class="n">4</span>统一智能输入</button>
+    <button class="nav-btn" onclick="go(4)"><span class="n">5</span>AI底部面板</button>
+    <button class="nav-btn" onclick="go(5)"><span class="n">6</span>AI对话重构</button>
+    <button class="nav-btn" onclick="go(6)"><span class="n">7</span>骨架屏+乐观UI</button>
+    <button class="nav-btn" onclick="go(7)"><span class="n">8</span>自动保存</button>
+    <button class="nav-btn" onclick="go(8)"><span class="n">9</span>SVG图标统一</button>
+    <button class="nav-btn" onclick="go(9)"><span class="n">10</span>Toast通知</button>
+    <button class="nav-btn" onclick="go(10)"><span class="n">11</span>登录页品牌化</button>
+    <button class="nav-btn" onclick="go(11)"><span class="n">12</span>AI思考可视化</button>
+  </div>
+</nav>
+<div class="pages" id="pages">
+
+<!-- ============ 1. COMMAND BAR ============ -->
+<div class="pg active">
+  <div class="pl"><span class="badge">方案 1</span><span class="cat bb">Big Bet</span>顶部Toolbar改为Linear式Command Bar<span class="desc">双行Toolbar → 单行Command Bar，释放40px垂直空间</span></div>
+  <div class="sw">
+    <div class="compare mb-12">
+      <div class="compare-side old">
+        <div class="compare-label old">✕ 旧方案 · 双行Toolbar (90px)</div>
+        <div style="background:#fff;border-radius:8px;border:1px solid var(--s200);overflow:hidden">
+          <div style="padding:8px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--s200);height:44px">
+            <div style="width:20px;height:20px;border-radius:5px;background:var(--b500)"></div>
+            <span style="font-weight:700;font-size:13px">Oner</span>
+            <div style="margin-left:auto;display:flex;gap:4px">
+              <span style="font-size:16px">🔄</span><span style="font-size:16px">💾</span><span style="font-size:16px">🌙</span><span style="font-size:16px">⚙️</span>
+              <div style="width:24px;height:24px;border-radius:50%;background:var(--b500);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px">U</div>
+            </div>
+          </div>
+          <div style="padding:6px 14px;display:flex;align-items:center;gap:8px;background:var(--s100);border-top:1px solid var(--s200);height:36px">
+            <div style="display:flex;gap:3px">
+              <span style="padding:3px 10px;border-radius:20px;font-size:11px;background:var(--b500);color:#fff">全部</span>
+              <span style="padding:3px 10px;border-radius:20px;font-size:11px;color:var(--s500)">备忘</span>
+              <span style="padding:3px 10px;border-radius:20px;font-size:11px;color:var(--s500)">待办</span>
+              <span style="padding:3px 10px;border-radius:20px;font-size:11px;color:var(--s500)">进行中</span>
+            </div>
+            <input style="flex:1;padding:4px 10px;border:1px solid var(--s200);border-radius:6px;font-size:11px;outline:none" placeholder="🔍 搜索..." disabled>
+          </div>
+        </div>
+        <p class="text-xs c-s400 mt-8">总高度 ≈ 90px · 状态筛选占据独立行 · 搜索框小</p>
+      </div>
+      <div class="compare-side new">
+        <div class="compare-label new">✓ 新方案 · 单行Command Bar (48px)</div>
+        <div style="background:#fff;border-radius:8px;border:1px solid var(--s200);overflow:hidden">
+          <div class="cmd-bar" style="border:none">
+            <div class="cmd-logo"><div class="cmd-logo-i"></div>Oner</div>
+            <div style="font-size:12px;color:var(--s400)">/ <span style="color:var(--s700);font-weight:500">首页</span></div>
+            <div class="cmd-search">
+              <span style="color:var(--s400);font-size:14px">⌕</span>
+              <span style="font-size:12px;color:var(--s400);flex:1">搜索、创建或输入命令...</span>
+              <span class="cmd-kbd">⌘K</span>
+            </div>
+            <div style="display:flex;gap:2px">
+              <button class="cmd-ib">↻</button>
+              <button class="cmd-ib">🔔</button>
+              <button class="cmd-ib">⚙</button>
+            </div>
+            <div class="cmd-av">U</div>
+          </div>
+        </div>
+        <p class="text-xs c-ok mt-8">总高度 = 48px · 节省42px · 搜索框扩大3倍 · 状态筛选移入内容区</p>
+      </div>
+    </div>
+    <div class="demo-box">
+      <div class="demo-header"><div class="demo-title">Command Bar 三种模式</div><span class="demo-label new">统一入口</span></div>
+      <div class="demo-body">
+        <div class="g3">
+          <div style="padding:14px;border-radius:var(--r-m);border:1px solid var(--s200);background:var(--s50)">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+              <span style="font-size:16px">⌕</span>
+              <span style="font-size:12px;font-weight:600;color:var(--s700)">搜索模式</span>
+            </div>
+            <div style="padding:6px 10px;background:#fff;border-radius:6px;border:1px solid var(--s200);font-size:12px;color:var(--s600)">产品规划文档</div>
+            <div class="mt-8" style="font-size:11px;color:var(--s400)">输入关键词 → 实时搜索笔记标题和内容</div>
+          </div>
+          <div style="padding:14px;border-radius:var(--r-m);border:1px solid var(--s200);background:var(--s50)">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+              <span style="font-size:16px;color:var(--b500)">/</span>
+              <span style="font-size:12px;font-weight:600;color:var(--s700)">命令模式</span>
+            </div>
+            <div style="padding:6px 10px;background:#fff;border-radius:6px;border:1px solid var(--b200);font-size:12px;color:var(--b600)">/切换到看板</div>
+            <div class="mt-8" style="font-size:11px;color:var(--s400)">输入"/" → 触发命令列表（切换视图、创建分类等）</div>
+          </div>
+          <div style="padding:14px;border-radius:var(--r-m);border:1px solid var(--s200);background:var(--s50)">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+              <span style="font-size:16px;color:var(--a500)">✦</span>
+              <span style="font-size:12px;font-weight:600;color:var(--s700)">AI创建模式</span>
+            </div>
+            <div style="padding:6px 10px;background:#fff;border-radius:6px;border:1px solid rgba(139,92,246,.2);font-size:12px;color:var(--a600)">明天提醒我开会讨论Q3预算</div>
+            <div class="mt-8" style="font-size:11px;color:var(--s400)">输入自然语言 → AI识别意图，自动创建笔记/任务/提醒</div>
+          </div>
+        </div>
+      </div>
+      <div class="demo-note">一个入口三种模式：关键词触发搜索、"/"触发命令、自然语言触发AI创建。减少用户认知负担，参考 Arc Browser Command Bar 和 Notion Quick Find。</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 2. TODAY FOCUS ============ -->
+<div class="pg">
+  <div class="pl"><span class="badge">方案 2</span><span class="cat bb">Big Bet</span>首页改为"今日焦点+卡片流"<span class="desc">首页从"所有笔记列表"变为"今日工作台"</span></div>
+  <div class="sw">
+    <div style="background:linear-gradient(135deg,var(--a50),#fff,var(--b50));border-radius:var(--r-l);border:1px solid var(--s200);padding:20px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div>
+          <div style="font-size:20px;font-weight:700">下午好，<span style="color:var(--b600)">准备开始工作吧</span></div>
+          <div style="font-size:13px;color:var(--s500);margin-top:2px">2026年6月9日 · 星期一 · 你有 3 个待办事项需要关注</div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <span style="padding:4px 12px;border-radius:var(--r-f);font-size:12px;font-weight:500;background:var(--dgbg);color:var(--dgtx)">🔴 1 紧急</span>
+          <span style="padding:4px 12px;border-radius:var(--r-f);font-size:12px;font-weight:500;background:var(--okbg);color:var(--oktx)">🟢 2 进行中</span>
+          <span style="padding:4px 12px;border-radius:var(--r-f);font-size:12px;font-weight:500;background:var(--wnbg);color:var(--wntx)">🟡 3 待办</span>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 320px;gap:16px">
+        <div style="background:#fff;border-radius:var(--r-l);border:1px solid var(--s200);overflow:hidden">
+          <div style="padding:12px 14px 8px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--s100)">
+            <div style="font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px">
+              <span style="width:8px;height:8px;border-radius:50%;background:var(--dg);animation:pulse 2s infinite"></span>今日待办
+            </div>
+            <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:var(--r-f);background:var(--dgbg);color:var(--dgtx)">6 项</span>
+          </div>
+          <div style="padding:6px">
+            <div class="ti overdue"><div class="ti-box"></div><div style="flex:1"><div class="ti-title">完成季度产品规划文档</div><div class="ti-meta"><span class="ti-tag" style="background:var(--dgbg);color:var(--dgtx)">紧急</span><span class="ti-tag" style="background:var(--b50);color:var(--b600)">工作</span><span style="color:var(--dg)">⚠ 已过期</span><div class="ti-prog"><div class="ti-prog-f" style="width:60%"></div></div><span>60%</span></div></div></div>
+            <div class="ti today"><div class="ti-box"></div><div style="flex:1"><div class="ti-title">准备周报文档</div><div class="ti-meta"><span class="ti-tag" style="background:var(--b50);color:var(--b600)">工作</span><span>📅 截止今天</span></div></div></div>
+            <div class="ti today"><div class="ti-box"></div><div style="flex:1"><div class="ti-title">用户访谈记录整理</div><div class="ti-meta"><span class="ti-tag" style="background:var(--b50);color:var(--b600)">调研</span><span>📅 截止明天</span></div></div></div>
+            <div class="ti upcoming"><div class="ti-box"></div><div style="flex:1"><div class="ti-title">开发UI组件库 — 按钮组件重构</div><div class="ti-meta"><span class="ti-tag" style="background:var(--okbg);color:var(--oktx)">前端</span><div class="ti-prog"><div class="ti-prog-f" style="width:35%"></div></div><span>35%</span></div></div></div>
+            <div class="ti" style="opacity:.5"><div class="ti-box checked"></div><div style="flex:1"><div class="ti-title" style="text-decoration:line-through;color:var(--s400)">服务器迁移方案评审</div><div class="ti-meta"><span style="color:var(--ok)">✓ 已完成</span></div></div></div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div class="ai-card">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><div class="ai-card-icon" style="background:var(--wnbg)">⚠</div><div style="font-size:12px;font-weight:600;color:var(--s700)">到期提醒</div></div>
+            <div style="font-size:12px;color:var(--s500);line-height:1.5">「产品规划文档」已过期 1 天，建议调整截止日期或优先处理。</div>
+            <div class="ai-act">→ 立即处理</div>
+          </div>
+          <div class="ai-card">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><div class="ai-card-icon" style="background:var(--b50)">📊</div><div style="font-size:12px;font-weight:600;color:var(--s700)">本周概览</div></div>
+            <div style="font-size:12px;color:var(--s500);line-height:1.5">本周新增 12 条笔记，完成 4 个任务。工作类占比 67%。</div>
+            <div class="ai-act">→ 查看报告</div>
+          </div>
+          <div class="ai-card">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><div class="ai-card-icon" style="background:var(--okbg)">🔗</div><div style="font-size:12px;font-weight:600;color:var(--s700)">智能关联</div></div>
+            <div style="font-size:12px;color:var(--s500);line-height:1.5">「竞品分析报告」与「产品规划文档」高度相关，建议一起查阅。</div>
+            <div class="ai-act">→ 打开关联</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="demo-note text-center">首页上半部 40% 为"今日焦点区"（品牌色渐变背景），下半部 60% 为笔记卡片流（中性灰底）。用户打开App第一眼看到"今天该做什么"。</div>
+  </div>
+</div>
+
+<!-- ============ 3. VISUAL WEIGHT CARDS ============ -->
+<div class="pg">
+  <div class="pl"><span class="badge">方案 3</span><span class="cat qw">Quick Win</span>卡片视觉权重系统<span class="desc">紧急=大卡+红色，进行中=蓝色，已完成=半透明</span></div>
+  <div class="sw">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="font-size:14px;font-weight:600;color:var(--s700)">📝 最近笔记</div>
+      <div style="display:flex;gap:2px;background:var(--s100);border-radius:var(--r-s);padding:2px">
+        <button style="padding:4px 8px;border-radius:4px;border:none;background:#fff;font-size:12px;color:var(--s700);box-shadow:var(--sh-xs);cursor:pointer;font-family:inherit">▦ 网格</button>
+        <button style="padding:4px 8px;border-radius:4px;border:none;background:transparent;font-size:12px;color:var(--s400);cursor:pointer;font-family:inherit">☰ 列表</button>
+        <button style="padding:4px 8px;border-radius:4px;border:none;background:transparent;font-size:12px;color:var(--s400);cursor:pointer;font-family:inherit">≡ 紧凑</button>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+      <div class="sc urg" style="grid-column:span 2">
+        <div><span class="sc-badge" style="background:var(--okbg);color:var(--oktx)">进行中</span> <span class="sc-badge" style="background:var(--dgbg);color:var(--dgtx)">紧急</span></div>
+        <div class="sc-t">完成季度产品规划文档</div>
+        <div class="sc-p">本周需要整理的产品需求文档，包括用户调研反馈汇总、竞品功能对比矩阵和优先级排序...</div>
+        <div class="sc-bar"><div class="sc-fill" style="width:60%"></div></div>
+        <div class="sc-foot"><div style="display:flex;gap:3px"><span class="sc-tag">#规划</span><span class="sc-tag">#Q3</span></div><span style="font-size:10px;font-weight:600;color:var(--dg)">⚠ 已过期1天</span></div>
+      </div>
+      <div class="sc prog">
+        <div><span class="sc-badge" style="background:var(--okbg);color:var(--oktx)">进行中</span></div>
+        <div class="sc-t">开发UI组件库</div>
+        <div class="sc-p">原子组件重构，基于新Design Token...</div>
+        <div class="sc-bar"><div class="sc-fill" style="width:35%"></div></div>
+        <div class="sc-foot"><span class="sc-tag">#前端</span><span style="font-size:10px;color:var(--s400)">☑ 3/8</span></div>
+      </div>
+      <div class="sc norm">
+        <div><span class="sc-badge" style="background:var(--wnbg);color:var(--wntx)">待办</span></div>
+        <div class="sc-t">准备周报文档</div>
+        <div class="sc-p">汇总团队本周工作进展...</div>
+        <div class="sc-foot"><span class="sc-tag">#工作</span><span style="font-size:10px;color:var(--wn)">📅 今天</span></div>
+      </div>
+      <div class="sc norm">
+        <div><span class="sc-badge" style="background:#dbeafe;color:#1e40af">备忘</span></div>
+        <div class="sc-t">《认知觉醒》读书笔记</div>
+        <div class="sc-p">元认知是人类最高级的认知能力...</div>
+        <div class="sc-foot"><div style="display:flex;gap:3px"><span class="sc-tag">#阅读</span><span class="sc-tag">#成长</span></div><span style="font-size:10px;color:var(--s400)">1周前</span></div>
+      </div>
+      <div class="sc norm">
+        <div><span class="sc-badge" style="background:var(--wnbg);color:var(--wntx)">待办</span></div>
+        <div class="sc-t">用户访谈记录整理</div>
+        <div class="sc-p">整理本周三用户访谈的录音...</div>
+        <div class="sc-foot"><span class="sc-tag">#调研</span><span style="font-size:10px;color:var(--wn)">📅 明天</span></div>
+      </div>
+      <div class="sc done">
+        <div><span class="sc-badge" style="background:var(--s100);color:var(--s500)">已完成</span></div>
+        <div class="sc-t">服务器迁移方案</div>
+        <div class="sc-p">已完成数据迁移方案设计...</div>
+        <div class="sc-foot"><span class="sc-tag">#运维</span><span style="font-size:10px;color:var(--s400)">5天前</span></div>
+      </div>
+      <div class="sc norm">
+        <div><span class="sc-badge" style="background:#dbeafe;color:#1e40af">备忘</span></div>
+        <div class="sc-t">设计灵感收集</div>
+        <div class="sc-p">Linear的Command Bar、Craft排版...</div>
+        <div class="sc-foot"><span class="sc-tag">#设计</span><span style="font-size:10px;color:var(--s400)">3天前</span></div>
+      </div>
+    </div>
+    <div class="demo-box mt-16">
+      <div class="demo-header"><div class="demo-title">视觉权重规则说明</div></div>
+      <div class="demo-body">
+        <div class="g4">
+          <div style="padding:12px;border-radius:var(--r-m);border-left:3px solid var(--dg);background:var(--dgbg)">
+            <div style="font-size:12px;font-weight:600;color:var(--dgtx)">紧急 + 高优先级</div>
+            <div class="text-xs c-s500 mt-8">占2格 · 红色左边框 · 脉动动画 · 过期标红</div>
+          </div>
+          <div style="padding:12px;border-radius:var(--r-m);border-left:3px solid var(--b500);background:var(--b50)">
+            <div style="font-size:12px;font-weight:600;color:var(--b700)">进行中</div>
+            <div class="text-xs c-s500 mt-8">1格 · 蓝色左边框 · 进度条 · 子任务计数</div>
+          </div>
+          <div style="padding:12px;border-radius:var(--r-m);border-left:3px solid var(--s300);background:var(--s50)">
+            <div style="font-size:12px;font-weight:600;color:var(--s700)">普通 / 备忘</div>
+            <div class="text-xs c-s500 mt-8">1格 · 灰色左边框 · 标准样式</div>
+          </div>
+          <div style="padding:12px;border-radius:var(--r-m);border-left:3px solid var(--ok);background:var(--s50);opacity:.55">
+            <div style="font-size:12px;font-weight:600;color:var(--s500)">已完成</div>
+            <div class="text-xs c-s500 mt-8">1格 · 绿色 · 半透明 · 标题划线</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 4. UNIFIED SMART INPUT ============ -->
+<div class="pg">
+  <div class="pl"><span class="badge">方案 4</span><span class="cat bb">Big Bet</span>合并搜索+命令面板+快速创建<span class="desc">三个入口合一，减少认知负担</span></div>
+  <div class="sw">
+    <div class="demo-box">
+      <div class="demo-header"><div class="demo-title">统一智能输入框 · 交互演示</div><span class="demo-label new">NEW</span></div>
+      <div class="demo-body" style="background:rgba(15,23,42,.3);padding:32px;border-radius:0 0 var(--r-l) var(--r-l)">
+        <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:var(--r-xl);box-shadow:var(--sh-xl);overflow:hidden">
+          <div style="padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--s200)">
+            <span style="font-size:18px;color:var(--s400)">⌕</span>
+            <input style="flex:1;border:none;outline:none;font-size:15px;font-family:inherit;color:var(--s800)" value="明天提醒我开会讨论Q3预算" />
+            <span class="cmd-kbd">Esc</span>
+          </div>
+          <div style="padding:8px">
+            <div style="padding:6px 12px;font-size:10px;font-weight:600;color:var(--a600);text-transform:uppercase;letter-spacing:.5px">✦ AI 意图识别</div>
+            <div style="padding:10px 12px;border-radius:var(--r-m);background:var(--a50);border:1px solid rgba(139,92,246,.1);margin:4px 0">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--a500),var(--a600));display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px">✦</div>
+                <div style="flex:1">
+                  <div style="font-size:13px;font-weight:600;color:var(--a600)">创建任务 + 设置提醒</div>
+                  <div style="font-size:11px;color:var(--s500);margin-top:2px">标题：开会讨论Q3预算 · 提醒：明天 09:00 · 分类：工作</div>
+                </div>
+                <div style="display:flex;gap:6px">
+                  <button class="demo-btn primary" style="font-size:11px;padding:6px 12px">确认创建</button>
+                  <button class="demo-btn" style="font-size:11px;padding:6px 12px">编辑</button>
+                </div>
+              </div>
+            </div>
+            <div style="padding:8px 12px;font-size:10px;font-weight:600;color:var(--s400);text-transform:uppercase;letter-spacing:.5px;margin-top:4px">关键词解析</div>
+            <div style="padding:4px 12px 8px;display:flex;gap:6px;flex-wrap:wrap">
+              <span style="padding:3px 10px;border-radius:var(--r-f);font-size:11px;background:#dbeafe;color:#1e40af">📅 明天</span>
+              <span style="padding:3px 10px;border-radius:var(--r-f);font-size:11px;background:#ede9fe;color:#7c3aed">⏰ 提醒</span>
+              <span style="padding:3px 10px;border-radius:var(--r-f);font-size:11px;background:#fef3c7;color:#92400e">📋 任务</span>
+              <span style="padding:3px 10px;border-radius:var(--r-f);font-size:11px;background:var(--okbg);color:var(--oktx)">📂 工作(AI推断)</span>
+            </div>
+          </div>
+          <div style="padding:8px 16px;border-top:1px solid var(--s100);display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:11px;color:var(--s400)">Enter 确认 · Tab 切换建议 · Esc 关闭</span>
+            <span style="font-size:11px;color:var(--s400)">置信度 96%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="demo-note text-center">当前三个独立组件：CommandPalette（搜索）、FloatingQuickEntry（快速创建）、FloatingInput（AI输入）→ 合并为一个统一入口。用户只需记住一个快捷键 ⌘K。</div>
+  </div>
+</div>
+
+<!-- ============ 5. AI BOTTOM PANEL ============ -->
+<div class="pg">
+  <div class="pl"><span class="badge">方案 5</span><span class="cat bb">Big Bet</span>AI侧栏改为底部可折叠面板<span class="desc">释放280px横向空间，AI融入编辑流程</span></div>
+  <div class="sw">
+    <div class="compare">
+      <div class="compare-side old">
+        <div class="compare-label old">✕ 旧方案 · AI右侧栏 (固定280px)</div>
+        <div style="display:flex;height:300px;border-radius:8px;overflow:hidden;border:1px solid var(--s200)">
+          <div style="flex:1;background:#fff;padding:14px;border-right:1px solid var(--s200)">
+            <div style="font-size:14px;font-weight:600;margin-bottom:8px">产品规划文档</div>
+            <div style="font-size:11px;color:var(--s500);line-height:1.7">本周需要整理的产品需求文档...<br><br>编辑区域被压缩到约 600px 宽度</div>
+          </div>
+          <div style="width:140px;background:var(--s50);padding:10px;font-size:10px">
+            <div style="font-weight:600;color:var(--a600);margin-bottom:8px">✦ AI 助手</div>
+            <div style="color:var(--s500);line-height:1.5">建议标签...<br>续写建议...<br>相关笔记...</div>
+            <div class="mt-12" style="color:var(--dg);font-size:9px">⚠ 固定占用280px<br>编辑器空间不足</div>
+          </div>
+        </div>
+      </div>
+      <div class="compare-side new">
+        <div class="compare-label new">✓ 新方案 · AI底部面板 (36px收起 / 200px展开)</div>
+        <div style="display:flex;flex-direction:column;height:300px;border-radius:8px;overflow:hidden;border:1px solid var(--s200)">
+          <div style="flex:1;background:#fff;padding:14px">
+            <div style="font-size:14px;font-weight:600;margin-bottom:8px">产品规划文档</div>
+            <div style="font-size:11px;color:var(--s500);line-height:1.7">本周需要整理的产品需求文档...<br><br>编辑区域获得 100% 宽度 ✓<br>沉浸式写作体验 ✓</div>
+            <div style="margin-top:16px;position:relative">
+              <span style="background:rgba(99,102,241,.12);border-radius:3px;padding:1px 0">P0级别为AI原生功能开发，包括浮动输入框和自动分类。</span>
+              <div style="position:absolute;top:-36px;left:50%;transform:translateX(-50%)">
+                <div class="ft">
+                  <button class="ft-b">𝐁</button><button class="ft-b">𝐼</button>
+                  <div class="ft-div"></div>
+                  <button class="ft-b ai">✦ 续写</button>
+                  <button class="ft-b ai">✎ 改写</button>
+                  <button class="ft-b ai">🌐 翻译</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="ai-panel-col">
+            <div style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--a600)">
+              <span style="width:16px;height:16px;border-radius:4px;background:linear-gradient(135deg,var(--a500),var(--a600));display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff">✦</span>AI
+            </div>
+            <span class="ai-chip">+ #产品需求</span>
+            <span class="ai-chip">📎 竞品分析</span>
+            <span class="ai-chip">✎ 补充方案</span>
+            <span style="margin-left:auto;font-size:10px;color:var(--s400)">展开 ▾</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="demo-note text-center">AI从"旁边的工具栏"变为"编辑流程的一部分"。默认收起仅一行建议，按 ⌘/ 或点击展开完整面板。选中文字时弹出浮动AI工具栏。</div>
+  </div>
+</div>
+
+<!-- ============ 6. AI CHAT REDESIGN ============ -->
+<div class="pg">
+  <div class="pl"><span class="badge">方案 6</span><span class="cat bb">Big Bet</span>AI对话页重构（对话左+笔记右）<span class="desc">AI引用笔记变为可预览卡片，对话中直接操作笔记</span></div>
+  <div class="sw">
+    <div class="chat-layout">
+      <div class="chat-left">
+        <div style="padding:12px 16px;border-bottom:1px solid var(--s200);display:flex;align-items:center;gap:8px">
+          <span style="font-size:14px;font-weight:600;color:var(--s800)">💬 产品需求讨论</span>
+          <span style="font-size:11px;color:var(--s400);margin-left:auto">基于 86 条笔记</span>
+        </div>
+        <div class="chat-msgs">
+          <div class="msg user"><div class="msg-b"><div>帮我总结本周所有待办事项</div><div style="font-size:10px;opacity:.7;margin-top:4px">14:30</div></div></div>
+          <div class="msg ai"><div class="msg-b">
+            <div style="margin-bottom:8px"><strong>根据您的笔记，本周待办共 8 项：</strong></div>
+            <div style="font-size:12px;line-height:1.8">
+              1. ✅ <strong>产品规划文档</strong> — 60%<br>
+              2. 🔄 <strong>准备周报</strong> — 待开始<br>
+              3. 🔄 <strong>用户访谈整理</strong> — 截止明天<br>
+              4. ✅ <strong>UI组件库</strong> — 35%<br>
+            </div>
+            <div style="padding:8px 10px;margin-top:8px;background:rgba(99,102,241,.08);border-radius:8px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px">
+              <span>📎</span> 关联笔记：本周计划 <span style="margin-left:auto;color:var(--b600)">→</span>
+            </div>
+            <div style="font-size:10px;color:var(--s400);margin-top:6px">14:30 · 基于 86 条笔记</div>
+          </div></div>
+          <div class="msg user"><div class="msg-b"><div>把用户访谈任务安排到明天上午</div><div style="font-size:10px;opacity:.7;margin-top:4px">14:32</div></div></div>
+          <div class="msg ai"><div class="msg-b">
+            <div>已更新！⏰ <strong>「用户访谈记录整理」</strong> 截止日期设为明天。<br><br>是否需要设置明早 9:00 的提醒？</div>
+            <div style="display:flex;gap:6px;margin-top:8px">
+              <button style="padding:5px 12px;border-radius:6px;border:1px solid var(--b200);background:var(--b50);color:var(--b600);font-size:11px;font-weight:500;cursor:pointer;font-family:inherit">✓ 创建提醒</button>
+              <button style="padding:5px 12px;border-radius:6px;border:1px solid var(--s200);background:#fff;color:var(--s600);font-size:11px;font-weight:500;cursor:pointer;font-family:inherit">稍后再说</button>
+            </div>
+          </div></div>
+        </div>
+        <div class="chat-input">
+          <button style="width:32px;height:32px;border-radius:50%;border:none;background:transparent;cursor:pointer;font-size:15px">🎤</button>
+          <input placeholder="输入消息..." />
+          <button style="width:32px;height:32px;border-radius:50%;border:none;background:transparent;cursor:pointer;font-size:15px">📎</button>
+          <button style="width:32px;height:32px;border-radius:50%;border:none;background:var(--b500);color:#fff;cursor:pointer;font-size:15px">➤</button>
+        </div>
+      </div>
+      <div class="chat-right">
+        <div style="padding:10px 14px;border-bottom:1px solid var(--s200);display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:12px;font-weight:600;color:var(--s700)">📎 引用笔记 (3)</span>
+          <button style="font-size:11px;color:var(--s400);border:none;background:none;cursor:pointer">收起 ▸</button>
+        </div>
+        <div style="flex:1;padding:12px;overflow-y:auto">
+          <div class="ref-card">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <div style="width:28px;height:28px;border-radius:6px;background:var(--b50);color:var(--b500);display:flex;align-items:center;justify-content:center;font-size:12px">📄</div>
+              <div><div style="font-size:12px;font-weight:600;color:var(--s800)">本周计划</div><div style="font-size:10px;color:var(--s400)">更新于 2小时前</div></div>
+            </div>
+            <div style="font-size:11px;color:var(--s500);line-height:1.5">本周重点：1.完成产品规划文档 2.准备周报 3.UI组件库开发...</div>
+            <div style="display:flex;gap:4px;margin-top:6px"><span class="sc-tag">#工作</span><span class="sc-tag">#计划</span></div>
+          </div>
+          <div class="ref-card">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <div style="width:28px;height:28px;border-radius:6px;background:var(--okbg);color:var(--oktx);display:flex;align-items:center;justify-content:center;font-size:12px">✅</div>
+              <div><div style="font-size:12px;font-weight:600;color:var(--s800)">用户访谈记录整理</div><div style="font-size:10px;color:var(--s400)">截止：明天</div></div>
+            </div>
+            <div style="font-size:11px;color:var(--s500);line-height:1.5">整理本周三用户访谈的录音和笔记，提取关键需求...</div>
+          </div>
+          <div class="ref-card">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <div style="width:28px;height:28px;border-radius:6px;background:var(--wnbg);color:var(--wntx);display:flex;align-items:center;justify-content:center;font-size:12px">📋</div>
+              <div><div style="font-size:12px;font-weight:600;color:var(--s800)">竞品分析报告</div><div style="font-size:10px;color:var(--s400)">3天前</div></div>
+            </div>
+            <div style="font-size:11px;color:var(--s500);line-height:1.5">Notion协作强但隐私弱，Obsidian隐私好但AI弱...</div>
+          </div>
+          <div style="margin-top:12px;padding:10px;border-radius:var(--r-m);background:var(--a50);border:1px solid rgba(139,92,246,.1)">
+            <div style="font-size:11px;font-weight:600;color:var(--a600);margin-bottom:4px">✦ AI 建议操作</div>
+            <div style="font-size:11px;color:var(--s500);line-height:1.5">以上3条笔记与当前对话高度相关。可以将AI回复直接应用到「本周计划」笔记中。</div>
+            <button style="margin-top:6px;padding:4px 10px;border-radius:6px;border:1px solid rgba(139,92,246,.2);background:#fff;color:var(--a600);font-size:11px;font-weight:500;cursor:pointer;font-family:inherit">应用到笔记 →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="demo-note text-center">左侧对话区（60%）+ 右侧引用笔记面板（40%，可折叠）。AI回复中的引用变为可预览卡片，支持一键"应用到笔记"。</div>
+  </div>
+</div>
+
+<!-- ============ 7. SKELETON + OPTIMISTIC ============ -->
+<div class="pg">
+  <div class="pl"><span class="badge">方案 7</span><span class="cat qw">Quick Win</span>骨架屏加载 + 乐观更新<span class="desc">消除全页Spinner，感知加载时间减少50-60%</span></div>
+  <div class="sw">
+    <div class="g2 mb-12">
+      <div class="demo-box">
+        <div class="demo-header"><div class="demo-title">骨架屏 · 首页卡片加载</div><span class="demo-label new">NEW</span></div>
+        <div class="demo-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div style="padding:14px;border-radius:var(--r-m);border:1px solid var(--s200)">
+              <div class="sk" style="width:52px;height:18px;margin-bottom:8px"></div>
+              <div class="sk" style="height:16px;width:80%;margin-bottom:6px"></div>
+              <div class="sk" style="height:12px;width:100%;margin-bottom:4px"></div>
+              <div class="sk" style="height:12px;width:60%;margin-bottom:8px"></div>
+              <div class="sk" style="height:4px;width:100%"></div>
+            </div>
+            <div style="padding:14px;border-radius:var(--r-m);border:1px solid var(--s200)">
+              <div class="sk" style="width:40px;height:18px;margin-bottom:8px"></div>
+              <div class="sk" style="height:16px;width:65%;margin-bottom:6px"></div>
+              <div class="sk" style="height:12px;width:100%;margin-bottom:4px"></div>
+              <div class="sk" style="height:12px;width:45%"></div>
+            </div>
+            <div style="padding:14px;border-radius:var(--r-m);border:1px solid var(--s200)">
+              <div class="sk" style="width:48px;height:18px;margin-bottom:8px"></div>
+              <div class="sk" style="height:16px;width:72%;margin-bottom:6px"></div>
+              <div class="sk" style="height:12px;width:90%;margin-bottom:4px"></div>
+              <div class="sk" style="height:12px;width:55%"></div>
+            </div>
+            <div style="padding:14px;border-radius:var(--r-m);border:1px solid var(--s200)">
+              <div class="sk" style="width:44px;height:18px;margin-bottom:8px"></div>
+              <div class="sk" style="height:16px;width:58%;margin-bottom:6px"></div>
+              <div class="sk" style="height:12px;width:100%;margin-bottom:4px"></div>
+              <div class="sk" style="height:12px;width:40%"></div>
+            </div>
+          </div>
+        </div>
+        <div class="demo-note">骨架屏保持卡片框架占位，数据到达后淡入填充。用户知道"内容即将出现"，而非面对空白页+转圈。</div>
+      </div>
+      <div class="demo-box">
+        <div class="demo-header"><div class="demo-title">乐观更新 · 拖拽看板</div><span class="demo-label new">NEW</span></div>
+        <div class="demo-body">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="padding:10px 12px;border-radius:var(--r-m);background:var(--b50);border:1px solid var(--b200);display:flex;align-items:center;gap:10px">
+              <div style="width:24px;height:24px;border-radius:50%;background:var(--b500);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">1</div>
+              <div style="flex:1"><div style="font-size:12px;font-weight:600">用户拖拽卡片到「进行中」列</div><div class="text-xs c-s500">立即触发UI更新</div></div>
+              <span class="text-xs c-brand font-bold">0ms</span>
+            </div>
+            <div class="text-center c-s300">↓</div>
+            <div style="padding:10px 12px;border-radius:var(--r-m);background:var(--b50);border:1px solid var(--b200);display:flex;align-items:center;gap:10px">
+              <div style="width:24px;height:24px;border-radius:50%;background:var(--b500);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">2</div>
+              <div style="flex:1"><div style="font-size:12px;font-weight:600">卡片立刻出现在目标列</div><div class="text-xs c-s500">不等API返回（乐观更新）</div></div>
+              <span class="text-xs c-brand font-bold">~16ms</span>
+            </div>
+            <div class="text-center c-s300">↓</div>
+            <div style="padding:10px 12px;border-radius:var(--r-m);background:var(--s50);border:1px solid var(--s200);display:flex;align-items:center;gap:10px">
+              <div style="width:24px;height:24px;border-radius:50%;background:var(--s200);color:var(--s600);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">3</div>
+              <div style="flex:1"><div style="font-size:12px;font-weight:600">后台异步提交 → 成功/失败</div><div class="text-xs c-s500">失败时回弹+Toast提示</div></div>
+              <span class="text-xs c-s400">~200ms</span>
+            </div>
+          </div>
+          <p class="text-xs c-s400 mt-12 text-center">感知延迟：16ms（1帧） 而非 200ms+（网络往返）</p>
+        </div>
+      </div>
+    </div>
+    <div class="demo-box">
+      <div class="demo-header"><div class="demo-title">微动画系统 · hover试试每个卡片</div><span class="demo-label new">NEW</span></div>
+      <div class="demo-body">
+        <div class="g3">
+          <div class="anim-card"><div style="width:36px;height:36px;border-radius:9px;background:var(--b50);margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all var(--t)">📝</div><div style="font-size:12px;font-weight:600">卡片Hover</div><div class="text-xs c-s400">translateY(-3px)+shadow</div></div>
+          <div class="anim-card"><div style="width:36px;height:36px;border-radius:9px;background:var(--a50);margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:18px">✦</div><div style="font-size:12px;font-weight:600">AI呼吸灯</div><div class="text-xs c-s400">opacity+scale脉动</div></div>
+          <div class="anim-card"><div style="width:36px;height:36px;border-radius:9px;background:var(--okbg);margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:18px">✓</div><div style="font-size:12px;font-weight:600">完成动画</div><div class="text-xs c-s400">scale(1.2→1)+fade</div></div>
+          <div class="anim-card"><div style="width:36px;height:36px;border-radius:9px;background:var(--wnbg);margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:18px">↻</div><div style="font-size:12px;font-weight:600">状态切换</div><div class="text-xs c-s400">颜色渐变200ms</div></div>
+          <div class="anim-card"><div style="width:36px;height:36px;border-radius:9px;background:var(--dgbg);margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:18px">🗑</div><div style="font-size:12px;font-weight:600">删除退出</div><div class="text-xs c-s400">slide-out+collapse</div></div>
+          <div class="anim-card"><div style="width:36px;height:36px;border-radius:9px;background:var(--s100);margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:18px">📋</div><div style="font-size:12px;font-weight:600">列表新增</div><div class="text-xs c-s400">slide-in+fade 200ms</div></div>
+        </div>
+        <p class="text-xs c-s400 mt-12 text-center">所有动画基于200ms缓动曲线 · 尊重 prefers-reduced-motion 设置</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 8. AUTO-SAVE ============ -->
+<div class="pg">
+  <div class="pl"><span class="badge">方案 8</span><span class="cat qw">Quick Win</span>编辑器自动保存<span class="desc">消除手动保存按钮和"保存焦虑"</span></div>
+  <div class="sw">
+    <div class="compare mb-12">
+      <div class="compare-side old">
+        <div class="compare-label old">✕ 旧方案 · 手动保存</div>
+        <div style="padding:16px;background:#fff;border-radius:8px;border:1px solid var(--s200)">
+          <div style="font-size:14px;font-weight:600;margin-bottom:12px">编辑中...</div>
+          <div style="font-size:12px;color:var(--s500);line-height:1.7;margin-bottom:16px">用户在写笔记，中途停下来思考...<br><br>⚠ "我保存了吗？"<br>⚠ 按了Cmd+S，按钮转了一下<br>⚠ 不确定是否成功，又按了一次</div>
+          <div style="display:flex;justify-content:flex-end;gap:8px">
+            <button style="padding:8px 20px;border-radius:8px;border:1px solid var(--s200);background:#fff;font-size:12px;cursor:pointer;font-family:inherit">取消</button>
+            <button style="padding:8px 20px;border-radius:8px;border:none;background:var(--b500);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">💾 保存</button>
+          </div>
+        </div>
+        <p class="text-xs c-dg mt-8">保存失败时 → console.error → 用户完全不知道</p>
+      </div>
+      <div class="compare-side new">
+        <div class="compare-label new">✓ 新方案 · 自动保存 + 状态指示</div>
+        <div style="padding:16px;background:#fff;border-radius:8px;border:1px solid var(--s200)">
+          <div style="font-size:14px;font-weight:600;margin-bottom:12px">编辑中...</div>
+          <div style="font-size:12px;color:var(--s500);line-height:1.7;margin-bottom:16px">用户在写笔记，中途停下来思考...<br><br>✓ 输入停止1.5秒后自动保存<br>✓ 底部指示器实时显示状态<br>✓ 失败时Toast提示+重试按钮</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--s100)">
+            <div class="save-ind"><span class="save-dot saved"></span>已自动保存</div>
+            <span class="text-xs c-s400">1,234 字 · 阅读约 4 分钟</span>
+          </div>
+        </div>
+        <p class="text-xs c-ok mt-8">Notion/Obsidian已验证此模式 · 编辑中断次数减少70%</p>
+      </div>
+    </div>
+    <div class="demo-box">
+      <div class="demo-header"><div class="demo-title">三种保存状态</div></div>
+      <div class="demo-body">
+        <div class="g3">
+          <div style="padding:16px;border-radius:var(--r-m);border:1px solid var(--s200);background:var(--s50)">
+            <div class="save-ind" style="font-size:14px;justify-content:center;margin-bottom:8px"><span class="save-dot saved" style="width:10px;height:10px"></span><span style="font-size:13px;font-weight:600;color:var(--ok)">已保存</span></div>
+            <div class="text-xs c-s500 text-center">输入停止1.5秒后<br>自动提交到服务器</div>
+          </div>
+          <div style="padding:16px;border-radius:var(--r-m);border:1px solid var(--s200);background:var(--s50)">
+            <div class="save-ind" style="font-size:14px;justify-content:center;margin-bottom:8px"><span class="save-dot saving" style="width:10px;height:10px"></span><span style="font-size:13px;font-weight:600;color:var(--wn)">保存中...</span></div>
+            <div class="text-xs c-s500 text-center">正在提交到服务器<br>请稍候</div>
+          </div>
+          <div style="padding:16px;border-radius:var(--r-m);border:1px solid var(--s200);background:var(--s50)">
+            <div class="save-ind" style="font-size:14px;justify-content:center;margin-bottom:8px"><span class="save-dot" style="width:10px;height:10px;background:var(--s300)"></span><span style="font-size:13px;font-weight:600;color:var(--s400)">未保存</span></div>
+            <div class="text-xs c-s500 text-center">正在输入中<br>等待停止后自动保存</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 9. SVG ICONS ============ -->
+<div class="pg">
+  <div class="pl"><span class="badge">方案 9</span><span class="cat qw">Quick Win</span>替换Emoji为SVG图标系统<span class="desc">Lucide React SVG · 跨平台视觉一致 · 支持主题色</span></div>
+  <div class="sw">
+    <div class="demo-box">
+      <div class="demo-header"><div class="demo-title">Emoji → SVG 图标替换对照表</div><span class="demo-label opt">约30处替换</span></div>
+      <div class="demo-body">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead><tr style="border-bottom:2px solid var(--s200)">
+            <th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:600;color:var(--s500)">位置</th>
+            <th style="text-align:center;padding:8px;font-size:11px;font-weight:600;color:var(--dg)">旧：Emoji</th>
+            <th style="text-align:center;padding:8px;font-size:11px;font-weight:600;color:var(--ok)">新：Lucide SVG</th>
+            <th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:600;color:var(--s500)">优势</th>
+          </tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--s100)"><td style="padding:8px 12px">Toolbar · 同步</td><td style="text-align:center;font-size:20px">🔄</td><td style="text-align:center"><div style="width:28px;height:28px;border-radius:7px;background:var(--s100);display:inline-flex;align-items:center;justify-content:center;color:var(--s600);font-size:14px">↻</div></td><td style="padding:8px 12px;font-size:11px;color:var(--s500)">Win/Mac/iOS渲染一致</td></tr>
+            <tr style="border-bottom:1px solid var(--s100)"><td style="padding:8px 12px">Toolbar · 备份</td><td style="text-align:center;font-size:20px">💾</td><td style="text-align:center"><div style="width:28px;height:28px;border-radius:7px;background:var(--s100);display:inline-flex;align-items:center;justify-content:center;color:var(--s600);font-size:14px">⬇</div></td><td style="padding:8px 12px;font-size:11px;color:var(--s500)">支持主题色着色</td></tr>
+            <tr style="border-bottom:1px solid var(--s100)"><td style="padding:8px 12px">Toolbar · 主题</td><td style="text-align:center;font-size:20px">🌙</td><td style="text-align:center"><div style="width:28px;height:28px;border-radius:7px;background:var(--s100);display:inline-flex;align-items:center;justify-content:center;color:var(--s600);font-size:14px">◐</div></td><td style="padding:8px 12px;font-size:11px;color:var(--s500)">暗色模式自动适配</td></tr>
+            <tr style="border-bottom:1px solid var(--s100)"><td style="padding:8px 12px">Toolbar · 设置</td><td style="text-align:center;font-size:20px">⚙️</td><td style="text-align:center"><div style="width:28px;height:28px;border-radius:7px;background:var(--s100);display:inline-flex;align-items:center;justify-content:center;color:var(--s600);font-size:14px">⚙</div></td><td style="padding:8px 12px;font-size:11px;color:var(--s500)">缩放不失真</td></tr>
+            <tr style="border-bottom:1px solid var(--s100)"><td style="padding:8px 12px">AI助手</td><td style="text-align:center;font-size:20px">🤖</td><td style="text-align:center"><div style="width:28px;height:28px;border-radius:7px;background:var(--a50);display:inline-flex;align-items:center;justify-content:center;color:var(--a600);font-size:14px;font-weight:700">✦</div></td><td style="padding:8px 12px;font-size:11px;color:var(--s500)">品牌专属标识</td></tr>
+            <tr style="border-bottom:1px solid var(--s100)"><td style="padding:8px 12px">看板标题</td><td style="text-align:center;font-size:20px">📋</td><td style="text-align:center"><div style="width:28px;height:28px;border-radius:7px;background:var(--s100);display:inline-flex;align-items:center;justify-content:center;color:var(--s600);font-size:14px">☰</div></td><td style="padding:8px 12px;font-size:11px;color:var(--s500)">像素级精确</td></tr>
+            <tr><td style="padding:8px 12px">密码保险库</td><td style="text-align:center;font-size:20px">🔒</td><td style="text-align:center"><div style="width:28px;height:28px;border-radius:7px;background:var(--okbg);display:inline-flex;align-items:center;justify-content:center;color:var(--oktx);font-size:14px">🔐</div></td><td style="padding:8px 12px;font-size:11px;color:var(--s500)">语义化图标</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="demo-note">项目已引入 lucide-react。SVG图标在所有操作系统上渲染完全一致，支持CSS自定义颜色/大小/动画，暗色模式通过CSS变量自动适配。替换约30处emoji引用。</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 10. TOAST SYSTEM ============ -->
+<div class="pg">
+  <div class="pl"><span class="badge">方案 10</span><span class="cat qw">Quick Win</span>全局Toast通知系统<span class="desc">替代window.confirm()和静默错误</span></div>
+  <div class="sw">
+    <div class="g2 mb-12">
+      <div class="demo-box">
+        <div class="demo-header"><div class="demo-title">Toast 类型</div></div>
+        <div class="demo-body" style="display:flex;flex-direction:column;gap:10px">
+          <div class="toast ok">
+            <div class="toast-icon" style="background:var(--okbg);color:var(--ok)">✓</div>
+            <div class="toast-text"><strong>笔记已创建</strong><span class="sub">「用户访谈整理」已添加到工作分类</span></div>
+            <span style="font-size:16px;color:var(--s400);cursor:pointer">×</span>
+          </div>
+          <div class="toast undo">
+            <div class="toast-icon" style="background:rgba(255,255,255,.15);color:#fff">↩</div>
+            <div class="toast-text"><strong>已删除「服务器迁移方案」</strong><span class="sub">5秒后可撤销</span></div>
+            <button class="toast-act" style="background:rgba(255,255,255,.15);color:#fff">撤销</button>
+          </div>
+          <div class="toast err">
+            <div class="toast-icon" style="background:var(--dgbg);color:var(--dg)">!</div>
+            <div class="toast-text"><strong>保存失败</strong><span class="sub">网络中断，编辑已缓存到本地</span></div>
+            <button class="toast-act" style="background:var(--dgbg);color:var(--dg)">重试</button>
+          </div>
+        </div>
+      </div>
+      <div class="demo-box">
+        <div class="demo-header"><div class="demo-title">确认对话框对比</div></div>
+        <div class="demo-body">
+          <div style="padding:14px;border-radius:var(--r-m);background:var(--s200);margin-bottom:12px">
+            <div style="font-size:10px;font-weight:600;color:var(--dg);margin-bottom:6px">✕ 旧：window.confirm()</div>
+            <div style="background:var(--s300);border-radius:4px;padding:14px;text-align:center">
+              <div style="font-size:12px;color:var(--s600);margin-bottom:10px">确定要删除吗？</div>
+              <div style="display:flex;justify-content:center;gap:6px"><button style="padding:4px 16px;border-radius:4px;border:1px solid var(--s400);background:var(--s300);font-size:11px;cursor:pointer;font-family:inherit">取消</button><button style="padding:4px 16px;border-radius:4px;border:none;background:var(--b500);color:#fff;font-size:11px;cursor:pointer;font-family:inherit">确定</button></div>
+            </div>
+            <p class="text-xs c-dg mt-8 text-center">样式突兀 · 阻塞主线程 · 信息不足</p>
+          </div>
+          <div style="padding:14px;border-radius:var(--r-m);background:#fff;border:1px solid var(--s200);box-shadow:var(--sh-md)">
+            <div style="font-size:10px;font-weight:600;color:var(--ok);margin-bottom:6px">✓ 新：内嵌确认</div>
+            <div style="font-size:14px;font-weight:600;color:var(--s800);margin-bottom:4px">删除笔记？</div>
+            <div style="font-size:12px;color:var(--s500);line-height:1.5;margin-bottom:12px">「产品规划文档」将移入回收站，30天内可恢复。</div>
+            <div style="display:flex;justify-content:flex-end;gap:6px">
+              <button style="padding:6px 14px;border-radius:var(--r-s);border:1px solid var(--s200);background:#fff;font-size:12px;cursor:pointer;font-family:inherit">取消</button>
+              <button style="padding:6px 14px;border-radius:var(--r-s);border:none;background:var(--dg);color:#fff;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit">删除</button>
+            </div>
+            <p class="text-xs c-ok mt-8 text-center">风格统一 · 信息完整 · 不阻塞</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="demo-note text-center">当前问题：NoteEditor保存失败只console.error、Toolbar退出用window.confirm()、删除无撤销机制。→ 统一Toast系统 + 内嵌确认框 + Undo Toast。</div>
+  </div>
+</div>
+
+<!-- ============ 11. LOGIN BRANDING ============ -->
+<div class="pg">
+  <div class="pl"><span class="badge">方案 11</span><span class="cat fi">Fill-in</span>登录页品牌化改造<span class="desc">半屏品牌区+半屏表单，增加品牌记忆点和试用入口</span></div>
+  <div class="sw">
+    <div class="compare">
+      <div class="compare-side old">
+        <div class="compare-label old">✕ 旧方案 · 全屏居中白卡片</div>
+        <div style="background:var(--s100);border-radius:8px;padding:40px;display:flex;align-items:center;justify-content:center;min-height:360px;border:1px solid var(--s200)">
+          <div style="background:#fff;border-radius:16px;padding:32px;width:100%;max-width:300px;box-shadow:var(--sh-md)">
+            <div style="width:48px;height:48px;border-radius:12px;background:var(--b500);margin:0 auto 12px"></div>
+            <div style="text-align:center;font-size:20px;font-weight:700;margin-bottom:4px">Oner</div>
+            <div style="text-align:center;font-size:12px;color:var(--s400);margin-bottom:24px">记录此刻，轻如空气</div>
+            <div class="form-group"><div style="height:36px;background:var(--s100);border-radius:6px"></div></div>
+            <div class="form-group"><div style="height:36px;background:var(--s100);border-radius:6px"></div></div>
+            <div style="height:36px;background:var(--b500);border-radius:6px"></div>
+            <div class="text-xs c-s400 text-center mt-12">还没有账号？立即注册</div>
+          </div>
+        </div>
+        <p class="text-xs c-dg mt-8 text-center">缺少品牌记忆点 · 无试用入口 · 无社交登录</p>
+      </div>
+      <div class="compare-side new">
+        <div class="compare-label new">✓ 新方案 · 品牌区+表单+试用</div>
+        <div class="login-wrap" style="min-height:360px">
+          <div class="login-brand" style="padding:24px">
+            <div style="position:relative;z-index:1;text-align:center">
+              <div style="width:56px;height:56px;border-radius:14px;background:rgba(255,255,255,.2);backdrop-filter:blur(8px);margin:0 auto 16px;display:flex;align-items:center;justify-content:center">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+              </div>
+              <div style="font-size:28px;font-weight:800;letter-spacing:-.5px">Oner</div>
+              <div style="font-size:13px;opacity:.8;margin-top:4px">记录此刻，轻如空气</div>
+              <div style="margin-top:20px;font-size:11px;opacity:.7;line-height:1.6">
+                AI原生 · 隐私优先 · 自托管<br>你的第二大脑，完全属于你
+              </div>
+            </div>
+          </div>
+          <div class="login-form" style="padding:24px">
+            <div class="login-form-inner">
+              <div style="font-size:18px;font-weight:700;margin-bottom:20px">欢迎回来</div>
+              <div class="form-group"><label>用户名或邮箱</label><input class="form-input" placeholder="请输入" value="demo@oner.app"></div>
+              <div class="form-group"><label>密码</label><input class="form-input" type="password" placeholder="请输入" value="••••••••"></div>
+              <button class="login-btn" style="margin-bottom:10px">登录 →</button>
+              <button style="width:100%;padding:9px;border:1px solid var(--s200);border-radius:var(--r-m);background:#fff;font-size:12px;color:var(--s600);cursor:pointer;margin-bottom:12px;font-family:inherit">✨ 跳过登录，体验Demo</button>
+              <div class="text-xs c-s400 text-center">还没有账号？<span style="color:var(--b600);font-weight:500;cursor:pointer">立即注册</span></div>
+            </div>
+          </div>
+        </div>
+        <p class="text-xs c-ok mt-8 text-center">品牌色渐变 · Logo动画 · "体验Demo"降低首次门槛</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 12. AI THINKING VISUALIZATION ============ -->
+<div class="pg">
+  <div class="pl"><span class="badge">方案 12</span><span class="cat fi">Fill-in</span>AI对话增加"思考过程"可视化<span class="desc">展示AI检索→分析→生成的步骤，增加透明感和信任</span></div>
+  <div class="sw">
+    <div class="g2">
+      <div class="demo-box">
+        <div class="demo-header"><div class="demo-title">旧方案 · AI回复无过程</div><span class="demo-label old">现状</span></div>
+        <div class="demo-body">
+          <div class="msg user" style="margin-bottom:12px"><div class="msg-b" style="background:var(--b500);color:#fff;border-radius:var(--r-l);border-bottom-right-radius:4px;padding:10px 14px;font-size:13px">总结本周所有待办事项</div></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:12px;background:var(--s50);border-radius:var(--r-m);border:1px solid var(--s200)">
+            <div style="width:24px;height:24px;border-radius:50%;background:var(--s200);display:flex;align-items:center;justify-content:center;font-size:10px">...</div>
+            <span style="font-size:12px;color:var(--s400)">正在生成...</span>
+          </div>
+          <div class="mt-12 msg ai"><div class="msg-b" style="background:var(--s50);border:1px solid var(--s200);border-radius:var(--r-l);border-bottom-left-radius:4px;padding:10px 14px;font-size:13px">
+            <strong>根据您的笔记，本周待办共 8 项...</strong><br>
+            <span class="text-xs c-s400 mt-8" style="display:block">用户不知道AI做了什么、引用了什么</span>
+          </div></div>
+        </div>
+      </div>
+      <div class="demo-box">
+        <div class="demo-header"><div class="demo-title">新方案 · 思考过程可视化</div><span class="demo-label new">NEW</span></div>
+        <div class="demo-body">
+          <div class="msg user" style="margin-bottom:12px"><div class="msg-b" style="background:var(--b500);color:#fff;border-radius:var(--r-l);border-bottom-right-radius:4px;padding:10px 14px;font-size:13px">总结本周所有待办事项</div></div>
+          <div style="padding:12px 16px;background:linear-gradient(135deg,var(--a50),var(--b50));border-radius:var(--r-m);border:1px solid var(--s200);margin-bottom:12px">
+            <div style="font-size:11px;font-weight:600;color:var(--a600);margin-bottom:8px;display:flex;align-items:center;gap:6px">
+              <span style="width:16px;height:16px;border-radius:4px;background:linear-gradient(135deg,var(--a500),var(--a600));display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px">✦</span>
+              AI 正在思考...
+            </div>
+            <div style="display:flex;flex-direction:column;gap:2px">
+              <div class="think-step"><div class="think-dot done"></div><span style="color:var(--s600)">理解意图：查询本周待办</span><span style="margin-left:auto;font-size:10px;color:var(--ok)">✓ 0.3s</span></div>
+              <div class="think-line"></div>
+              <div class="think-step"><div class="think-dot done"></div><span style="color:var(--s600)">检索笔记：找到 86 条，筛选 8 条待办</span><span style="margin-left:auto;font-size:10px;color:var(--ok)">✓ 0.8s</span></div>
+              <div class="think-line"></div>
+              <div class="think-step"><div class="think-dot active"></div><span style="color:var(--s600)">分析优先级和截止日期...</span><span style="margin-left:auto;font-size:10px;color:var(--b500)">⏱</span></div>
+              <div class="think-line"></div>
+              <div class="think-step"><div class="think-dot pending"></div><span style="color:var(--s400)">生成摘要回复</span></div>
+            </div>
+          </div>
+          <div class="msg ai"><div class="msg-b" style="background:var(--s50);border:1px solid var(--s200);border-radius:var(--r-l);border-bottom-left-radius:4px;padding:10px 14px;font-size:13px">
+            <strong>根据您的笔记，本周待办共 8 项：</strong><br>
+            <div style="font-size:12px;line-height:1.8;margin-top:4px">1. ✅ 产品规划文档 — 60%<br>2. 🔄 准备周报 — 待开始</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:8px;padding:6px 10px;background:rgba(99,102,241,.08);border-radius:6px;font-size:11px;cursor:pointer">
+              <span>📎</span> 引用 3 条笔记 <span style="margin-left:auto;color:var(--b600);font-size:10px">查看详情 →</span>
+            </div>
+            <div class="text-xs c-s400 mt-8">14:30 · 耗时 1.8s · 检索 86 条笔记</div>
+          </div></div>
+        </div>
+      </div>
+    </div>
+    <div class="demo-box mt-16">
+      <div class="demo-header"><div class="demo-title">思考过程 · 四种步骤状态</div></div>
+      <div class="demo-body">
+        <div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:8px"><div class="think-dot done" style="width:12px;height:12px"></div><span style="font-size:12px;font-weight:500">已完成</span><span class="text-xs c-s400">绿色 · 显示耗时</span></div>
+          <div style="display:flex;align-items:center;gap:8px"><div class="think-dot active" style="width:12px;height:12px"></div><span style="font-size:12px;font-weight:500">进行中</span><span class="text-xs c-s400">蓝色脉动动画</span></div>
+          <div style="display:flex;align-items:center;gap:8px"><div class="think-dot pending" style="width:12px;height:12px"></div><span style="font-size:12px;font-weight:500">等待中</span><span class="text-xs c-s400">灰色 · 文字变淡</span></div>
+          <div style="display:flex;align-items:center;gap:8px"><div style="width:12px;height:12px;border-radius:50%;background:var(--dg)"></div><span style="font-size:12px;font-weight:500">失败</span><span class="text-xs c-s400">红色 · 显示错误原因</span></div>
+        </div>
+      </div>
+      <div class="demo-note text-center">参考 Perplexity AI 和 ChatGPT 的"思考链"展示。增加AI透明度 → 提升用户对AI回复的信任度。步骤完成后自动折叠为一行摘要。</div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+const btns=document.querySelectorAll('.nav-btn');
+const pgs=document.querySelectorAll('.pg');
+function go(i){
+  pgs.forEach(p=>p.classList.remove('active'));
+  btns.forEach(b=>b.classList.remove('active'));
+  pgs[i].classList.add('active');
+  btns[i].classList.add('active');
+  btns[i].scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+</script>
+</body>
+</html>

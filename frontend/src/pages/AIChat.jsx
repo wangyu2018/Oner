@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Plus, Send, Trash2, MessageSquare, Loader2, Tag, Sparkles, FileText
+  Plus, Send, Trash2, MessageSquare, Loader2, Tag, FileText
 } from 'lucide-react';
 import { api } from '../utils/api';
 import MarkdownRenderer from '../components/MarkdownRenderer';
+import CommandBar from '../components/CommandBar';
 
 export default function AIChat() {
   const navigate = useNavigate();
@@ -136,30 +137,27 @@ export default function AIChat() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col">
-      {/* 顶部导航 */}
-      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center gap-3">
-        <button
-          onClick={() => navigate(-1)}
-          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg md:hidden"
-        >
-          <ArrowLeft size={20} className="text-gray-600 dark:text-gray-400" />
-        </button>
-        <button
-          onClick={() => setShowSidebar(!showSidebar)}
-          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg md:hidden"
-        >
-          <MessageSquare size={20} className="text-gray-600 dark:text-gray-400" />
-        </button>
-        <Sparkles size={20} className="text-accent" />
-        <h1 className="text-lg font-semibold text-gray-900 dark:text-white flex-1">AI 对话</h1>
-        <button
-          onClick={handleNewConversation}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg bg-accent text-white hover:bg-accent-600 transition-colors"
-        >
-          <Plus size={16} />
-          新对话
-        </button>
-      </div>
+      <CommandBar
+        breadcrumb="AI 对话"
+        rightContent={
+          <>
+            <button
+              onClick={() => setShowSidebar(!showSidebar)}
+              className="md:hidden p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors"
+              title="对话列表"
+            >
+              <MessageSquare size={16} />
+            </button>
+            <button
+              onClick={handleNewConversation}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg bg-accent text-white hover:bg-accent-600 transition-colors"
+            >
+              <Plus size={16} />
+              新对话
+            </button>
+          </>
+        }
+      />
 
       <div className="flex-1 flex overflow-hidden">
         {/* 侧栏 - 对话列表 */}

@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oner 超级看板 — 合并设计方案</title>
+<style>
+  :root {
+    --accent: #4f46e5;
+    --accent-light: #eef2ff;
+    --accent-100: #e0e7ff;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --border-light: #f1f5f9;
+    --text: #1e293b;
+    --text-sec: #475569;
+    --text-muted: #94a3b8;
+    --green: #22c55e; --green-bg: #f0fdf4; --green-light: #dcfce7;
+    --yellow: #eab308; --yellow-bg: #fefce8; --yellow-light: #fef9c3;
+    --orange: #f97316; --orange-bg: #fff7ed; --orange-light: #fed7aa;
+    --red: #ef4444; --red-bg: #fef2f2; --red-light: #fecaca;
+    --blue: #3b82f6; --blue-bg: #eff6ff; --blue-light: #dbeafe;
+    --purple: #a855f7; --purple-bg: #faf5ff; --purple-light: #e9d5ff;
+    --teal: #14b8a6; --teal-bg: #f0fdfa; --teal-light: #ccfbf1;
+    --pink: #ec4899; --pink-bg: #fdf2f8;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  /* ====== HEADER ====== */
+  .page-header {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    color: white;
+    padding: 40px 32px 32px;
+  }
+  .page-header h1 { font-size: 26px; font-weight: 800; margin-bottom: 6px; }
+  .page-header .sub { font-size: 14px; opacity: 0.85; margin-bottom: 20px; }
+  .merge-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+  .merge-tag {
+    font-size: 11px; padding: 4px 12px; border-radius: 20px;
+    background: rgba(255,255,255,0.18); backdrop-filter: blur(8px);
+    color: white; font-weight: 600; border: 1px solid rgba(255,255,255,0.2);
+  }
+
+  /* ====== SECTION ====== */
+  .section {
+    max-width: 1260px; margin: 0 auto; padding: 32px 24px;
+  }
+  .sec-title {
+    font-size: 18px; font-weight: 800; margin-bottom: 6px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .sec-title .num {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--accent); color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700;
+  }
+  .sec-desc { font-size: 13px; color: var(--text-sec); margin-bottom: 20px; }
+
+  /* ====== CARD ====== */
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 24px; margin-bottom: 24px;
+  }
+
+  /* ====== MERGE MATRIX ====== */
+  .merge-matrix {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 14px; margin-bottom: 24px;
+  }
+  .merge-item {
+    padding: 16px; border-radius: 12px; border-left: 4px solid;
+    background: var(--card); border-top: 1px solid var(--border);
+    border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  }
+  .merge-item .head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .merge-item .head .badge {
+    font-size: 10px; padding: 2px 8px; border-radius: 6px;
+    font-weight: 700; text-transform: uppercase;
+  }
+  .merge-item .head .name { font-size: 14px; font-weight: 700; }
+  .merge-item p { font-size: 12px; color: var(--text-sec); }
+  .merge-item .how {
+    margin-top: 8px; font-size: 12px; color: var(--accent);
+    font-weight: 600; display: flex; align-items: center; gap: 4px;
+  }
+
+  /* ====== LIVE DEMO: SUPER BOARD ====== */
+  .demo-wrapper {
+    border: 2px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  /* Simulated Command Bar */
+  .cmd-bar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 20px;
+    background: white;
+    border-bottom: 1px solid var(--border);
+  }
+  .cmd-bar .logo {
+    font-size: 16px; font-weight: 800; color: var(--accent);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .cmd-bar .logo svg { width: 20px; height: 20px; }
+  .cmd-bar .breadcrumb { font-size: 13px; color: var(--text-muted); }
+  .cmd-bar .search {
+    flex: 1; max-width: 400px;
+    padding: 7px 14px; border-radius: 8px;
+    border: 1px solid var(--border); background: #f8fafc;
+    font-size: 13px; color: var(--text-muted);
+    display: flex; align-items: center; gap: 8px;
+    cursor: pointer;
+  }
+  .cmd-bar .search:hover { border-color: var(--accent); }
+  .cmd-bar .search kbd {
+    font-size: 10px; padding: 1px 5px; border-radius: 4px;
+    background: white; border: 1px solid var(--border);
+    font-family: monospace; color: var(--text-muted);
+  }
+  .cmd-bar .actions { display: flex; gap: 6px; margin-left: auto; }
+  .cmd-bar .act-btn {
+    width: 32px; height: 32px; border-radius: 8px;
+    border: 1px solid var(--border); background: white;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--text-sec); transition: all 0.15s;
+  }
+  .cmd-bar .act-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Board toolbar */
+  .board-toolbar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 20px;
+    background: white;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .board-toolbar .title-area {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .board-toolbar h2 { font-size: 16px; font-weight: 700; }
+  .board-toolbar .view-switch {
+    display: flex; gap: 2px; background: #f1f5f9;
+    padding: 2px; border-radius: 8px;
+  }
+  .board-toolbar .v-btn {
+    padding: 5px 12px; border: none; background: transparent;
+    border-radius: 6px; font-size: 11px; font-weight: 600;
+    color: var(--text-muted); cursor: pointer; transition: all 0.15s;
+  }
+  .board-toolbar .v-btn.active {
+    background: white; color: var(--accent);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  }
+  .board-toolbar .spacer { flex: 1; }
+  .board-toolbar .filter-pill {
+    padding: 5px 12px; border-radius: 20px;
+    font-size: 11px; font-weight: 600;
+    border: 1px solid var(--border); background: white;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .board-toolbar .filter-pill:hover { border-color: var(--accent); }
+  .board-toolbar .filter-pill.active {
+    background: var(--accent); color: white; border-color: var(--accent);
+  }
+  .board-toolbar .filter-pill.today {
+    border-color: var(--orange); color: var(--orange);
+  }
+  .board-toolbar .filter-pill.today.active {
+    background: var(--orange); color: white;
+  }
+  .board-toolbar .sync-info {
+    font-size: 10px; color: var(--text-muted);
+  }
+
+  /* ====== TODAY FOCUS STRIP ====== */
+  .today-strip {
+    display: flex; gap: 12px;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #fef3c7 0%, #fff7ed 50%, #fef2f2 100%);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .today-strip .strip-label {
+    flex-shrink: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 0 8px;
+    min-width: 70px;
+  }
+  .today-strip .strip-label .icon { font-size: 22px; }
+  .today-strip .strip-label .text {
+    font-size: 10px; font-weight: 700; color: var(--orange);
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .today-strip .strip-label .count {
+    font-size: 20px; font-weight: 800; color: var(--text);
+  }
+  .strip-card {
+    flex-shrink: 0;
+    background: white;
+    border-radius: 10px;
+    padding: 10px 14px;
+    min-width: 200px; max-width: 260px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .strip-card:hover { border-color: var(--accent); box-shadow: 0 2px 8px rgba(79,70,229,0.08); }
+  .strip-card.urgent {
+    border-left: 3px solid var(--red);
+    background: var(--red-bg);
+  }
+  .strip-card.due-soon {
+    border-left: 3px solid var(--orange);
+  }
+  .strip-card .sc-badges {
+    display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 5px;
+  }
+  .strip-card .sc-badge {
+    font-size: 9px; padding: 1px 6px; border-radius: 4px; font-weight: 600;
+  }
+  .strip-card h4 { font-size: 12px; font-weight: 700; margin-bottom: 2px; }
+  .strip-card p { font-size: 11px; color: var(--text-muted); }
+  .strip-card .sc-cat {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 10px; color: var(--text-muted); margin-top: 5px;
+  }
+  .strip-card .sc-cat .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+  .strip-card .due-tag {
+    font-size: 10px; padding: 2px 6px; border-radius: 4px;
+    margin-top: 4px; display: inline-block;
+  }
+  .strip-card .due-tag.overdue { background: var(--red-bg); color: var(--red); font-weight: 700; }
+  .strip-card .due-tag.today-due { background: var(--orange-bg); color: var(--orange); font-weight: 600; }
+  .strip-card .due-tag.soon { background: var(--yellow-bg); color: #a16207; }
+
+  /* ====== SWIMLANE BOARD ====== */
+  .swim-board { padding: 0; overflow-x: auto; }
+  .swim-grid {
+    display: grid;
+    grid-template-columns: 130px repeat(4, 1fr);
+    min-width: 880px;
+  }
+
+  /* Column headers */
+  .swim-hdr {
+    display: grid;
+    grid-template-columns: 130px repeat(4, 1fr);
+    background: white;
+    border-bottom: 2px solid var(--border);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .swim-hdr-cell {
+    padding: 10px 14px;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 13px; font-weight: 700;
+  }
+  .swim-hdr-cell.corner { color: var(--text-muted); font-weight: 500; font-size: 11px; }
+  .swim-hdr-cell .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .swim-hdr-cell .cnt {
+    margin-left: auto; font-size: 11px; color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  /* Lane */
+  .swim-lane {
+    display: grid;
+    grid-template-columns: 130px repeat(4, 1fr);
+    border-bottom: 1px solid var(--border);
+    min-height: 100px;
+  }
+  .swim-lane:last-child { border-bottom: none; }
+
+  .lane-label {
+    padding: 14px 12px;
+    border-right: 1px solid var(--border);
+    background: white;
+    display: flex; flex-direction: column; gap: 3px;
+    position: sticky; left: 0; z-index: 5;
+    cursor: pointer;
+  }
+  .lane-label:hover { background: #fafbfd; }
+  .lane-label .l-name { font-size: 12px; font-weight: 700; }
+  .lane-label .l-stats { font-size: 10px; color: var(--text-muted); }
+  .lane-label .l-bar {
+    height: 3px; background: #e2e8f0; border-radius: 2px;
+    margin-top: 4px; overflow: hidden;
+  }
+  .lane-label .l-bar-fill { height: 100%; border-radius: 2px; transition: width 0.4s; }
+  .lane-label .l-collapse {
+    width: 16px; height: 16px; border-radius: 4px;
+    background: #f1f5f9; display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: var(--text-muted); margin-top: 4px;
+    transition: all 0.15s;
+  }
+  .lane-label:hover .l-collapse { background: var(--accent-light); color: var(--accent); }
+
+  .swim-cell {
+    padding: 8px;
+    border-right: 1px solid var(--border-light);
+    min-height: 80px;
+    transition: background 0.15s;
+  }
+  .swim-cell:last-child { border-right: none; }
+  .swim-cell:hover { background: rgba(79,70,229,0.02); }
+  .swim-cell.empty-cell {
+    display: flex; align-items: center; justify-content: center;
+  }
+  .swim-cell .empty-dot {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: #f1f5f9;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: var(--text-muted);
+  }
+
+  /* Swimlane cards with visual weight */
+  .s-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 6px;
+    cursor: grab;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .s-card:hover {
+    border-color: var(--accent);
+    box-shadow: 0 2px 8px rgba(79,70,229,0.1);
+    transform: translateY(-1px);
+  }
+  .s-card:active { transform: scale(0.98); }
+
+  /* Visual weight variants */
+  .s-card.weight-urgent {
+    border-left: 3px solid var(--red);
+    background: var(--red-bg);
+  }
+  .s-card.weight-high {
+    border-left: 3px solid var(--orange);
+  }
+  .s-card.weight-normal {
+    /* default */
+  }
+  .s-card.weight-low {
+    opacity: 0.7;
+    border-style: dashed;
+  }
+  .s-card.weight-done {
+    opacity: 0.55;
+    background: #fafbfc;
+  }
+
+  .s-card h4 { font-size: 12px; font-weight: 600; margin-bottom: 2px; line-height: 1.4; }
+  .s-card p { font-size: 11px; color: var(--text-muted); line-height: 1.3; }
+  .s-card .badges { display: flex; gap: 3px; flex-wrap: wrap; margin-bottom: 5px; }
+  .s-card .b {
+    font-size: 9px; padding: 1px 6px; border-radius: 4px; font-weight: 600;
+  }
+  .s-card.child-card {
+    margin-left: 14px;
+    border-left: 2px solid #c7d2fe;
+  }
+  .s-card .tags { display: flex; gap: 3px; margin-top: 5px; }
+  .s-card .tag {
+    font-size: 9px; padding: 1px 5px; border-radius: 3px;
+    background: var(--accent-light); color: var(--accent);
+  }
+  .s-card .progress {
+    height: 3px; background: #e2e8f0; border-radius: 2px;
+    margin-top: 6px; overflow: hidden;
+  }
+  .s-card .progress .fill { height: 100%; border-radius: 2px; }
+  .s-card .progress-text { font-size: 9px; color: var(--text-muted); margin-top: 2px; }
+  .s-card .due-line {
+    font-size: 10px; margin-top: 4px;
+    display: flex; align-items: center; gap: 3px;
+  }
+  .s-card .due-line.overdue { color: var(--red); font-weight: 700; }
+  .s-card .due-line.soon { color: var(--orange); }
+  .s-card .due-line.normal { color: var(--text-muted); }
+
+  /* Lane color themes */
+  .lane-label.theme-work { border-left: 4px solid var(--blue); }
+  .lane-label.theme-study { border-left: 4px solid var(--purple); }
+  .lane-label.theme-life { border-left: 4px solid var(--teal); }
+  .lane-label.theme-project { border-left: 4px solid var(--orange); }
+  .lane-label.theme-none { border-left: 4px solid #cbd5e1; }
+
+  /* Lane row backgrounds (subtle) */
+  .swim-lane.lane-work .swim-cell { background: rgba(59,130,246,0.015); }
+  .swim-lane.lane-study .swim-cell { background: rgba(168,85,247,0.015); }
+  .swim-lane.lane-life .swim-cell { background: rgba(20,184,166,0.015); }
+  .swim-lane.lane-project .swim-cell { background: rgba(249,115,22,0.015); }
+
+  /* ====== TOAST DEMO ====== */
+  .toast-demo {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    z-index: 100;
+    display: flex; flex-direction: column; gap: 8px;
+    align-items: flex-end;
+  }
+  .toast {
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex; align-items: center; gap: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    animation: toastIn 0.3s ease-out;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .toast:hover { opacity: 0.9; }
+  .toast.success { background: #065f46; color: white; }
+  .toast.info { background: var(--accent); color: white; }
+  .toast.warn { background: #92400e; color: white; }
+  @keyframes toastIn {
+    from { transform: translateX(100px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  /* ====== SKELETON DEMO ====== */
+  .skeleton-demo {
+    padding: 20px;
+    background: white;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    margin-top: 16px;
+  }
+  .skel-row {
+    display: flex; gap: 12px; margin-bottom: 12px;
+  }
+  .skel-col {
+    flex: 1; display: flex; flex-direction: column; gap: 8px;
+  }
+  .skel-header {
+    height: 16px; width: 60%; border-radius: 4px;
+    background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+  .skel-card {
+    height: 60px; border-radius: 8px;
+    background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+  .skel-card:nth-child(2) { animation-delay: 0.1s; }
+  .skel-card:nth-child(3) { animation-delay: 0.2s; }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* ====== IMPLEMENTATION NOTES ====== */
+  .impl-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+  }
+  .impl-card {
+    padding: 18px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: white;
+  }
+  .impl-card .ic-head {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+  }
+  .impl-card .ic-step {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: white;
+  }
+  .impl-card .ic-title { font-size: 14px; font-weight: 700; }
+  .impl-card .ic-body { font-size: 12px; color: var(--text-sec); }
+  .impl-card code {
+    background: #f1f5f9; padding: 1px 5px; border-radius: 4px;
+    font-size: 11px; color: var(--accent);
+  }
+
+  /* ====== ARCHITECTURE DIAGRAM ====== */
+  .arch-diagram {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 16px;
+  }
+  .arch-layers {
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .arch-layer {
+    border: 2px solid; border-radius: 12px; padding: 14px 18px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .arch-layer .al-label {
+    flex-shrink: 0; min-width: 100px;
+    font-size: 12px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .arch-layer .al-items {
+    display: flex; gap: 8px; flex-wrap: wrap; flex: 1;
+  }
+  .arch-layer .al-item {
+    padding: 5px 12px; border-radius: 6px;
+    font-size: 11px; font-weight: 600;
+    background: white; border: 1px solid var(--border);
+  }
+  .arch-layer.layer-ui { border-color: var(--blue); }
+  .arch-layer.layer-ui .al-label { color: var(--blue); }
+  .arch-layer.layer-data { border-color: var(--green); }
+  .arch-layer.layer-data .al-label { color: var(--green); }
+  .arch-layer.layer-ux { border-color: var(--purple); }
+  .arch-layer.layer-ux .al-label { color: var(--purple); }
+  .arch-layer.layer-mobile { border-color: var(--orange); }
+  .arch-layer.layer-mobile .al-label { color: var(--orange); }
+
+  .arch-arrow {
+    text-align: center; font-size: 18px; color: var(--text-muted);
+    padding: 4px 0;
+  }
+
+  /* Footer */
+  .page-footer {
+    text-align: center; padding: 32px;
+    font-size: 12px; color: var(--text-muted);
+    border-top: 1px solid var(--border);
+    margin-top: 40px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ====== HEADER ====== -->
+<div class="page-header">
+  <h1>Oner 超级看板 — 合并设计方案</h1>
+  <p class="sub">泳道看板 + 今日焦点 + 卡片视觉权重 + 乐观UI + Toast通知 + 色彩分区 = 一体化重构</p>
+  <div class="merge-tags">
+    <span class="merge-tag">核心：泳道泳道看板</span>
+    <span class="merge-tag">+ 创意2 今日工作台</span>
+    <span class="merge-tag">+ 创意9 卡片视觉权重</span>
+    <span class="merge-tag">+ 创意7 乐观UI/骨架屏</span>
+    <span class="merge-tag">+ 创意17 Toast通知</span>
+    <span class="merge-tag">+ 创意18 色彩分区</span>
+  </div>
+</div>
+
+<!-- ====== SECTION 1: MERGE ANALYSIS ====== -->
+<div class="section">
+  <div class="sec-title"><span class="num">1</span> 合并矩阵：哪些方案和泳道天然互补</div>
+  <p class="sec-desc">从12个保留方案中筛选与泳道看板有结构重叠的方案，分为「核心合并」「增强合并」「锦上添花」三层。</p>
+
+  <div class="merge-matrix">
+    <!-- Core merges -->
+    <div class="merge-item" style="border-left-color: var(--red);">
+      <div class="head">
+        <span class="badge" style="background:var(--red-bg);color:var(--red);">核心合并</span>
+        <span class="name">创意2: 今日焦点</span>
+      </div>
+      <p>首页和看板共享「今日数据源」。泳道看板顶部增加"今日概览条"，展示今日到期+高优先+AI推荐——不再需要切到首页才知道今天该干什么。</p>
+      <div class="how">→ 泳道顶部 TodayStrip 组件</div>
+    </div>
+    <div class="merge-item" style="border-left-color: var(--red);">
+      <div class="head">
+        <span class="badge" style="background:var(--red-bg);color:var(--red);">核心合并</span>
+        <span class="name">创意9: 卡片视觉权重</span>
+      </div>
+      <p>泳道内同一分类的卡片通过边框颜色、背景色、尺寸差异区分重要性。紧急=红色左边框+浅红底，高优先=橙色左边框，普通=默认样式，已完成=半透明。</p>
+      <div class="how">→ 泳道卡片 4 种权重等级</div>
+    </div>
+    <div class="merge-item" style="border-left-color: var(--red);">
+      <div class="head">
+        <span class="badge" style="background:var(--red-bg);color:var(--red);">核心合并</span>
+        <span class="name">创意7: 乐观UI + 骨架屏</span>
+      </div>
+      <p>泳道拖拽（改状态+改分类）必须即时反馈。数据加载时显示骨架屏而非全屏spinner，泳道框架+空卡片占位先行出现。</p>
+      <div class="how">→ useOptimistic hook + Skeleton 组件</div>
+    </div>
+
+    <!-- Enhancement merges -->
+    <div class="merge-item" style="border-left-color: var(--orange);">
+      <div class="head">
+        <span class="badge" style="background:var(--orange-bg);color:var(--orange);">增强合并</span>
+        <span class="name">创意17: Toast 通知</span>
+      </div>
+      <p>替代所有 window.confirm()。拖拽到泳道新行后弹 Toast "已移到「学习」"；拖拽改状态后弹 "状态已更新"；操作失败弹 "网络异常，已回滚"。</p>
+      <div class="how">→ useToast hook + Toast 组件</div>
+    </div>
+    <div class="merge-item" style="border-left-color: var(--orange);">
+      <div class="head">
+        <span class="badge" style="background:var(--orange-bg);color:var(--orange);">增强合并</span>
+        <span class="name">创意18: 功能色彩分区</span>
+      </div>
+      <p>每个泳道行拥有专属色系——工作蓝、学习紫、生活绿、项目橙。行背景微妙着色，卡片边框取色于行，建立视觉一致性和空间感。</p>
+      <div class="how">→ lane 级 CSS 变量 + 主题色注入</div>
+    </div>
+    <div class="merge-item" style="border-left-color: var(--orange);">
+      <div class="head">
+        <span class="badge" style="background:var(--orange-bg);color:var(--orange);">增强合并</span>
+        <span class="name">创意1: Command Bar</span>
+      </div>
+      <p>看板的 Toolbar 从双行简化为单行 Command Bar。分类筛选移入泳道标签区（点击泳道标签筛选），状态筛选由列头天然承担，顶部只保留搜索+操作按钮。</p>
+      <div class="how">→ CommandBar 替代 Toolbar</div>
+    </div>
+
+    <!-- Nice-to-haves -->
+    <div class="merge-item" style="border-left-color: var(--blue);">
+      <div class="head">
+        <span class="badge" style="background:var(--blue-bg);color:var(--blue);">锦上添花</span>
+        <span class="name">创意19: 移动端适配</span>
+      </div>
+      <p>移动端保持 SwipeStatusTabs 默认视图（列模式），横屏/平板切泳道模式。或通过「左滑切换分类泳道」手势模拟。</p>
+      <div class="how">→ 响应式切换 + 手势引擎</div>
+    </div>
+    <div class="merge-item" style="border-left-color: var(--blue);">
+      <div class="head">
+        <span class="badge" style="background:var(--blue-bg);color:var(--blue);">锦上添花</span>
+        <span class="name">看板原有优化（§10.2）</span>
+      </div>
+      <p>原报告中看板章节的建议也融入：卡片增加进度条/截止日期/子任务计数、列头计数动画、"今日筛选"开关、拖拽时目标格高亮+虚线边框。</p>
+      <div class="how">→ 直接在泳道卡片中实现</div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== SECTION 2: LIVE DEMO ====== -->
+<div class="section">
+  <div class="sec-title"><span class="num">2</span> 合并效果预览（模拟数据）</div>
+  <p class="sec-desc">以下是合并后的超级看板完整效果。从上到下：Command Bar → 看板工具栏 → 今日概览条 → 泳道矩阵。</p>
+
+  <div class="demo-wrapper">
+    <!-- Command Bar -->
+    <div class="cmd-bar">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+        </svg>
+        Oner
+      </div>
+      <span class="breadcrumb">/ 看板</span>
+      <div class="search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        搜索笔记、命令、创建...
+        <kbd>⌘K</kbd>
+      </div>
+      <div class="actions">
+        <div class="act-btn" title="新建笔记">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </div>
+        <div class="act-btn" title="暗色模式">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </div>
+        <div class="act-btn" title="设置">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Board Toolbar -->
+    <div class="board-toolbar">
+      <div class="title-area">
+        <h2>看板</h2>
+      </div>
+      <div class="view-switch">
+        <button class="v-btn active">泳道</button>
+        <button class="v-btn">列视图</button>
+        <button class="v-btn">列表</button>
+      </div>
+      <div class="spacer"></div>
+      <button class="filter-pill today active" onclick="this.classList.toggle('active')">
+        📅 今日到期 (3)
+      </button>
+      <button class="filter-pill">显示归档</button>
+      <span class="sync-info">已同步 · 10:32</span>
+    </div>
+
+    <!-- ====== TODAY FOCUS STRIP ====== -->
+    <div class="today-strip">
+      <div class="strip-label">
+        <span class="icon">🎯</span>
+        <span class="text">今日</span>
+        <span class="count">3</span>
+      </div>
+
+      <div class="strip-card urgent">
+        <div class="sc-badges">
+          <span class="sc-badge" style="background:var(--red-bg);color:var(--red);">高优先</span>
+          <span class="sc-badge" style="background:var(--blue-bg);color:var(--blue);">工作</span>
+        </div>
+        <h4>修复登录页面的 XSS 漏洞</h4>
+        <p>安全审计发现的问题，紧急处理</p>
+        <span class="due-tag overdue">⚠️ 已过期 2天</span>
+      </div>
+
+      <div class="strip-card due-soon">
+        <div class="sc-badges">
+          <span class="sc-badge" style="background:var(--purple-bg);color:var(--purple);">学习</span>
+        </div>
+        <h4>CS 229 第5讲作业</h4>
+        <p>监督学习部分，截止今天</p>
+        <span class="due-tag today-due">📅 今日截止</span>
+      </div>
+
+      <div class="strip-card due-soon">
+        <div class="sc-badges">
+          <span class="sc-badge" style="background:var(--teal-bg);color:var(--teal);">生活</span>
+        </div>
+        <h4>预约牙科检查</h4>
+        <p>上次检查超过半年了</p>
+        <span class="due-tag overdue">⚠️ 已过期</span>
+      </div>
+    </div>
+
+    <!-- ====== SWIMLANE BOARD ====== -->
+    <div class="swim-board">
+      <!-- Column Headers -->
+      <div class="swim-hdr">
+        <div class="swim-hdr-cell corner">分类 \ 状态</div>
+        <div class="swim-hdr-cell">
+          <span class="dot" style="background:var(--accent)"></span>
+          备忘 <span class="cnt">6</span>
+        </div>
+        <div class="swim-hdr-cell">
+          <span class="dot" style="background:var(--yellow)"></span>
+          待办 <span class="cnt">5</span>
+        </div>
+        <div class="swim-hdr-cell">
+          <span class="dot" style="background:var(--orange)"></span>
+          进行中 <span class="cnt">3</span>
+        </div>
+        <div class="swim-hdr-cell">
+          <span class="dot" style="background:var(--green)"></span>
+          已完成 <span class="cnt">3</span>
+        </div>
+      </div>
+
+      <!-- Lane: 工作 (blue theme) -->
+      <div class="swim-lane lane-work">
+        <div class="lane-label theme-work">
+          <span class="l-name" style="color:var(--blue);">💼 工作</span>
+          <span class="l-stats">7 项 · 1 完成</span>
+          <div class="l-bar"><div class="l-bar-fill" style="width:14%;background:var(--blue);"></div></div>
+          <div class="l-collapse">▾</div>
+        </div>
+        <div class="swim-cell">
+          <div class="s-card weight-urgent">
+            <div class="badges">
+              <span class="b" style="background:var(--red-bg);color:var(--red);">🔴 高优先</span>
+            </div>
+            <h4>修复登录页面的 XSS 漏洞</h4>
+            <p>安全审计发现的紧急问题</p>
+            <div class="due-line overdue">⚠️ 已过期 2天</div>
+            <div class="tags"><span class="tag">安全</span></div>
+          </div>
+          <div class="s-card weight-normal">
+            <h4>Q3 产品规划要点</h4>
+            <p>和团队讨论 AI 功能优先级</p>
+            <div class="tags"><span class="tag">产品</span><span class="tag">规划</span></div>
+          </div>
+        </div>
+        <div class="swim-cell">
+          <div class="s-card weight-high">
+            <div class="badges">
+              <span class="b" style="background:var(--orange-bg);color:var(--orange);">🟠 中优先</span>
+            </div>
+            <h4>完成看板泳道功能</h4>
+            <p>支持按分类分行显示</p>
+            <div class="tags"><span class="tag">feature</span></div>
+          </div>
+          <div class="s-card weight-normal">
+            <h4>API 接口文档更新</h4>
+            <div class="progress"><div class="fill" style="width:50%;background:var(--blue);"></div></div>
+            <div class="progress-text">1/2 子任务</div>
+          </div>
+          <div class="s-card child-card">
+            <h4>补充分类 API 文档</h4>
+          </div>
+        </div>
+        <div class="swim-cell">
+          <div class="s-card weight-high">
+            <div class="badges">
+              <span class="b" style="background:var(--orange-bg);color:var(--orange);">🟠 中优先</span>
+            </div>
+            <h4>Oner UI 优化方案</h4>
+            <p>12个概念图已完成，等待评审</p>
+            <div class="progress"><div class="fill" style="width:75%;background:var(--blue);"></div></div>
+            <div class="progress-text">3/4 完成</div>
+          </div>
+        </div>
+        <div class="swim-cell">
+          <div class="s-card weight-done">
+            <h4><s>用户反馈分析报告</s></h4>
+            <p>6月满意度数据已整理</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lane: 学习 (purple theme) -->
+      <div class="swim-lane lane-study">
+        <div class="lane-label theme-study">
+          <span class="l-name" style="color:var(--purple);">📚 学习</span>
+          <span class="l-stats">4 项 · 1 完成</span>
+          <div class="l-bar"><div class="l-bar-fill" style="width:25%;background:var(--purple);"></div></div>
+          <div class="l-collapse">▾</div>
+        </div>
+        <div class="swim-cell">
+          <div class="s-card weight-normal">
+            <h4>Rust 学习笔记</h4>
+            <p>所有权系统和借用检查器</p>
+            <div class="tags"><span class="tag">Rust</span></div>
+          </div>
+          <div class="s-card weight-normal">
+            <h4>论文：Attention Is All You Need</h4>
+            <p>Transformer 架构核心思想</p>
+          </div>
+        </div>
+        <div class="swim-cell">
+          <div class="s-card weight-urgent">
+            <div class="badges">
+              <span class="b" style="background:var(--red-bg);color:var(--red);">🔴 今日截止</span>
+            </div>
+            <h4>CS 229 第5讲作业</h4>
+            <p>监督学习部分</p>
+            <div class="due-line overdue">⚠️ 今日截止</div>
+          </div>
+        </div>
+        <div class="swim-cell">
+          <div class="s-card weight-normal">
+            <h4>阅读《设计心理学》</h4>
+            <p>第三章：知识在头脑中的组织</p>
+          </div>
+        </div>
+        <div class="swim-cell">
+          <div class="s-card weight-done">
+            <h4><s>TypeScript 高级类型总结</s></h4>
+            <p>条件类型、映射类型</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lane: 生活 (teal theme) -->
+      <div class="swim-lane lane-life">
+        <div class="lane-label theme-life">
+          <span class="l-name" style="color:var(--teal);">🏠 生活</span>
+          <span class="l-stats">3 项 · 1 完成</span>
+          <div class="l-bar"><div class="l-bar-fill" style="width:33%;background:var(--teal);"></div></div>
+          <div class="l-collapse">▾</div>
+        </div>
+        <div class="swim-cell">
+          <div class="s-card weight-normal">
+            <h4>周末露营装备清单</h4>
+            <p>帐篷、睡袋、防潮垫...</p>
+          </div>
+        </div>
+        <div class="swim-cell">
+          <div class="s-card weight-urgent">
+            <div class="badges">
+              <span class="b" style="background:var(--red-bg);color:var(--red);">🔴 已过期</span>
+            </div>
+            <h4>预约牙科检查</h4>
+            <p>上次检查超过半年</p>
+            <div class="due-line overdue">⚠️ 已过期 5天</div>
+          </div>
+        </div>
+        <div class="swim-cell empty-cell">
+          <div class="empty-dot">✓</div>
+        </div>
+        <div class="swim-cell">
+          <div class="s-card weight-done">
+            <h4><s>续签租房合同</s></h4>
+            <p>已和房东确认</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lane: 项目 (orange theme) -->
+      <div class="swim-lane lane-project">
+        <div class="lane-label theme-project">
+          <span class="l-name" style="color:var(--orange);">🚀 项目</span>
+          <span class="l-stats">1 项 · 0 完成</span>
+          <div class="l-bar"><div class="l-bar-fill" style="width:0%;background:var(--orange);"></div></div>
+          <div class="l-collapse">▾</div>
+        </div>
+        <div class="swim-cell empty-cell"><div class="empty-dot">—</div></div>
+        <div class="swim-cell empty-cell"><div class="empty-dot">—</div></div>
+        <div class="swim-cell">
+          <div class="s-card weight-normal">
+            <h4>个人博客重构</h4>
+            <p>Hexo → Astro 迁移中</p>
+            <div class="tags"><span class="tag">side-project</span></div>
+          </div>
+        </div>
+        <div class="swim-cell empty-cell"><div class="empty-dot">—</div></div>
+      </div>
+
+      <!-- Lane: 未分类 (gray theme) -->
+      <div class="swim-lane">
+        <div class="lane-label theme-none">
+          <span class="l-name" style="color:var(--text-muted);">📌 未分类</span>
+          <span class="l-stats">1 项 · 0 完成</span>
+          <div class="l-bar"><div class="l-bar-fill" style="width:0%;background:#94a3b8;"></div></div>
+          <div class="l-collapse">▾</div>
+        </div>
+        <div class="swim-cell">
+          <div class="s-card weight-low" style="border-left:3px dashed #94a3b8;">
+            <h4>随机想法：自动化日报</h4>
+            <p>用 AI 自动生成日报</p>
+            <div style="font-size:10px;color:var(--accent);margin-top:5px;cursor:pointer;font-weight:600;">+ 添加分类</div>
+          </div>
+        </div>
+        <div class="swim-cell empty-cell"><div class="empty-dot">—</div></div>
+        <div class="swim-cell empty-cell"><div class="empty-dot">—</div></div>
+        <div class="swim-cell empty-cell"><div class="empty-dot">—</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== SECTION 3: SKELETON + TOAST ====== -->
+<div class="section">
+  <div class="sec-title"><span class="num">3</span> 乐观UI + 骨架屏 + Toast 效果</div>
+  <p class="sec-desc">创意7和创意17在看板中的具体表现。加载时显示骨架，拖拽时即时更新，操作后Toast反馈。</p>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+    <!-- Skeleton -->
+    <div class="card" style="margin-bottom:0;">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">🦴 骨架屏加载（替代全屏 Spinner）</h3>
+      <p style="font-size:12px;color:var(--text-sec);margin-bottom:12px;">看板数据加载时，先显示列框架+卡片占位。数据到达后 fade-in 填充。用户感知等待时间减少 50-60%。</p>
+      <div class="skeleton-demo">
+        <div class="skel-row">
+          <div class="skel-col">
+            <div class="skel-header"></div>
+            <div class="skel-card"></div>
+            <div class="skel-card"></div>
+          </div>
+          <div class="skel-col">
+            <div class="skel-header"></div>
+            <div class="skel-card"></div>
+            <div class="skel-card"></div>
+            <div class="skel-card"></div>
+          </div>
+          <div class="skel-col">
+            <div class="skel-header"></div>
+            <div class="skel-card"></div>
+          </div>
+          <div class="skel-col">
+            <div class="skel-header"></div>
+            <div class="skel-card"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="card" style="margin-bottom:0;">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">🔔 Toast 通知示例</h3>
+      <p style="font-size:12px;color:var(--text-sec);margin-bottom:12px;">替代所有 window.confirm() 和 console.error。拖拽操作后即时反馈，失败时提供回滚+重试选项。点击体验：</p>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button onclick="showToast('success', '✓ 已移到「学习」分类')" style="padding:10px 16px;border:1px solid var(--green);background:var(--green-bg);color:#15803d;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;text-align:left;">
+          拖拽改分类 → 「已移到「学习」」
+        </button>
+        <button onclick="showToast('info', '→ 状态已更新为「进行中」')" style="padding:10px 16px;border:1px solid var(--accent);background:var(--accent-light);color:var(--accent);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;text-align:left;">
+          拖拽改状态 → 「状态已更新为进行中」
+        </button>
+        <button onclick="showToast('warn', '⚠ 网络异常，操作已回滚 · 重试')" style="padding:10px 16px;border:1px solid var(--orange);background:var(--orange-bg);color:#92400e;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;text-align:left;">
+          操作失败 → 「网络异常，已回滚 · 重试」
+        </button>
+        <button onclick="showToast('success', '🗑 已删除 · 撤销')" style="padding:10px 16px;border:1px solid var(--green);background:var(--green-bg);color:#15803d;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;text-align:left;">
+          删除操作 → 「已删除 · 撤销」
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== SECTION 4: ARCHITECTURE ====== -->
+<div class="section">
+  <div class="sec-title"><span class="num">4</span> 合并后的组件架构</div>
+  <p class="sec-desc">超级看板 = 6个模块协同。数据层零改动，全部是前端渲染层的增强。</p>
+
+  <div class="arch-diagram">
+    <div class="arch-layers">
+      <div class="arch-layer layer-ui">
+        <div class="al-label">UI 层</div>
+        <div class="al-items">
+          <div class="al-item" style="background:var(--blue-bg);">CommandBar</div>
+          <div class="al-item" style="background:var(--blue-bg);">BoardToolbar</div>
+          <div class="al-item" style="background:var(--yellow-bg);">TodayStrip 🆕</div>
+          <div class="al-item" style="background:var(--blue-bg);">SwimlaneBoard 🆕</div>
+          <div class="al-item" style="background:var(--blue-bg);">KanbanColumn (保留)</div>
+        </div>
+      </div>
+      <div class="arch-arrow">↕ props + callbacks</div>
+      <div class="arch-layer layer-ux">
+        <div class="al-label">UX 层</div>
+        <div class="al-items">
+          <div class="al-item" style="background:var(--purple-bg);">useOptimistic 🆕</div>
+          <div class="al-item" style="background:var(--purple-bg);">useToast 🆕</div>
+          <div class="al-item" style="background:var(--purple-bg);">Skeleton 🆕</div>
+          <div class="al-item" style="background:var(--purple-bg);">ConfirmDialog 🆕</div>
+          <div class="al-item" style="background:var(--purple-bg);">微动画 CSS 🆕</div>
+        </div>
+      </div>
+      <div class="arch-arrow">↕ API calls</div>
+      <div class="arch-layer layer-data">
+        <div class="al-label">数据层</div>
+        <div class="al-items">
+          <div class="al-item">api.notes.list()</div>
+          <div class="al-item">api.notes.update()</div>
+          <div class="al-item">api.categories.list()</div>
+          <div class="al-item" style="background:var(--green-bg);">零改动 ✓</div>
+        </div>
+      </div>
+      <div class="arch-arrow">↕ 响应式断点</div>
+      <div class="arch-layer layer-mobile">
+        <div class="al-label">移动端</div>
+        <div class="al-items">
+          <div class="al-item" style="background:var(--orange-bg);">SwipeStatusTabs (保留)</div>
+          <div class="al-item" style="background:var(--orange-bg);">横屏→泳道模式 🆕</div>
+          <div class="al-item" style="background:var(--orange-bg);">手势引擎 🆕</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== SECTION 5: IMPLEMENTATION ORDER ====== -->
+<div class="section">
+  <div class="sec-title"><span class="num">5</span> 建议实施顺序</div>
+  <p class="sec-desc">按依赖关系和优先级排序，分 4 步落地。每步可独立上线验证。</p>
+
+  <div class="impl-grid">
+    <div class="impl-card">
+      <div class="ic-head">
+        <div class="ic-step" style="background:var(--green);">1</div>
+        <div class="ic-title">基础设施（第1周）</div>
+      </div>
+      <div class="ic-body">
+        先建 UX 基础设施，不依赖看板改动：<br><br>
+        <code>useToast</code> hook + <code>Toast</code> 组件<br>
+        <code>Skeleton</code> 骨架屏组件（Card/Board 变体）<br>
+        <code>useOptimistic</code> 乐观更新 hook<br>
+        <code>ConfirmDialog</code> 替代 window.confirm<br>
+        全局微动画 CSS 变量<br><br>
+        <strong style="color:var(--green);">✓ 这一步对全产品都有益，不仅看板。</strong>
+      </div>
+    </div>
+    <div class="impl-card">
+      <div class="ic-head">
+        <div class="ic-step" style="background:var(--blue);">2</div>
+        <div class="ic-title">泳道核心组件（第2周）</div>
+      </div>
+      <div class="ic-body">
+        新建 <code>SwimlaneBoard</code> 组件：<br><br>
+        CSS Grid 布局：<code>130px repeat(4, 1fr)</code><br>
+        <code>SwimLaneCell</code> = Droppable 区域<br>
+        复用 <code>SortableNoteCard</code>（加 visual weight 变体）<br>
+        <code>groupedByLane</code> useMemo 计算<br>
+        拖拽检测：同行=改状态，跨行=改分类<br>
+        <code>viewMode</code> toggle 切换泳道/列视图<br><br>
+        <strong style="color:var(--blue);">✓ 现有列视图完全不受影响。</strong>
+      </div>
+    </div>
+    <div class="impl-card">
+      <div class="ic-head">
+        <div class="ic-step" style="background:var(--orange);">3</div>
+        <div class="ic-title">今日概览条（第3周）</div>
+      </div>
+      <div class="ic-body">
+        新建 <code>TodayStrip</code> 组件：<br><br>
+        数据源：从 notes 中筛选今日到期 + 高优先 + 已过期<br>
+        横向滚动卡片，点击跳转到泳道对应位置<br>
+        与首页 TodayFocus 共享筛选逻辑<br>
+        "今日到期" filter pill 联动<br><br>
+        <strong style="color:var(--orange);">✓ 这一步同时增强首页和看板。</strong>
+      </div>
+    </div>
+    <div class="impl-card">
+      <div class="ic-head">
+        <div class="ic-step" style="background:var(--purple);">4</div>
+        <div class="ic-title">打磨 + 移动端（第4周）</div>
+      </div>
+      <div class="ic-body">
+        视觉和交互细节打磨：<br><br>
+        泳道行主题色注入（CSS 变量）<br>
+        泳道折叠/展开动画<br>
+        泳道排序（拖拽泳道标签）<br>
+        移动端横屏检测 → 自动切泳道<br>
+        骨架屏在看板加载中的应用<br>
+        全局 SVG 图标替换（创意3）<br><br>
+        <strong style="color:var(--purple);">✓ 锦上添花，可在后续迭代中渐进完成。</strong>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
+<div class="page-footer">
+  Oner 超级看板设计方案 — 泳道 × 今日焦点 × 视觉权重 × 乐观UI × Toast × 色彩分区<br>
+  合并自产品脑暴报告中的创意 #2 #7 #9 #17 #18 #1 + 看板原有优化建议
+</div>
+
+<!-- Toast container -->
+<div id="toast-container" class="toast-demo"></div>
+
+<script>
+function showToast(type, msg) {
+  var container = document.getElementById('toast-container');
+  var toast = document.createElement('div');
+  toast.className = 'toast ' + type;
+  toast.textContent = msg;
+  toast.onclick = function() { toast.remove(); };
+  container.appendChild(toast);
+  setTimeout(function() {
+    toast.style.opacity = '0';
+    setTimeout(function() { toast.remove(); }, 300);
+  }, 3000);
+}
+
+// View switch buttons
+document.querySelectorAll('.v-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.v-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+  });
+});
+</script>
+
+</body>
+</html>

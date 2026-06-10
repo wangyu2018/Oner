@@ -37,6 +37,16 @@ export default function NoteCard({ note, onClick, onDelete, onTagClick }) {
 
   const dueDateStatus = getDueDateStatus();
 
+  // 颜色指示条（紧急红/进行中靛蓝/已完成翠绿）
+  const getIndicatorColor = () => {
+    if (note.priority === 'urgent') return 'bg-red-500';
+    if (note.status === 'in_progress') return 'bg-indigo-500';
+    if (note.status === 'done') return 'bg-emerald-500';
+    return null;
+  };
+  const indicatorColor = getIndicatorColor();
+  const isUrgent = note.priority === 'urgent';
+
   const formatDueDate = () => {
     if (!note.due_date) return null;
     const date = new Date(note.due_date);
@@ -51,10 +61,17 @@ export default function NoteCard({ note, onClick, onDelete, onTagClick }) {
   return (
     <div
       onClick={() => onClick(note)}
-      className="group relative p-4 bg-white dark:bg-gray-900 rounded-xl border
+      className={`group relative p-4 bg-white dark:bg-gray-900 rounded-xl border
         border-gray-200 dark:border-gray-800 hover:border-accent dark:hover:border-accent
-        hover:shadow-md transition-all cursor-pointer"
+        hover:shadow-md transition-all cursor-pointer
+        ${indicatorColor ? 'pl-5' : ''}
+        ${isUrgent ? 'animate-subtle-pulse' : ''}`}
     >
+      {/* 左侧颜色指示条 */}
+      {indicatorColor && (
+        <div className={`absolute left-0 top-2 bottom-2 w-1 rounded-r-full ${indicatorColor}`} />
+      )}
+
       <button
         onClick={handleDelete}
         className="absolute top-3 right-3 p-2 rounded-lg
@@ -111,7 +128,7 @@ export default function NoteCard({ note, onClick, onDelete, onTagClick }) {
         <div className="flex items-center gap-2 mb-3">
           <div className="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
             <div
-              className="h-full bg-accent rounded-full transition-all"
+              className="h-full rounded-full transition-all bg-gradient-to-r from-accent to-accent-400"
               style={{ width: `${(note.subtask_done / note.subtask_total) * 100}%` }}
             />
           </div>

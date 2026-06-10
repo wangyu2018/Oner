@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import usePasswords from '../hooks/usePasswords';
 import { api } from '../utils/api';
+import CommandBar from '../components/CommandBar';
 import CategoryManager from '../components/CategoryManager';
 
 function CopyButton({ text, label }) {
@@ -255,85 +256,76 @@ export default function PasswordVault() {
   // ======== 正常内容 ========
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate(-1)} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-              <ArrowLeft size={20} className="text-gray-600 dark:text-gray-400" />
-            </button>
-            <Lock size={20} className="text-purple-500" />
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">密码备忘</h1>
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 font-medium">
-              PIN 已认证
-            </span>
-          </div>
+      <CommandBar
+        breadcrumb="密码备忘"
+        showBack={true}
+        rightContent={
           <button
             onClick={() => { setShowForm(true); setEditingId(null); setForm({ title: '', url: '', username: '', password: '', notes: '', category: '' }); }}
             className="inline-flex items-center gap-2 px-3 py-2 bg-accent text-white rounded-lg hover:bg-accent-600 transition-colors text-sm font-medium"
           >
             <Plus size={16} /> 新增
           </button>
-        </div>
+        }
+      />
 
-        {/* 分类标签栏 */}
-        <div className="max-w-4xl mx-auto px-4 pb-2 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+      {/* 分类标签栏 */}
+      <div className="max-w-4xl mx-auto px-4 py-2 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+        <button
+          onClick={() => setActiveCategory(null)}
+          className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+            !activeCategory
+              ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 ring-2 ring-purple-300 dark:ring-purple-700'
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+          }`}
+        >
+          <Lock size={12} />
+          全部PIN
+        </button>
+        {categories.map((cat) => (
           <button
-            onClick={() => setActiveCategory(null)}
+            key={cat.id}
+            onClick={() => setActiveCategory(cat.name)}
             className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
-              !activeCategory
-                ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 ring-2 ring-purple-300 dark:ring-purple-700'
+              activeCategory === cat.name
+                ? 'text-white ring-2 ring-offset-1 dark:ring-offset-gray-950'
                 : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
+            style={activeCategory === cat.name ? { backgroundColor: cat.color } : {}}
           >
-            <Lock size={12} />
-            全部PIN
+            <Tag size={12} />
+            {cat.name}
+            {activeCategory === cat.name && (
+              <span
+                className="ml-0.5 opacity-70 hover:opacity-100"
+                onClick={(e) => { e.stopPropagation(); setActiveCategory(null); }}
+              >×</span>
+            )}
           </button>
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setActiveCategory(cat.name)}
-              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
-                activeCategory === cat.name
-                  ? 'text-white ring-2 ring-offset-1 dark:ring-offset-gray-950'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-              }`}
-              style={activeCategory === cat.name ? { backgroundColor: cat.color } : {}}
-            >
-              <Tag size={12} />
-              {cat.name}
-              {activeCategory === cat.name && (
-                <span
-                  className="ml-0.5 opacity-70 hover:opacity-100"
-                  onClick={(e) => { e.stopPropagation(); setActiveCategory(null); }}
-                >×</span>
-              )}
-            </button>
-          ))}
-          <button
-            onClick={() => setShowCategoryManager(true)}
-            className="inline-flex items-center gap-1 px-2 py-1.5 rounded-full text-xs font-medium
-              bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400
-              hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors shrink-0"
-            title="管理分类"
-          >
-            <Settings2 size={12} />
-            分类
-          </button>
-        </div>
+        ))}
+        <button
+          onClick={() => setShowCategoryManager(true)}
+          className="inline-flex items-center gap-1 px-2 py-1.5 rounded-full text-xs font-medium
+            bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400
+            hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors shrink-0"
+          title="管理分类"
+        >
+          <Settings2 size={12} />
+          分类
+        </button>
+      </div>
 
-        {/* 搜索 */}
-        <div className="max-w-4xl mx-auto px-4 pb-3">
-          <div className="relative">
-            <SearchIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-              placeholder={activeCategory ? `在「${activeCategory}」中搜索 网址/密码/用户名...` : '搜索 网址/密码/用户名...'}
-              className="w-full pl-9 pr-3 py-2 text-sm bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-accent-500/30"
-            />
-          </div>
+      {/* 搜索 */}
+      <div className="max-w-4xl mx-auto px-4 pb-3">
+        <div className="relative">
+          <SearchIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+            placeholder={activeCategory ? `在「${activeCategory}」中搜索 网址/密码/用户名...` : '搜索 网址/密码/用户名...'}
+            className="w-full pl-9 pr-3 py-2 text-sm bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-accent-500/30"
+          />
         </div>
-      </header>
+      </div>
 
       {/* Content */}
       <main className="max-w-4xl mx-auto px-4 py-6">

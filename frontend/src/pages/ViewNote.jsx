@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Edit2, ArrowLeft } from 'lucide-react';
-import Toolbar from '../components/Toolbar';
+import { Edit2 } from 'lucide-react';
+import CommandBar from '../components/CommandBar';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import TagChip from '../components/TagChip';
 import NoteEditor from '../components/NoteEditor';
@@ -64,17 +64,10 @@ export default function ViewNote() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      <header className="sticky top-0 z-40 bg-white/80 dark:bg-gray-950/80 backdrop-blur-md
-        border-b border-gray-200 dark:border-gray-800">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
-          <button
-            onClick={() => navigate('/')}
-            className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400
-              hover:text-gray-900 dark:hover:text-gray-100"
-          >
-            <ArrowLeft size={18} />
-            返回
-          </button>
+      <CommandBar
+        breadcrumb={title}
+        showBack={true}
+        rightContent={
           <button
             onClick={() => setIsEditing(true)}
             className="inline-flex items-center gap-2 px-3 py-2 bg-accent text-white
@@ -83,8 +76,8 @@ export default function ViewNote() {
             <Edit2 size={16} />
             编辑
           </button>
-        </div>
-      </header>
+        }
+      />
 
       <article className="max-w-3xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">

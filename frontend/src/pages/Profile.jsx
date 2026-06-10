@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Lock, Monitor, LogOut, Save, Trash2, ArrowLeft, Palette, Keyboard, KeyRound, Brain, Eye, EyeOff } from 'lucide-react';
+import { User, Mail, Lock, Monitor, LogOut, Save, Trash2, Palette, Keyboard, KeyRound, Brain, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../utils/api';
 import ThemeCustomizer from '../components/ThemeCustomizer';
+import CommandBar from '../components/CommandBar';
 
 const DEFAULT_SHORTCUTS = {
   commandPalette: { key: 'k', ctrl: true, shift: false, meta: true, label: '打开命令面板' },
@@ -367,18 +368,10 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* 顶部导航 */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center gap-4">
-          <button
-            onClick={() => navigate(-1)}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-          >
-            <ArrowLeft size={20} className="text-gray-600 dark:text-gray-400" />
-          </button>
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">用户中心</h1>
-        </div>
-      </div>
+      <CommandBar
+        breadcrumb="用户中心"
+        showBack={true}
+      />
 
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row gap-8">

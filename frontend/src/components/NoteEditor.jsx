@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { X, Save, Eye } from 'lucide-react';
 import TagChip from './TagChip';
 import MarkdownRenderer from './MarkdownRenderer';
@@ -10,6 +10,7 @@ import RecurrenceSelector from './RecurrenceSelector';
 import CategorySelector from './CategorySelector';
 import FileAttachments from './FileAttachments';
 import AIAssistant from './AIAssistant';
+import FloatingAIToolbar from './FloatingAIToolbar';
 import { api } from '../utils/api';
 import { parseTags } from '../utils/tags';
 import { useAutoSave } from '../hooks/useAutoSave';
@@ -27,6 +28,7 @@ export default function NoteEditor({ note, onSave, onClose }) {
   const [showPreview, setShowPreview] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
+  const textareaRef = useRef(null);
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   const noteId = note?.id || 'new';
@@ -202,14 +204,43 @@ export default function NoteEditor({ note, onSave, onClose }) {
               <MarkdownRenderer content={content} />
             </div>
           ) : (
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="开始写作... 支持 Markdown 语法&#10;&#10;使用 #标签 来添加标签"
-              className="w-full h-full min-h-[300px] bg-transparent outline-none resize-none
-                text-gray-900 dark:text-gray-100 placeholder-gray-400 leading-relaxed"
-              autoFocus
-            />
+            <div className="relative h-full min-h-[300px]">
+              <textarea
+                ref={textareaRef}
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="开始写作... 支持 Markdown 语法&#10;&#10;使用 #标签 来添加标签"
+                className="w-full h-full min-h-[300px] bg-transparent outline-none resize-none
+                  text-gray-900 dark:text-gray-100 placeholder-gray-400 leading-relaxed"
+                autoFocus
+              />
+              <FloatingAIToolbar
+                editorRef={textareaRef}
+                onAction={(action) => {
+                  const el = textareaRef.current;
+                  if (!el) return;
+                  const start = el.selectionStart;
+                  const end = el.selectionEnd;
+                  const selected = content.substring(start, end);
+                  let newContent = content;
+
+                  switch (action) {
+                    case 'bold':
+                      newContent = content.substring(0, start) + '**' + selected + '**' + content.substring(end);
+                      break;
+                    case 'italic':
+                      newContent = content.substring(0, start) + '*' + selected + '*' + content.substring(end);
+                      break;
+                    case 'link':
+                      newContent = content.substring(0, start) + '[' + selected + '](url)' + content.substring(end);
+                      break;
+                    default:
+                      break;
+                  }
+                  setContent(newContent);
+                }}
+              />
+            </div>
           )}
         </div>
 

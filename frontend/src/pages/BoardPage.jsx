@@ -8,7 +8,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { api } from '../utils/api';
-import Toolbar from '../components/Toolbar';
+import CommandBar from '../components/CommandBar';
 import NoteEditor from '../components/NoteEditor';
 import EmptyState from '../components/EmptyState';
 import ReminderOverlay from '../components/ReminderOverlay';
@@ -22,7 +22,7 @@ import { STATUS_CONFIG } from '../components/StatusSelector';
 import { getContentPreview, extractFirstLine } from '../utils/tags';
 import { useCommandPalette } from '../App';
 import {
-  Trash2, Calendar, Archive, RotateCcw,
+  Trash2, Calendar, Archive, RotateCcw, LayoutGrid,
   ListTodo, Plus
 } from 'lucide-react';
 import { useReminderCheck } from '../hooks/useReminderCheck';
@@ -748,21 +748,22 @@ export default function BoardPage({ onVoiceInput }) {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      <Toolbar
-        onCreateNote={handleCreateNote}
-        activeTag={activeTag}
-        onClearTag={handleClearTag}
+      <CommandBar
+        breadcrumb="看板"
+        onOpenPalette={openPalette}
         lastSync={lastSync}
         onRefresh={() => fetchNotes(true)}
         loading={loading}
-        onOpenPalette={openPalette}
-        onQuickCreate={handleQuickCreate}
         onVoiceInput={onVoiceInput}
-        categories={categories}
-        activeCategory={activeCategory}
-        showCategoryPills={true}
-        categoryPills={categories}
-        onCategoryClick={handleCategoryClick}
+        rightContent={
+          <button
+            onClick={() => navigate('/')}
+            className="hidden sm:inline-flex p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors"
+            title="网格视图"
+          >
+            <LayoutGrid size={15} />
+          </button>
+        }
       />
 
       <main className="px-4 py-4">

@@ -1,8 +1,11 @@
 import React, { useState, useCallback } from 'react';
 import { Plus } from 'lucide-react';
-import Toolbar from '../components/Toolbar';
+import CommandBar from '../components/CommandBar';
+import TodayFocus from '../components/TodayFocus';
+import TodayStrip from '../components/TodayStrip';
 import EmptyState from '../components/EmptyState';
 import CardWall from '../components/CardWall';
+import SwimlaneBoard from '../components/SwimlaneBoard';
 import NoteEditor from '../components/NoteEditor';
 import UndoToast from '../components/UndoToast';
 import ReminderOverlay from '../components/ReminderOverlay';
@@ -10,6 +13,7 @@ import SwipeStatusTabs from '../components/SwipeStatusTabs';
 import { useNotes } from '../hooks/useNotes';
 import { useUndoDelete } from '../hooks/useUndoDelete';
 import { useReminderCheck } from '../hooks/useReminderCheck';
+import { useAuthContext } from '../App';
 
 export default function Home({ categories = [], onVoiceInput }) {
   const {
@@ -29,8 +33,12 @@ export default function Home({ categories = [], onVoiceInput }) {
     addNoteToState
   } = useNotes();
 
+  const { user } = useAuthContext();
+
   const [editingNote, setEditingNote] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [viewMode, setViewMode] = useState('wall');
+  const [activeCategory, setActiveCategory] = useState(null);
 
   const handleDeleteSuccess = useCallback(() => {
     // Refresh notes after confirmed delete
@@ -105,6 +113,15 @@ export default function Home({ categories = [], onVoiceInput }) {
     }
   }, [allNotes]);
 
+  // 泳道视图拖拽移动笔记
+  const handleMoveNote = useCallback(async (noteId, { category, status }) => {
+    try {
+      await updateNote(noteId, { category, status });
+    } catch (err) {
+      console.error('Move note error:', err);
+    }
+  }, [updateNote]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -131,32 +148,78 @@ export default function Home({ categories = [], onVoiceInput }) {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      <Toolbar
-        onCreateNote={handleCreateNote}
-        activeTag={activeTag}
-        onClearTag={handleClearTag}
-        activeStatus={activeStatus}
-        onStatusChange={handleStatusChange}
+      <CommandBar
+        breadcrumb="首页"
+        onOpenPalette={() => {}}
         lastSync={lastSync}
         onRefresh={refresh}
         loading={loading}
-        onQuickCreate={handleQuickCreate}
         onVoiceInput={onVoiceInput}
-        categories={categories}
-        activeCategory={null}
       />
 
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        {/* 桌面版: 原有 CardWall 布局 */}
+      <TodayStrip notes={allNotes} onNoteClick={handleNoteClick} />
+
+      <main className="max-w-7xl mx-auto px-4 py-4 space-y-6">
+        {/* 今日焦点模块 */}
+        <TodayFocus
+          username={user?.username}
+          allNotes={allNotes}
+          onNoteClick={handleNoteClick}
+          onCreateNote={handleCreateNote}
+          onVoiceInput={onVoiceInput}
+        />
+
+        {/* 视图切换分界线 */}
+        <div className="flex items-center gap-3 pt-2">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+            全部笔记
+          </h2>
+          <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+          <div className="flex items-center gap-1 p-0.5 rounded-lg bg-gray-100 dark:bg-gray-800">
+            <button
+              onClick={() => setViewMode('wall')}
+              className={`px-3 py-1 text-xs rounded-md font-medium transition-all ${
+                viewMode === 'wall'
+                  ? 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 shadow-xs'
+                  : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
+              }`}
+            >
+              网格
+            </button>
+            <button
+              onClick={() => setViewMode('swimlane')}
+              className={`px-3 py-1 text-xs rounded-md font-medium transition-all ${
+                viewMode === 'swimlane'
+                  ? 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 shadow-xs'
+                  : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
+              }`}
+            >
+              泳道
+            </button>
+          </div>
+        </div>
+
+        {/* 桌面版: 网格 ↔ 泳道切换 */}
         <div className="hidden md:block">
           {notes.length === 0 && !activeTag && !activeStatus ? (
             <EmptyState onCreateNote={handleCreateNote} />
-          ) : (
+          ) : viewMode === 'wall' ? (
             <CardWall
               notes={notes}
               onNoteClick={handleNoteClick}
               onDelete={handleDelete}
               onTagClick={handleTagClick}
+            />
+          ) : (
+            <SwimlaneBoard
+              notes={notes}
+              categories={categories}
+              onNoteClick={handleNoteClick}
+              onDelete={handleDelete}
+              onTagClick={handleTagClick}
+              activeCategory={activeCategory}
+              onCategoryClick={setActiveCategory}
+              onMoveNote={handleMoveNote}
             />
           )}
         </div>
