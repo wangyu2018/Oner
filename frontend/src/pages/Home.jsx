@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, LayoutGrid, List, Columns, FileText, Circle, Loader, CheckCircle } from 'lucide-react';
+import { Plus, LayoutGrid, List, Columns, FileText, Circle, Loader, CheckCircle, Archive, GripVertical } from 'lucide-react';
 import CommandBar from '../components/CommandBar';
 import TodayFocus from '../components/TodayFocus';
 import EmptyState from '../components/EmptyState';
@@ -14,13 +14,55 @@ import SwipeStatusTabs from '../components/SwipeStatusTabs';
 import { useNotes } from '../hooks/useNotes';
 import { useUndoDelete } from '../hooks/useUndoDelete';
 import { useReminderCheck } from '../hooks/useReminderCheck';
-import { useAuthContext } from '../App';
+import { useAuthContext, useCommandPalette } from '../App';
 import { api } from '../utils/api';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 // 状态筛选 -> CSS active class
-function getStatusActiveClass(status) {
-  const map = { '': 'active-all', note: 'active-memo', todo: 'active-todo', in_progress: 'active-progress', done: 'active-done' };
-  return map[status] || 'active-all';
+function getStatusActiveClass(buttonValue, activeStatus) {
+  if (buttonValue !== activeStatus) return '';
+  const map = { '': 'active-all', note: 'active-memo', todo: 'active-todo', in_progress: 'active-progress', done: 'active-done', archived: 'active-archived' };
+  return map[buttonValue] || 'active-all';
+}
+
+// 可拖拽分类项
+function SortableCategoryItem({ cat, active, onClick, count }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: cat.name });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
+  return (
+    <button type="button"
+      ref={setNodeRef}
+      style={style}
+      onClick={onClick}
+      className={`category-item ${active ? 'active' : ''}`}
+      {...attributes}
+    >
+      <span className="cat-name">
+        <span className="cat-icon" style={{ background: cat.color ? `${cat.color}22` : undefined, color: cat.color || undefined }}>
+          {cat.icon || '📌'}
+        </span>
+        {cat.name}
+      </span>
+      <span className="cat-count">{count}</span>
+      <span className="category-drag-handle" {...listeners}>
+        <GripVertical size={12} />
+      </span>
+    </button>
+  );
 }
 
 export default function Home({ categories = [], onVoiceInput }) {
@@ -33,6 +75,8 @@ export default function Home({ categories = [], onVoiceInput }) {
     setActiveTag,
     activeStatus,
     setActiveStatus,
+    activeCategory,
+    setActiveCategory,
     lastSync,
     refresh,
     createNote,
@@ -42,12 +86,62 @@ export default function Home({ categories = [], onVoiceInput }) {
   } = useNotes();
 
   const { user } = useAuthContext();
+  const { setCategories } = useCommandPalette();
   const navigate = useNavigate();
+
+  // 计算活跃笔记（排除已归档和已完成），用于侧边栏和统计计数
+  const activeCountNotes = React.useMemo(() =>
+    allNotes.filter(n => n.status !== 'archived' && n.status !== 'done'),
+  [allNotes]);
+
+  // 按选中分类过滤活跃笔记（用于状态栏计数）
+  const categoryActiveNotes = React.useMemo(() => {
+    if (!activeCategory) return activeCountNotes;
+    if (activeCategory === '__uncategorized__') {
+      return activeCountNotes.filter(n => !n.category);
+    }
+    return activeCountNotes.filter(n => n.category === activeCategory);
+  }, [activeCountNotes, activeCategory]);
+
+  // 按选中分类过滤全部笔记（包含已完成/已归档，用于完成/归档计数）
+  const categoryAllNotes = React.useMemo(() => {
+    if (!activeCategory) return allNotes;
+    if (activeCategory === '__uncategorized__') {
+      return allNotes.filter(n => !n.category);
+    }
+    return allNotes.filter(n => n.category === activeCategory);
+  }, [allNotes, activeCategory]);
 
   const [editingNote, setEditingNote] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
   const [viewMode, setViewMode] = useState('wall');
-  const [activeCategory, setActiveCategory] = useState(null);
+  const [addingCategory, setAddingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+
+  // 分类拖拽排序
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
+  const handleDragEnd = useCallback(async (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = categories.findIndex(c => c.name === active.id);
+    const newIndex = categories.findIndex(c => c.name === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(categories, oldIndex, newIndex);
+    setCategories(reordered);
+    // 更新后端 position
+    try {
+      await Promise.all(reordered.map((cat, i) =>
+        api.categories.update(cat.id, { position: i })
+      ));
+    } catch (err) {
+      console.error('Failed to save category order:', err);
+      // 失败时从 API 重新加载
+      const res = await api.categories.list();
+      if (res?.data?.categories) setCategories(res.data.categories);
+    }
+  }, [categories, setCategories]);
 
   const handleDeleteSuccess = useCallback(() => {
     // Refresh notes after confirmed delete
@@ -104,6 +198,24 @@ export default function Home({ categories = [], onVoiceInput }) {
     setActiveStatus(status);
   }, [setActiveStatus]);
 
+  // 创建新分类
+  const handleCreateCategory = useCallback(async () => {
+    const name = newCategoryName.trim();
+    if (!name) return;
+    try {
+      await api.categories.create({ name });
+      setNewCategoryName('');
+      setAddingCategory(false);
+      // 重新加载分类数据
+      const res = await api.categories.list();
+      if (res?.data?.categories) {
+        setCategories(res.data.categories);
+      }
+    } catch (err) {
+      console.error('Failed to create category:', err);
+    }
+  }, [newCategoryName, setCategories]);
+
   // 全局快速创建笔记（来自 Toolbar 输入栏）
   const handleQuickCreate = useCallback(async (noteData) => {
     try {
@@ -143,12 +255,15 @@ export default function Home({ categories = [], onVoiceInput }) {
   }, [refresh]);
 
   // 状态筛选选项
-  const statusFilters = [
+  const activeFilters = [
     { value: '', label: '全部', emoji: '📋' },
     { value: 'note', label: '备忘', emoji: '📝' },
     { value: 'todo', label: '待办', emoji: '⏰' },
     { value: 'in_progress', label: '进行中', emoji: '🚀' },
+  ];
+  const doneFilters = [
     { value: 'done', label: '已完成', emoji: '✅' },
+    { value: 'archived', label: '已归档', emoji: '📦' },
   ];
 
   if (loading) {
@@ -206,9 +321,18 @@ export default function Home({ categories = [], onVoiceInput }) {
           {/* 分类侧边栏 */}
           <aside className="w-48 flex-shrink-0">
             <div className="category-sidebar">
-              <div className="category-sidebar-title">分类</div>
+              <div className="category-sidebar-title">
+                <span>分类</span>
+                <button type="button"
+                  className="category-add-btn"
+                  onClick={() => { setAddingCategory(true); setNewCategoryName(''); }}
+                  title="新增分类"
+                >
+                  <Plus size={12} />
+                </button>
+              </div>
               <div className="category-list">
-                <button
+                <button type="button"
                   onClick={() => setActiveCategory(null)}
                   className={`category-item ${!activeCategory ? 'active' : ''}`}
                 >
@@ -216,47 +340,92 @@ export default function Home({ categories = [], onVoiceInput }) {
                     <span className="cat-icon">📋</span>
                     全部
                   </span>
-                  <span className="cat-count">{allNotes.length}</span>
+                  <span className="cat-count">{activeCountNotes.length}</span>
                 </button>
-                {categories.map(cat => {
-                  const count = allNotes.filter(n => n.category === cat.name).length;
-                  if (count === 0) return null;
-                  return (
-                    <button
-                      key={cat.name}
-                      onClick={() => setActiveCategory(cat.name)}
-                      className={`category-item ${activeCategory === cat.name ? 'active' : ''}`}
-                    >
-                      <span className="cat-name">
-                        <span className="cat-icon">{cat.icon || '📌'}</span>
-                        {cat.name}
-                      </span>
-                      <span className="cat-count">{count}</span>
-                    </button>
-                  );
-                })}
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={categories.map(c => c.name)} strategy={verticalListSortingStrategy}>
+                    {categories.map(cat => {
+                      const count = activeCountNotes.filter(n => n.category === cat.name).length;
+                      return (
+                        <SortableCategoryItem
+                          key={cat.name}
+                          cat={cat}
+                          active={activeCategory === cat.name}
+                          count={count}
+                          onClick={() => setActiveCategory(cat.name)}
+                        />
+                      );
+                    })}
+                  </SortableContext>
+                </DndContext>
+                <button type="button"
+                  onClick={() => setActiveCategory('__uncategorized__')}
+                  className={`category-item ${activeCategory === '__uncategorized__' ? 'active' : ''}`}
+                >
+                  <span className="cat-name">
+                    <span className="cat-icon">📂</span>
+                    未分类
+                  </span>
+                  <span className="cat-count">{activeCountNotes.filter(n => !n.category).length}</span>
+                </button>
+                {addingCategory && (
+                  <div className="category-add-form">
+                    <input
+                      autoFocus
+                      className="category-add-input"
+                      placeholder="分类名称..."
+                      value={newCategoryName}
+                      onChange={e => setNewCategoryName(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') handleCreateCategory();
+                        if (e.key === 'Escape') setAddingCategory(false);
+                      }}
+                      onBlur={() => {
+                        if (!newCategoryName.trim()) setAddingCategory(false);
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </aside>
 
           {/* 主内容区 */}
           <div className="flex-1 min-w-0">
-            {/* 状态筛选标签栏 */}
+            {/* 状态筛选栏：活跃笔记 */}
             <div className="status-filter-bar" role="group">
-              {statusFilters.map(f => {
+              {activeFilters.map(f => {
                 const count = f.value === ''
-                  ? allNotes.length
-                  : allNotes.filter(n => (n.status || 'note') === f.value).length;
+                  ? categoryActiveNotes.length
+                  : categoryActiveNotes.filter(n => (n.status || 'note') === f.value).length;
                 const StatusIcon = f.value === '' ? FileText
                   : f.value === 'note' ? FileText
                   : f.value === 'todo' ? Circle
-                  : f.value === 'in_progress' ? Loader
-                  : CheckCircle;
+                  : Loader;
+                return (
+                  <button type="button"
+                    key={f.value}
+                    onClick={() => handleStatusChange(f.value)}
+                    className={`status-pill ${getStatusActiveClass(f.value, activeStatus)}`}
+                  >
+                    <span className="pill-icon"><StatusIcon size={12} /></span>
+                    {f.label}
+                    <span className="pill-count">{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* 已完成/已归档状态栏 */}
+            <div className="status-filter-bar status-filter-bar-done">
+              {doneFilters.map(f => {
+                const count = categoryAllNotes.filter(n => n.status === f.value).length;
+                const StatusIcon = f.value === 'done' ? CheckCircle : Archive;
                 return (
                   <button
                     key={f.value}
                     onClick={() => handleStatusChange(f.value)}
-                    className={`status-pill ${getStatusActiveClass(f.value)}`}
+                    className={`status-pill status-pill-done ${getStatusActiveClass(f.value, activeStatus)}`}
                   >
                     <span className="pill-icon"><StatusIcon size={12} /></span>
                     {f.label}

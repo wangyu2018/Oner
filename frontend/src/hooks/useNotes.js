@@ -10,25 +10,36 @@ export function useNotes() {
   const [error, setError] = useState(null);
   const [activeTag, setActiveTag] = useState(null);
   const [activeStatus, setActiveStatus] = useState('');
+  const [activeCategory, setActiveCategory] = useState(null);
   const [lastSync, setLastSync] = useState(null);
 
   const intervalRef = useRef(null);
   const isMountedRef = useRef(true);
 
-  // 客户端过滤：根据 activeTag 和 activeStatus 过滤笔记
+  // 客户端过滤：根据 activeTag / activeStatus / activeCategory 过滤笔记
   const notes = useMemo(() => {
     let result = allNotes;
     if (activeTag) {
       result = result.filter(n => n.tags && n.tags.includes(activeTag));
     }
+    if (activeCategory) {
+      if (activeCategory === '__uncategorized__') {
+        result = result.filter(n => !n.category);
+      } else {
+        result = result.filter(n => n.category === activeCategory);
+      }
+    }
     if (activeStatus) {
       result = result.filter(n => (n.status || 'note') === activeStatus);
+    } else if (!activeCategory) {
+      // 全部视图（无分类、无状态筛选）：排除已归档和已完成
+      result = result.filter(n => n.status !== 'archived' && n.status !== 'done');
     } else {
-      // 全部视图排除已归档（仅在已归档分类下展示）
+      // 分类视图排除已归档
       result = result.filter(n => n.status !== 'archived');
     }
     return result;
-  }, [allNotes, activeTag, activeStatus]);
+  }, [allNotes, activeTag, activeStatus, activeCategory]);
 
   // 获取全部笔记（不传 status 过滤参数）
   const fetchNotes = useCallback(async (showLoading = true) => {
@@ -114,6 +125,8 @@ export function useNotes() {
     setActiveTag,
     activeStatus,
     setActiveStatus,
+    activeCategory,
+    setActiveCategory,
     lastSync,
     fetchNotes,
     createNote,

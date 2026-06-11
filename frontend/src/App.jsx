@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useTheme } from './hooks/useTheme';
 import { useCustomTheme } from './hooks/useCustomTheme';
@@ -6,6 +6,7 @@ import { useAuth } from './hooks/useAuth';
 import useShortcuts from './hooks/useShortcuts';
 import Home from './pages/Home';
 import BoardPage from './pages/BoardPage';
+import { api } from './utils/api';
 import ErrorBoundary from './components/ErrorBoundary';
 import ViewNote from './pages/ViewNote';
 import Login from './pages/Login';
@@ -26,7 +27,6 @@ import FloatingQuickEntry from './components/FloatingQuickEntry';
 import ToastContainer from './components/ToastContainer';
 import PageTransition from './components/PageTransition';
 import { useToast } from './hooks/useToast';
-import { api } from './utils/api';
 
 const ThemeContext = createContext();
 const AuthContext = createContext();
@@ -67,6 +67,16 @@ export default function App() {
 
   const openPalette = useCallback(() => setPaletteOpen(true), []);
   const closePalette = useCallback(() => setPaletteOpen(false), []);
+
+  // 加载分类
+  useEffect(() => {
+    if (!auth.user) return;
+    api.categories.list().then(res => {
+      if (res?.data?.categories) {
+        setCategories(res.data.categories);
+      }
+    }).catch(err => console.error('Failed to load categories:', err));
+  }, [auth.user]);
 
   // 命令面板创建笔记
   const handlePaletteCreate = useCallback(async (noteData) => {

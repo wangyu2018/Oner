@@ -346,49 +346,143 @@ html {
   transition: all 0.2s;
 }
 .status-pill.active-all {
-  background: var(--text-primary);
-  color: white !important;
-  box-shadow: 0 2px 8px rgba(15,23,42,0.18);
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--text-primary) !important;
+  box-shadow: 0 2px 8px rgba(15,23,42,0.10), inset 0 1px 0 rgba(255,255,255,0.6);
+}
+.dark .status-pill.active-all {
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--text-primary) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.06);
 }
 .status-pill.active-all .pill-count {
-  background: rgba(255,255,255,0.2);
-  color: white;
+  background: rgba(0,0,0,0.08);
+  color: var(--text-primary);
+}
+.dark .status-pill.active-all .pill-count {
+  background: rgba(255,255,255,0.12);
+  color: var(--text-primary);
 }
 .status-pill.active-memo {
-  background: var(--bg-memo);
+  background: rgba(99,102,241,0.10);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   color: var(--color-memo) !important;
-  box-shadow: 0 2px 8px rgba(99,102,241,0.12);
+  box-shadow: 0 2px 8px rgba(99,102,241,0.10), inset 0 1px 0 rgba(255,255,255,0.5);
+}
+.dark .status-pill.active-memo {
+  background: rgba(99,102,241,0.15);
+  color: var(--color-memo) !important;
+  box-shadow: 0 2px 8px rgba(99,102,241,0.08), inset 0 1px 0 rgba(255,255,255,0.05);
 }
 .status-pill.active-memo .pill-count {
-  background: hsl(240 81% 93%);
+  background: rgba(99,102,241,0.12);
   color: var(--color-memo);
 }
 .status-pill.active-todo {
-  background: var(--bg-todo);
+  background: rgba(245,158,11,0.10);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   color: #b45309 !important;
-  box-shadow: 0 2px 8px rgba(245,158,11,0.12);
+  box-shadow: 0 2px 8px rgba(245,158,11,0.10), inset 0 1px 0 rgba(255,255,255,0.5);
+}
+.dark .status-pill.active-todo {
+  background: rgba(245,158,11,0.15);
+  color: #fbbf24 !important;
+  box-shadow: 0 2px 8px rgba(245,158,11,0.08), inset 0 1px 0 rgba(255,255,255,0.05);
 }
 .status-pill.active-todo .pill-count {
-  background: hsl(38 92% 85%);
+  background: rgba(245,158,11,0.12);
   color: #b45309;
 }
+.dark .status-pill.active-todo .pill-count {
+  background: rgba(245,158,11,0.15);
+  color: #fbbf24;
+}
 .status-pill.active-progress {
-  background: var(--bg-progress);
+  background: rgba(59,130,246,0.10);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   color: var(--color-progress) !important;
-  box-shadow: 0 2px 8px rgba(59,130,246,0.12);
+  box-shadow: 0 2px 8px rgba(59,130,246,0.10), inset 0 1px 0 rgba(255,255,255,0.5);
+}
+.dark .status-pill.active-progress {
+  background: rgba(59,130,246,0.15);
+  color: var(--color-progress) !important;
+  box-shadow: 0 2px 8px rgba(59,130,246,0.08), inset 0 1px 0 rgba(255,255,255,0.05);
 }
 .status-pill.active-progress .pill-count {
-  background: hsl(217 91% 85%);
+  background: rgba(59,130,246,0.12);
   color: var(--color-progress);
 }
 .status-pill.active-done {
-  background: var(--bg-done);
+  background: rgba(16,185,129,0.10);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   color: #047857 !important;
-  box-shadow: 0 2px 8px rgba(16,185,129,0.12);
+  box-shadow: 0 2px 8px rgba(16,185,129,0.10), inset 0 1px 0 rgba(255,255,255,0.5);
+}
+.dark .status-pill.active-done {
+  background: rgba(16,185,129,0.15);
+  color: #4ade80 !important;
+  box-shadow: 0 2px 8px rgba(16,185,129,0.08), inset 0 1px 0 rgba(255,255,255,0.05);
 }
 .status-pill.active-done .pill-count {
-  background: hsl(142 72% 85%);
+  background: rgba(16,185,129,0.12);
   color: #047857;
+}
+.dark .status-pill.active-done .pill-count {
+  background: rgba(16,185,129,0.15);
+  color: #4ade80;
+}
+
+/* 已完成/已归档状态栏 */
+.status-filter-bar-done {
+  margin-top: 8px;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  gap: 2px;
+  padding: 0;
+}
+.status-pill-done {
+  font-size: 12px;
+  padding: 5px 12px;
+  color: var(--text-muted);
+}
+.status-pill-done:hover {
+  color: var(--text-secondary);
+  background: var(--bg-muted);
+}
+.status-pill.active-archived {
+  background: rgba(107,114,128,0.10);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--text-secondary) !important;
+  box-shadow: 0 2px 8px rgba(107,114,128,0.10), inset 0 1px 0 rgba(255,255,255,0.5);
+}
+.dark .status-pill.active-archived {
+  background: rgba(107,114,128,0.15);
+  color: #9ca3af !important;
+  box-shadow: 0 2px 8px rgba(107,114,128,0.08), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.status-pill.active-archived .pill-count {
+  background: rgba(107,114,128,0.12);
+  color: var(--text-secondary);
+}
+.dark .status-pill.active-archived .pill-count {
+  background: rgba(107,114,128,0.15);
+  color: #9ca3af;
+}
+.status-pill-done.active-done .pill-count {
+  background: rgba(16,185,129,0.15);
+}
+.status-pill-done.active-archived .pill-count {
+  background: rgba(107,114,128,0.15);
 }
 
 /* ========================================================
@@ -934,6 +1028,81 @@ html {
 .category-item.active .cat-count {
   background: hsl(240 81% 93%);
   color: var(--text-accent);
+}
+
+/* 新增分类按钮 */
+.category-sidebar-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.category-add-btn {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.category-add-btn:hover {
+  background: var(--bg-muted);
+  color: var(--text-primary);
+}
+.category-add-form {
+  padding: 4px 0;
+}
+.category-add-input {
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.category-add-input:focus {
+  border-color: var(--border-accent);
+}
+.category-add-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* 分类拖拽手柄 */
+.category-item {
+  position: relative;
+}
+.category-drag-handle {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: var(--text-tertiary);
+  cursor: grab;
+  transition: all 0.15s;
+  z-index: 2;
+}
+.category-item:hover .category-drag-handle {
+  display: flex;
+}
+.category-drag-handle:hover {
+  background: var(--bg-muted);
+  color: var(--text-primary);
+}
+.category-drag-handle:active {
+  cursor: grabbing;
 }
 
 /* ========================================================

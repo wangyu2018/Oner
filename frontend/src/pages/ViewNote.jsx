@@ -20,7 +20,7 @@ export default function ViewNote() {
       try {
         setLoading(true);
         const data = await api.notes.get(id);
-        setNote(data.note);
+        setNote(data.data?.note || data.note);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -32,7 +32,7 @@ export default function ViewNote() {
 
   const handleSave = useCallback(async (data) => {
     const result = await api.notes.update(id, data);
-    setNote(result.note);
+    setNote(result.data?.note || result.note);
   }, [id]);
 
   if (loading) {

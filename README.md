@@ -4,6 +4,56 @@
 
 一个自托管的全栈个人备忘录和任务管理应用，支持 PWA、移动端优化、AI智能助手、密码保险库和 Docker 部署。
 
+> **当前版本：V1.1** — 主题配色系统升级 + 泳道视图精修 + 首页下半部分重设计
+
+## V1.1 更新日志
+
+### 🎨 主题配色系统 v2（Indigo-500）
+- 默认强调色从 Blue-500 (`#3b82f6`) 升级为 Indigo-500 (`#6366f1`)
+- 新增完整 CSS 变量体系：neutral 色阶、surface/border/text/semantic/shadow 系列
+- 深色主题独立设计（非简单反转）：深色版 accent 色阶更亮，表面色/边框色/文字色全部独立定义
+- 保留 `useCustomTheme.js` 动态主题切换兼容性
+
+### 🏊 泳道视图精修
+- 所有 inline style 色值替换为 CSS 变量引用（40+ 处硬编码颜色移除）
+- 列头：渐变背景 + dot glow 光晕 + count badge
+- LaneLabel：左侧 4px 彩色边框 + 22px 圆角图标 + 4px 进度条 + 折叠按钮
+- LaneCell：drop-hover 渐变背景 + 虚线边框动画 + 32px 空图标
+- SwimlaneCard：hover 边框变紫 + 阴影上浮 + active 缩小动画 + 删除按钮圆角 6px
+- Badge：urgent/high 渐变背景 + done-state 绿色删除线 + 透明度 0.55
+
+### 🏠 首页下半部分重设计
+- 状态筛选栏：`status-filter-bar` + `status-pill` 容器化药丸设计，带计数 badge + SVG 图标
+- 区域标题行：`section-header` + 三态 `view-toggle`（网格/列表/泳道）
+- 桌面端分类侧边栏：`category-sidebar` 按分类展示笔记数量
+- 卡片全新设计：`note-card` + `status-*` 触发 `::before` 顶部 hover 色带、`status-badge` pill、`priority-dot` 圆点、`card-actions` hover 显示、`card-tags`/`card-updated` footer
+- 空状态：渐变背景圆角图标 + 品牌色渐变 CTA 按钮
+
+### 🔧 其他调整
+- CommandBar 布局修复：header 添加 `justify-between` 确保左右布局正确
+- 移除多余快捷录入栏
+- CardWall 改用 `notes-grid` CSS class
+
+---
+
+## 设计文档
+
+以下设计文档位于 [`产品规划/`](产品规划/) 目录，是 UI/UX 设计的权威参考：
+
+| 文件 | 说明 |
+|------|------|
+| [`Oner-主题配色系统-浅色深色双主题设计.html`](产品规划/Oner-主题配色系统-浅色深色双主题设计.html) | Indigo-500 双主题配色系统：完整 accent 色阶、语义色、表面色、深色主题独立设计 |
+| [`Oner-泳道视图UI精装修复版.html`](产品规划/Oner-泳道视图UI精装修复版.html) | 泳道视图 UI 精修：水平泳道×垂直状态列矩阵布局、状态筛选栏、分类标签栏、拖拽交互 |
+| [`Oner-首页下半部分UI重设计方案.html`](产品规划/Oner-首页下半部分UI重设计方案.html) | 首页下半部分重设计：状态筛选栏、区域标题栏、卡片网格、列表/网格/紧凑视图切换 |
+| [`Oner-超级看板-合并设计方案.html`](产品规划/Oner-超级看板-合并设计方案.html) | 超级看板：Command Bar + Today Focus Strip + 泳道式看板矩阵 |
+| [`Oner-AI洞察三大子页面设计方案.html`](产品规划/Oner-AI洞察三大子页面设计方案.html) | AI 洞察三大子页面：到期提醒、本周概览、智能关联，共享 AI 设计语言 |
+| [`Oner-备忘功能-智能关联与思维链设计方案.html`](产品规划/Oner-备忘功能-智能关联与思维链设计方案.html) | 智能关联（语义关联评分）、思维链视图（树状结构）、分类管理 |
+| [`Oner-思维链V2-精品重设计方案.html`](产品规划/Oner-思维链V2-精品重设计方案.html) | 思维链 V2：SVG 贝塞尔曲线连线、时间轴 rail、分支/汇合可视化 |
+| [`Oner-UI优化-12个方案概念图.html`](产品规划/Oner-UI优化-12个方案概念图.html) | 12 个 UI 优化方案全景概览概念图 |
+| [`Oner-UI优化-Top3概念图.html`](产品规划/Oner-UI优化-Top3概念图.html) | Top 3 精选方案（Home Today Workspace 概念图） |
+
+---
+
 ## 功能特性
 
 ### AI 智能助手
