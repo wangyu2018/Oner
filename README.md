@@ -6,6 +6,34 @@
 
 > **当前版本：V1.2** — 首页双模式布局 + 图谱星链风格 + 全局输入统一入口
 
+## ✨ UI 预览
+
+<p align="center">
+  <img src="docs/screenshots/01-home-dashboard.png" alt="首页工作台" width="48%" style="border-radius: 8px;" />
+  <img src="docs/screenshots/02-login-page.png" alt="登录页" width="48%" style="border-radius: 8px;" />
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/03-command-palette.png" alt="命令面板" width="48%" style="border-radius: 8px;" />
+  <img src="docs/screenshots/04-note-editor.png" alt="笔记编辑器" width="48%" style="border-radius: 8px;" />
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/05-kanban-board.png" alt="看板视图" width="70%" style="border-radius: 8px;" />
+</p>
+
+### 核心亮点
+
+| 🖥️ 首页双模式 | 🌌 关联图谱 | 🤖 AI 智能助手 |
+|:---:|:---:|:---:|
+| 合并一页 / 分两页可切换<br>Shimmer 骨架屏动效过渡 | Obsidian StarLink 星链风格<br>力导向无极画布 | 笔记拆解 / 推荐 / 扩展<br>全局对话 + 流式回复 |
+
+| 🏊 泳道看板 | 🔐 密码保险库 | 📱 PWA + 桌面端 |
+|:---:|:---:|:---:|
+| 水平状态×垂直分类矩阵<br>拖拽排序 + 子任务折叠 | AES-256-GCM 加密<br>PIN 双因素认证 | 添加到主屏幕运行<br>Electron 原生应用 |
+
+---
+
 ## V1.2 更新日志
 
 ### 🖥️ 首页布局双模式
