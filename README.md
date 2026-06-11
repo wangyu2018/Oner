@@ -4,7 +4,37 @@
 
 一个自托管的全栈个人备忘录和任务管理应用，支持 PWA、移动端优化、AI智能助手、密码保险库和 Docker 部署。
 
-> **当前版本：V1.1** — 主题配色系统升级 + 泳道视图精修 + 首页下半部分重设计
+> **当前版本：V1.2** — 首页双模式布局 + 图谱星链风格 + 全局输入统一入口
+
+## V1.2 更新日志
+
+### 🖥️ 首页布局双模式
+- 新增「合并一页」模式：工作台与笔记详情在同一页面，shimmer 骨架屏动效过渡到 fade-in 展示
+- 新增「分两页」模式：首页仅展示工作台与欢迎导航，笔记详情独立为 `/notes` 路由页面
+- 布局选项添加 Windows Aero Snap 风格视觉预览（Win+↑ 最大化 / Win+←→ 并排分屏）
+- 在「我的」设置页新增「首页布局」tab，支持切换并持久化至后端
+
+### 📋 待办与笔记体验
+- TodoList 新增「明日待办」toggle 开关，开启后展示全部分类明日任务（不限工作分类）
+- 今日待办头部显示明日待办数量，支持快速切换展示/隐藏
+
+### 🌌 关联图谱
+- 升级为 Obsidian StarLink 星链风格：力导向图 + 动态节点 + 语义连线
+- 无极画布支持缩放和平移，语义关联强度可视化
+
+### 🤖 全局 AI 与输入体验
+- 全局输入框两层结构重构：标题输入 + 内容输入分层
+- AI 洞察弹窗：一键触发智能分析，联动分类筛选
+- 全局快捷输入支持 AI 润色、实时预览、备忘/待办切换
+- 归档分类支持，笔记归档后仍可访问
+
+### 🎨 UI 精修
+- 全局浮动 AI 输入框统一入口（FloatingQuickEntry）
+- 泳道视图多项交互优化
+- 登录注册页品牌化视觉增强
+- 主题配色系统深色模式完善
+
+---
 
 ## V1.1 更新日志
 
@@ -120,6 +150,7 @@
 - 自定义键盘快捷键
 - 数据备份导出 ZIP
 - Docker + Nginx 部署
+- 首页布局双模式（合并/分页），可自定义切换
 
 ## 快速开始
 
@@ -296,9 +327,9 @@ oner/
 │   └── package.json
 ├── frontend/
 │   ├── src/
-│   │   ├── components/   # UI 组件（NoteEditor/CardWall/SwipeStatusTabs/CommandPalette/BottomNav...）
-│   │   ├── hooks/        # 自定义 Hooks（useNotes/useAuth/usePasswords/useShortcuts...）
-│   │   ├── pages/        # 页面（Home/BoardPage/Profile/PasswordVault/AIChat）
+│   │   ├── components/   # UI 组件（NoteEditor/SmartCardGrid/SwimlaneBoard/TodayFocus/CommandBar/FloatingQuickEntry...）
+│   │   ├── hooks/        # 自定义 Hooks（useNotes/useAuth/usePasswords/useShortcuts/useCustomTheme...）
+│   │   ├── pages/        # 页面（Home/BoardPage/NotesPage/Profile/PasswordVault/AIChat/MindChainPage...）
 │   │   ├── utils/        # 工具（api、tags、keywordMatcher）
 │   │   └── styles/       # 全局样式
 │   ├── public/
