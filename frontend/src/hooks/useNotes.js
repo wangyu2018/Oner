@@ -111,9 +111,9 @@ export function useNotes() {
     setAllNotes(prev => [note, ...prev]);
   }, []);
 
-  // 手动刷新
+  // 手动刷新 — 不触发全屏 loading（由 SyncStatus 旋转图标反馈）
   const refresh = useCallback(() => {
-    fetchNotes(true);
+    fetchNotes(false);
   }, [fetchNotes]);
 
   return {

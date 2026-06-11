@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Pen, Pin, PinOff, Sparkles, X } from 'lucide-react';
+import { Pen, Mic, Pin, PinOff, Sparkles, X } from 'lucide-react';
 import GlobalQuickEntry from './GlobalQuickEntry';
 
 const STORAGE_KEY_POS = 'floatingEntry_pos';
@@ -131,61 +131,73 @@ export default function FloatingQuickEntry({
         dragging ? 'scale-[1.02] shadow-2xl' : 'shadow-xl'
       } rounded-xl transition-[shadow,transform] duration-150`}
     >
-      {/* 拖拽手柄栏 */}
+      {/* 顶部工具栏 - 更矮半透明 */}
       <div
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        className={`flex items-center justify-between px-3 py-1.5 rounded-t-xl ${
+        className={`flex items-center justify-between px-3 py-1 rounded-t-xl backdrop-blur-sm ${
           pinned
-            ? 'bg-accent/10 dark:bg-accent/20'
+            ? 'bg-accent/[0.04]'
             : dragging
-              ? 'bg-gray-200 dark:bg-gray-700 cursor-grabbing'
-              : 'bg-gray-100 dark:bg-gray-800 cursor-grab hover:bg-gray-200 dark:hover:bg-gray-700'
-        }`}
+              ? 'bg-black/[0.03] dark:bg-white/[0.06] cursor-grabbing'
+              : 'bg-black/[0.015] dark:bg-white/[0.03] cursor-grab hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
+        } border-b border-gray-100/40 dark:border-gray-800/40 transition-colors`}
       >
         {/* 拖拽指示器 */}
-        <div className="flex flex-col gap-0.5 py-0.5">
-          <div className="w-4 h-[2px] rounded-full bg-gray-400 dark:bg-gray-500" />
-          <div className="w-4 h-[2px] rounded-full bg-gray-400 dark:bg-gray-500" />
-          <div className="w-4 h-[2px] rounded-full bg-gray-400 dark:bg-gray-500" />
+        <div className="flex flex-col gap-[2px] py-0.5">
+          <div className="w-3.5 h-[1.5px] rounded-full bg-gray-300 dark:bg-gray-600" />
+          <div className="w-3.5 h-[1.5px] rounded-full bg-gray-300 dark:bg-gray-600" />
+          <div className="w-3.5 h-[1.5px] rounded-full bg-gray-300 dark:bg-gray-600" />
         </div>
 
         {/* 右侧操作按钮 */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
+          {/* 语音输入 */}
+          <button
+            onClick={(e) => { e.stopPropagation(); onVoiceInput?.(); }}
+            className="p-1 rounded-md text-gray-400/70 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+            title="语音输入"
+          >
+            <Mic size={13} />
+          </button>
+
+          {/* AI 模式切换 */}
           <button
             onClick={(e) => { e.stopPropagation(); setAiMode(a => !a); }}
-            className={`p-1.5 rounded-md transition-colors ${
+            className={`p-1 rounded-md transition-colors ${
               aiMode
                 ? 'text-accent bg-accent/10'
-                : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                : 'text-gray-400/70 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
             }`}
             title={aiMode ? 'AI 模式' : '普通模式'}
           >
-            <Sparkles size={14} />
+            <Sparkles size={13} />
           </button>
 
+          {/* 固定 */}
           <button
             onClick={(e) => { e.stopPropagation(); setPinned(p => !p); }}
-            className={`p-1.5 rounded-md transition-colors ${
+            className={`p-1 rounded-md transition-colors ${
               pinned
                 ? 'text-accent'
-                : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                : 'text-gray-400/70 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
             }`}
             title={pinned ? '已固定' : '未固定'}
           >
-            {pinned ? <Pin size={14} /> : <PinOff size={14} />}
+            {pinned ? <Pin size={13} /> : <PinOff size={13} />}
           </button>
 
+          {/* 关闭 */}
           <button
             onClick={(e) => { e.stopPropagation(); handleClose(); }}
-            className="p-1.5 rounded-md text-gray-400
+            className="p-1 rounded-md text-gray-400/70
               hover:text-gray-600 dark:hover:text-gray-300
-              hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
             title="收起"
           >
-            <X size={14} />
+            <X size={13} />
           </button>
         </div>
       </div>

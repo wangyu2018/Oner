@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   DndContext, useDroppable, useDraggable,
+  PointerSensor, useSensor, useSensors,
 } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { Calendar, CheckCircle2, ListTodo, Clock, Trash2, AlertTriangle, Tag, MoreHorizontal } from 'lucide-react';
@@ -246,6 +247,9 @@ function SwimlaneBoard({
   onCategoryClick,
   onMoveNote,
 }) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
   // 按泳道分组
   const { lanes } = useMemo(() => {
     const orderedCategories = [];
@@ -308,7 +312,7 @@ function SwimlaneBoard({
   }, [notes]);
 
   return (
-    <DndContext onDragEnd={(event) => {
+    <DndContext sensors={sensors} onDragEnd={(event) => {
       const { active, over } = event;
       if (!active || !over) return;
       const overData = over.data.current;

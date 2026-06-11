@@ -27,11 +27,29 @@ export default forwardRef(function GlobalQuickEntry({
   const [polishPreview, setPolishPreview] = useState(null); // { text, keywords }
   const [editingNote, setEditingNote] = useState(null); // 内联编辑的笔记
 
+  // 预览卡片展开编辑
+  const [expanded, setExpanded] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editContent, setEditContent] = useState('');
+  const [editStatus, setEditStatus] = useState('note');
+
   const keywords = text.trim() ? matchKeywords(text, categories) : null;
+
+  // 展开时初始化编辑字段（不使用 useEffect 避免依赖不稳定）
+  const handleToggleExpand = useCallback(() => {
+    if (!expanded) {
+      const kw = keywords || matchKeywords(text.trim(), categories);
+      const cleaned = stripKeywords(text.trim(), kw, categories) || text.trim();
+      setEditTitle(cleaned.length > 50 ? cleaned.slice(0, 50) + '...' : cleaned);
+      setEditContent(cleaned);
+      setEditStatus(kw?.status || status);
+    }
+    setExpanded(e => !e);
+  }, [expanded, text, status, categories]);
 
   useImperativeHandle(ref, () => ({
     focus: () => { inputRef.current?.focus(); },
-    clear: () => { setText(''); setStatus('note'); setPolishPreview(null); },
+    clear: () => { setText(''); setStatus('note'); setPolishPreview(null); setExpanded(false); },
   }));
 
   // 防抖搜索
@@ -142,6 +160,43 @@ export default forwardRef(function GlobalQuickEntry({
       setCreating(false);
     }
   }, [text, status, keywords, onCreateNote, activeCategory, aiMode, onAISubmit, categories]);
+
+  // 展开编辑后提交
+  const handleEditSubmit = useCallback(async () => {
+    const trimmed = editContent.trim();
+    if (!trimmed || creatingRef.current) return;
+
+    const kw = matchKeywords(trimmed, categories);
+    const cleanedContent = stripKeywords(trimmed, kw, categories);
+    const data = {
+      content: cleanedContent,
+      title: editTitle.trim() || cleanedContent.slice(0, 50),
+      status: editStatus || kw?.status || 'note',
+      category: kw?.category || keywords?.category || activeCategory || undefined,
+      due_date: kw?.date || keywords?.date || undefined,
+      priority: kw?.priority || keywords?.priority || undefined,
+    };
+    setText('');
+    setStatus('note');
+    setExpanded(false);
+    setShowOverlay(false);
+    setPolishPreview(null);
+
+    creatingRef.current = true;
+    setCreating(true);
+    try {
+      if (aiMode && onAISubmit) {
+        await onAISubmit(data);
+      } else {
+        await onCreateNote(data);
+      }
+      inputRef.current?.focus();
+    } catch { /* */ }
+    finally {
+      creatingRef.current = false;
+      setCreating(false);
+    }
+  }, [editContent, editTitle, editStatus, keywords, onCreateNote, activeCategory, aiMode, onAISubmit, categories]);
 
   // 润色 → 打开预览卡片
   const handlePolish = useCallback(async () => {
@@ -461,145 +516,216 @@ export default forwardRef(function GlobalQuickEntry({
         </div>
       )}
 
-      {/* ====== 主输入栏 ====== */}
-      <div className="w-full bg-white/85 dark:bg-gray-900/85 backdrop-blur-xl
-        border-t md:border md:border-gray-200/60 md:dark:border-gray-700/60
-        border-gray-200/70 dark:border-gray-800/70
-        md:rounded-2xl md:shadow-lg md:shadow-black/10
-        transition-all duration-200">
-
-        {/* ====== 实时预览：关键词标签 + 笔记预览（在输入栏内部） ====== */}
-        {!compact && hasText && keywordChips.length > 0 && !polishPreview && !editingNote && (
-          <div className="px-3 pt-2.5 pb-1 border-b border-gray-100 dark:border-gray-800/50
-            bg-gradient-to-r from-accent/5 via-gray-50/50 to-transparent dark:from-accent/10 dark:via-gray-800/20">
-            {/* 智能标签 */}
-            <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
-              {keywordChips.map((chip, i) => (
-                <span
-                  key={i}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium
-                    whitespace-nowrap border border-current/10"
-                  style={{ color: chip.color, backgroundColor: chip.bg }}
-                >
-                  {chip.label}
-                </span>
-              ))}
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium
-                ${(keywords?.status || status) === 'todo'
-                  ? 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400'
-                  : 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'}`}>
-                {(keywords?.status || status) === 'todo' ? '待办' : '备忘'}
-              </span>
-            </div>
-            {/* 笔记内容预览 */}
-            <div className="p-2 rounded-lg bg-white/60 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700/40 mb-1">
-              <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed line-clamp-2">
-                {text.trim()}
-              </p>
-              {keywords?.category && (
-                <span className="mt-1 inline-flex items-center gap-0.5 text-[10px] text-green-600 dark:text-green-400">
-                  📂 {keywords.category}
-                </span>
-              )}
+      {/* ====== 主输入区（两层结构） ====== */}
+      <div className="w-full">
+        {/* 提示文字 */}
+        {!hasText && !polishPreview && !editingNote && (
+          <div className="px-3 pt-2.5 pb-1">
+            <div className="text-[11px] text-gray-400/80 dark:text-gray-500/80 leading-relaxed">
+              自然语言输入 · 支持日期、分类、优先级、标签
             </div>
           </div>
         )}
 
-        <div className="flex items-center gap-1.5 px-3 py-2.5">
-          <div className="flex-1 relative">
-            <input
-              ref={inputRef}
-              type="text"
-              value={text}
-              disabled={creating}
-              onChange={(e) => {
-                const val = e.target.value;
-                setText(val);
-                const matched = matchKeywords(val, categories);
-                if (matched.status) setStatus(matched.status);
-              }}
-              onKeyDown={handleKeyDown}
-              onCompositionStart={handleCompositionStart}
-              onCompositionEnd={handleCompositionEnd}
-              placeholder={
-                creating ? '创建中...' :
-                polishing ? '润色中...' :
-                polishPreview ? '预览中...' :
-                aiMode ? 'AI 帮你记录...' :
-                (activeCategory ? `在「${activeCategory}」中搜索...` : '写点什么... 支持自然语言')
-              }
-              className="w-full bg-gray-100/90 dark:bg-gray-800/90
-                text-sm text-gray-900 dark:text-gray-100
-                placeholder-gray-400 dark:placeholder-gray-500
-                border border-gray-200/50 dark:border-gray-700/50
-                focus:border-accent/40 focus:ring-1 focus:ring-accent/30
-                focus:bg-white/70 dark:focus:bg-gray-800/70
-                outline-none transition-all
-                disabled:opacity-60 disabled:cursor-not-allowed
-                px-4 py-2.5 rounded-xl"
-            />
-            {hasText && !creating && (
+        {/* 输入框行 */}
+        <div className="px-3 py-1.5">
+          <div className="flex items-center gap-1.5">
+            <div className="flex-1 relative">
+              <input
+                ref={inputRef}
+                type="text"
+                value={text}
+                disabled={creating}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setText(val);
+                  const matched = matchKeywords(val, categories);
+                  if (matched.status) setStatus(matched.status);
+                }}
+                onKeyDown={handleKeyDown}
+                onCompositionStart={handleCompositionStart}
+                onCompositionEnd={handleCompositionEnd}
+                placeholder={
+                  creating ? '创建中...' :
+                  polishing ? '润色中...' :
+                  polishPreview ? '预览中...' :
+                  aiMode ? 'AI 帮你记录...' :
+                  (activeCategory ? `在「${activeCategory}」中搜索...` : '写点什么... 支持自然语言')
+                }
+                className="w-full bg-gray-100/80 dark:bg-gray-800/80
+                  text-sm text-gray-900 dark:text-gray-100
+                  placeholder-gray-400/70 dark:placeholder-gray-500/70
+                  border border-gray-200/60 dark:border-gray-700/60
+                  focus:border-accent/40 focus:ring-1 focus:ring-accent/30
+                  focus:bg-white/70 dark:focus:bg-gray-800/70
+                  outline-none transition-all
+                  disabled:opacity-60 disabled:cursor-not-allowed
+                  px-4 py-2.5 rounded-xl"
+              />
+              {hasText && !creating && (
+                <button
+                  onClick={() => setText('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1
+                    rounded-full text-gray-400 hover:text-gray-600
+                    dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700
+                    transition-colors text-xs leading-none"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            {/* AI 润色按钮 */}
+            {hasText && !creating && !compact && (
               <button
-                onClick={() => setText('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1
-                  rounded-full text-gray-400 hover:text-gray-600
-                  dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700
-                  transition-colors text-xs leading-none"
+                onClick={handlePolish}
+                disabled={polishing}
+                className={`flex-shrink-0 p-2 rounded-xl transition-all
+                  ${polishing
+                    ? 'bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400'
+                    : 'bg-gray-100/70 dark:bg-gray-800/70 text-gray-500 dark:text-gray-400 hover:bg-violet-50 hover:text-violet-600 dark:hover:bg-violet-900/20 dark:hover:text-violet-400'
+                  }`}
+                title="AI 润色"
               >
-                <X size={14} />
+                {polishing ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
               </button>
             )}
+
+            {aiMode && !creating && (
+              <div className="flex-shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-accent/10 text-accent text-[10px] font-medium">
+                <Sparkles size={12} />AI
+              </div>
+            )}
+
+            {creating ? (
+              <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-accent/70 text-white flex items-center justify-center">
+                <Loader2 size={18} className="animate-spin" />
+              </div>
+            ) : hasText ? (
+              <button
+                onClick={handleSubmit}
+                className="flex-shrink-0 w-9 h-9 rounded-xl bg-accent text-white
+                  flex items-center justify-center active:scale-90 transition-transform
+                  shadow-sm shadow-accent/30 hover:bg-accent/90"
+                aria-label="发送"
+              >
+                <ArrowUp size={18} strokeWidth={2.5} />
+              </button>
+            ) : null}
           </div>
-
-          {/* AI 润色按钮 */}
-          {hasText && !creating && !compact && (
-            <button
-              onClick={handlePolish}
-              disabled={polishing}
-              className={`flex-shrink-0 p-2 rounded-xl transition-all
-                ${polishing
-                  ? 'bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400'
-                  : 'bg-gray-100/70 dark:bg-gray-800/70 text-gray-500 dark:text-gray-400 hover:bg-violet-50 hover:text-violet-600 dark:hover:bg-violet-900/20 dark:hover:text-violet-400'
-                }`}
-              title="AI 润色"
-            >
-              {polishing ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-            </button>
-          )}
-
-          {aiMode && !creating && (
-            <div className="flex-shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-accent/10 text-accent text-[10px] font-medium">
-              <Sparkles size={12} />AI
-            </div>
-          )}
-
-          {creating ? (
-            <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-accent/70 text-white flex items-center justify-center">
-              <Loader2 size={18} className="animate-spin" />
-            </div>
-          ) : hasText ? (
-            <button
-              onClick={handleSubmit}
-              className="flex-shrink-0 w-9 h-9 rounded-xl bg-accent text-white
-                flex items-center justify-center active:scale-90 transition-transform
-                shadow-sm shadow-accent/30 hover:bg-accent/90"
-              aria-label="发送"
-            >
-              <ArrowUp size={18} strokeWidth={2.5} />
-            </button>
-          ) : (
-            <button
-              onClick={onVoiceInput}
-              className="flex-shrink-0 w-9 h-9 rounded-xl
-                bg-gray-100/70 dark:bg-gray-800/70 text-gray-500 dark:text-gray-400
-                hover:bg-gray-200 dark:hover:bg-gray-700
-                flex items-center justify-center active:scale-90 transition-all"
-              aria-label="语音输入"
-            >
-              <Mic size={18} />
-            </button>
-          )}
         </div>
+
+        {/* ====== 实时可编辑预览卡片 ====== */}
+        {hasText && keywordChips.length === 0 && !polishPreview && !editingNote && (
+          <div className="px-3 pb-3 pt-0.5">
+            <div className="p-2 rounded-lg bg-gray-50/50 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-700/50">
+              <p className="text-[11px] text-gray-400 dark:text-gray-500 text-center">
+                按 Enter 创建笔记，或继续输入以识别智能标签
+              </p>
+            </div>
+          </div>
+        )}
+
+        {hasText && keywordChips.length > 0 && !polishPreview && !editingNote && (
+          <div className="px-3 pb-3 pt-1 space-y-2">
+            <div className="rounded-lg border border-gray-100 dark:border-gray-700/50 overflow-hidden bg-white/70 dark:bg-gray-800/40">
+              {/* 压缩视图 */}
+              <div className="p-2.5">
+                {/* 关键词标签 */}
+                <div className="flex items-center gap-1.5 flex-wrap mb-2">
+                  {keywordChips.map((chip, i) => (
+                    <span
+                      key={i}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium
+                        whitespace-nowrap border border-current/10"
+                      style={{ color: chip.color, backgroundColor: chip.bg }}
+                    >
+                      {chip.label}
+                    </span>
+                  ))}
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium
+                    ${(keywords?.status || status) === 'todo'
+                      ? 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400'
+                      : 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'}`}>
+                    {(keywords?.status || status) === 'todo' ? '待办' : '备忘'}
+                  </span>
+                </div>
+
+                {/* 内容预览 */}
+                <div className="p-2 rounded-lg bg-white/50 dark:bg-gray-800/30 border border-gray-100/50 dark:border-gray-700/30 mb-2">
+                  <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed line-clamp-2">
+                    {text.trim()}
+                  </p>
+                  {keywords?.category && (
+                    <span className="mt-1 inline-flex items-center gap-0.5 text-[10px] text-green-600 dark:text-green-400">
+                      📂 {keywords.category}
+                    </span>
+                  )}
+                </div>
+
+                {/* 操作按钮 */}
+                <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700/40">
+                  <button
+                    onClick={handleToggleExpand}
+                    className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium
+                      text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300
+                      hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                  >
+                    <Pencil size={11} />
+                    {expanded ? '收起' : '编辑'}
+                  </button>
+                  <button
+                    onClick={expanded ? handleEditSubmit : handleSubmit}
+                    className="flex items-center gap-1 px-3 py-1 rounded-lg text-[11px] font-medium
+                      bg-accent text-white hover:bg-accent/90 active:scale-95 transition-all shadow-sm shadow-accent/20"
+                  >
+                    <ArrowUp size={11} />
+                    {(keywords?.status || status) === 'todo' ? '创建待办' : '创建备忘'}
+                  </button>
+                </div>
+              </div>
+
+              {/* 展开编辑区 */}
+              {expanded && (
+                <div className="border-t border-gray-100 dark:border-gray-700/50 p-2.5 bg-gray-50/50 dark:bg-gray-900/30 space-y-2">
+                  <input
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="w-full text-sm font-medium bg-white/70 dark:bg-gray-800/50 rounded-lg px-3 py-1.5
+                      border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100
+                      focus:border-accent/50 outline-none transition-colors"
+                    placeholder="标题（可选）"
+                  />
+                  <textarea
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    rows={3}
+                    className="w-full text-sm bg-white/70 dark:bg-gray-800/50 rounded-lg px-3 py-2
+                      border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100
+                      focus:border-accent/50 outline-none transition-colors resize-none"
+                    placeholder="内容"
+                  />
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={editStatus}
+                      onChange={(e) => setEditStatus(e.target.value)}
+                      className="text-xs bg-white/70 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5
+                        text-gray-700 dark:text-gray-300 outline-none focus:border-accent/50"
+                    >
+                      <option value="note">备忘</option>
+                      <option value="todo">待办</option>
+                    </select>
+                    {keywords?.category && (
+                      <span className="text-[10px] px-1.5 py-1 rounded-full bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400">
+                        📂 {keywords.category}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

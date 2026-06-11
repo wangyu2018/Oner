@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, LayoutGrid, List, Columns, FileText, Circle, Loader, CheckCircle, Archive, GripVertical } from 'lucide-react';
 import CommandBar from '../components/CommandBar';
@@ -65,7 +65,7 @@ function SortableCategoryItem({ cat, active, onClick, count }) {
   );
 }
 
-export default function Home({ categories = [], onVoiceInput }) {
+export default function Home({ categories = [], onVoiceInput, mode = 'default' }) {
   const {
     notes,
     allNotes,
@@ -117,6 +117,26 @@ export default function Home({ categories = [], onVoiceInput }) {
   const [viewMode, setViewMode] = useState('wall');
   const [addingCategory, setAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [homeLayout, setHomeLayout] = useState('combined');
+  const [notesReady, setNotesReady] = useState(false);
+
+  // 加载首页布局设置
+  useEffect(() => {
+    api.settings.get().then(res => {
+      const s = res.data || {};
+      setHomeLayout(s.homeLayout || 'combined');
+    }).catch(() => {});
+  }, []);
+
+  // 合并模式: notes区域延迟显示（动效）
+  useEffect(() => {
+    if (homeLayout === 'combined' && !loading) {
+      const t = setTimeout(() => setNotesReady(true), 250);
+      return () => clearTimeout(t);
+    } else {
+      setNotesReady(true);
+    }
+  }, [homeLayout, loading]);
 
   // 分类拖拽排序
   const sensors = useSensors(
@@ -266,10 +286,365 @@ export default function Home({ categories = [], onVoiceInput }) {
     { value: 'archived', label: '已归档', emoji: '📦' },
   ];
 
-  if (loading) {
+  // ============ 笔记详情区域（可复用） ============
+  const renderNotesSection = useMemo(() => (
+    <>
+      {/* 桌面端：分栏布局 */}
+      <div className="hidden md:flex gap-6">
+        {/* 分类侧边栏 */}
+        <aside className="w-48 flex-shrink-0">
+          <div className="category-sidebar">
+            <div className="category-sidebar-title">
+              <span>分类</span>
+              <button type="button"
+                className="category-add-btn"
+                onClick={() => { setAddingCategory(true); setNewCategoryName(''); }}
+                title="新增分类"
+              >
+                <Plus size={12} />
+              </button>
+            </div>
+            <div className="category-list">
+              <button type="button"
+                onClick={() => setActiveCategory(null)}
+                className={`category-item ${!activeCategory ? 'active' : ''}`}
+              >
+                <span className="cat-name">
+                  <span className="cat-icon">📋</span>
+                  全部
+                </span>
+                <span className="cat-count">{activeCountNotes.length}</span>
+              </button>
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={categories.map(c => c.name)} strategy={verticalListSortingStrategy}>
+                  {categories.map(cat => {
+                    const count = activeCountNotes.filter(n => n.category === cat.name).length;
+                    return (
+                      <SortableCategoryItem
+                        key={cat.name}
+                        cat={cat}
+                        active={activeCategory === cat.name}
+                        count={count}
+                        onClick={() => setActiveCategory(cat.name)}
+                      />
+                    );
+                  })}
+                </SortableContext>
+              </DndContext>
+              <button type="button"
+                onClick={() => setActiveCategory('__uncategorized__')}
+                className={`category-item ${activeCategory === '__uncategorized__' ? 'active' : ''}`}
+              >
+                <span className="cat-name">
+                  <span className="cat-icon">📂</span>
+                  未分类
+                </span>
+                <span className="cat-count">{activeCountNotes.filter(n => !n.category).length}</span>
+              </button>
+              {addingCategory && (
+                <div className="category-add-form">
+                  <input
+                    autoFocus
+                    className="category-add-input"
+                    placeholder="分类名称..."
+                    value={newCategoryName}
+                    onChange={e => setNewCategoryName(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') handleCreateCategory();
+                      if (e.key === 'Escape') setAddingCategory(false);
+                    }}
+                    onBlur={() => {
+                      if (!newCategoryName.trim()) setAddingCategory(false);
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </aside>
+
+        {/* 主内容区 */}
+        <div className="flex-1 min-w-0">
+          {/* 状态筛选栏：活跃笔记 */}
+          <div className="status-filter-bar" role="group">
+            {activeFilters.map(f => {
+              const count = f.value === ''
+                ? categoryActiveNotes.length
+                : categoryActiveNotes.filter(n => (n.status || 'note') === f.value).length;
+              const StatusIcon = f.value === '' ? FileText
+                : f.value === 'note' ? FileText
+                : f.value === 'todo' ? Circle
+                : Loader;
+              return (
+                <button type="button"
+                  key={f.value}
+                  onClick={() => handleStatusChange(f.value)}
+                  className={`status-pill ${getStatusActiveClass(f.value, activeStatus)}`}
+                >
+                  <span className="pill-icon"><StatusIcon size={12} /></span>
+                  {f.label}
+                  <span className="pill-count">{count}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* 已完成/已归档状态栏 */}
+          <div className="status-filter-bar status-filter-bar-done">
+            {doneFilters.map(f => {
+              const count = categoryAllNotes.filter(n => n.status === f.value).length;
+              const StatusIcon = f.value === 'done' ? CheckCircle : Archive;
+              return (
+                <button
+                  key={f.value}
+                  onClick={() => handleStatusChange(f.value)}
+                  className={`status-pill status-pill-done ${getStatusActiveClass(f.value, activeStatus)}`}
+                >
+                  <span className="pill-icon"><StatusIcon size={12} /></span>
+                  {f.label}
+                  <span className="pill-count">{count}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* 区域标题行 + 视图切换 */}
+          <div className="section-header" style={{ marginTop: 20 }}>
+            <div className="section-header-left">
+              <span className="section-title-dot" />
+              <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                全部笔记
+              </span>
+              <span className="section-count">{notes.length}</span>
+            </div>
+            <div className="view-toggle">
+              <button
+                onClick={() => setViewMode('wall')}
+                className={`view-btn ${viewMode === 'wall' ? 'active' : ''}`}
+              >
+                <LayoutGrid size={14} />
+                网格
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
+              >
+                <List size={14} />
+                列表
+              </button>
+              <button
+                onClick={() => setViewMode('swimlane')}
+                className={`view-btn ${viewMode === 'swimlane' ? 'active' : ''}`}
+              >
+                <Columns size={14} />
+                泳道
+              </button>
+            </div>
+          </div>
+
+          {/* 桌面版内容区域 */}
+          {notes.length === 0 && !activeTag && !activeStatus ? (
+            <EmptyState onCreateNote={handleCreateNote} />
+          ) : viewMode === 'wall' ? (
+            <CardWall
+              notes={notes}
+              onNoteClick={handleNoteClick}
+              onDelete={handleDelete}
+              onTagClick={handleTagClick}
+            />
+          ) : viewMode === 'list' ? (
+            <SmartCardGrid
+              notes={notes}
+              onNoteClick={handleNoteClick}
+              onDelete={handleDelete}
+              onTagClick={handleTagClick}
+            />
+          ) : (
+            <SwimlaneBoard
+              notes={notes}
+              categories={categories}
+              onNoteClick={handleNoteClick}
+              onDelete={handleDelete}
+              onTagClick={handleTagClick}
+              activeCategory={activeCategory}
+              onCategoryClick={setActiveCategory}
+              onMoveNote={handleMoveNote}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* 移动版: 标签栏 + 页面指示点 + 滑动切换 */}
+      <div className="md:hidden flex flex-col" style={{ height: 'calc(100vh - 50px - 56px)' }}>
+        <div className="flex-1 min-h-0">
+          <SwipeStatusTabs
+            allNotes={allNotes}
+            activeStatus={activeStatus}
+            onStatusChange={handleStatusChange}
+            onNoteClick={handleNoteClick}
+            onDelete={handleDelete}
+            onTagClick={handleTagClick}
+            onCreateNote={handleCreateNote}
+          />
+        </div>
+      </div>
+    </>
+  ), [notes, allNotes, categories, activeCategory, activeStatus, activeTag, viewMode, sensors,
+      categoryActiveNotes, categoryAllNotes, activeCountNotes, addingCategory, newCategoryName,
+      handleDragEnd, handleCreateCategory, handleStatusChange, handleNoteClick, handleDelete,
+      handleTagClick, handleMoveNote, handleCreateNote, setAddingCategory, setNewCategoryName,
+      setActiveCategory, setActiveStatus, setViewMode]);
+
+  // ============ 欢迎区域（分页模式） ============
+  const renderWelcomeSection = useMemo(() => (
+    <div className="animate-fade-in">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <button
+          onClick={() => navigate('/notes')}
+          className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700
+            hover:border-accent hover:shadow-md transition-all text-left group"
+        >
+          <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center mb-3">
+            <LayoutGrid size={20} className="text-blue-500" />
+          </div>
+          <h3 className="font-semibold text-sm text-gray-900 dark:text-white group-hover:text-accent transition-colors">
+            全部笔记
+          </h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            查看、编辑和管理所有笔记卡片
+          </p>
+          <span className="text-[11px] text-accent mt-2 inline-block opacity-0 group-hover:opacity-100 transition-opacity">
+            进入笔记 →
+          </span>
+        </button>
+
+        <button
+          onClick={() => navigate('/board')}
+          className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700
+            hover:border-accent hover:shadow-md transition-all text-left group"
+        >
+          <div className="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center mb-3">
+            <Columns size={20} className="text-emerald-500" />
+          </div>
+          <h3 className="font-semibold text-sm text-gray-900 dark:text-white group-hover:text-accent transition-colors">
+            看板视图
+          </h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            拖拽管理笔记状态与优先级
+          </p>
+          <span className="text-[11px] text-accent mt-2 inline-block opacity-0 group-hover:opacity-100 transition-opacity">
+            进入看板 →
+          </span>
+        </button>
+
+        <button
+          onClick={() => navigate('/ai')}
+          className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700
+            hover:border-accent hover:shadow-md transition-all text-left group"
+        >
+          <div className="w-10 h-10 rounded-lg bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center mb-3">
+            <FileText size={20} className="text-purple-500" />
+          </div>
+          <h3 className="font-semibold text-sm text-gray-900 dark:text-white group-hover:text-accent transition-colors">
+            AI 助手
+          </h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            智能问答、任务拆解与分析
+          </p>
+          <span className="text-[11px] text-accent mt-2 inline-block opacity-0 group-hover:opacity-100 transition-opacity">
+            开始对话 →
+          </span>
+        </button>
+
+        <button
+          onClick={() => navigate('/memos')}
+          className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700
+            hover:border-accent hover:shadow-md transition-all text-left group"
+        >
+          <div className="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center mb-3">
+            <Plus size={20} className="text-amber-500" />
+          </div>
+          <h3 className="font-semibold text-sm text-gray-900 dark:text-white group-hover:text-accent transition-colors">
+            快捷备忘
+          </h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            快速记录灵感和随手笔记
+          </p>
+          <span className="text-[11px] text-accent mt-2 inline-block opacity-0 group-hover:opacity-100 transition-opacity">
+            记录备忘 →
+          </span>
+        </button>
+      </div>
+    </div>
+  ), [navigate]);
+
+  // ============ 骨架屏：notes区域加载中 ============
+  const renderNotesSkeleton = () => (
+    <div className="animate-fade-in space-y-4">
+      <div className="hidden md:flex gap-6">
+        <aside className="w-48 flex-shrink-0">
+          <div className="space-y-2">
+            <div className="h-8 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 bg-[length:200%_100%] animate-shimmer rounded-lg" />
+            <div className="h-8 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 bg-[length:200%_100%] animate-shimmer rounded-lg" />
+            <div className="h-8 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 bg-[length:200%_100%] animate-shimmer rounded-lg" />
+            <div className="h-8 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 bg-[length:200%_100%] animate-shimmer rounded-lg" />
+            <div className="h-8 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 bg-[length:200%_100%] animate-shimmer rounded-lg" />
+          </div>
+        </aside>
+        <div className="flex-1 space-y-4">
+          <div className="flex gap-2">
+            <div className="h-8 w-20 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 bg-[length:200%_100%] animate-shimmer rounded-full" />
+            <div className="h-8 w-20 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 bg-[length:200%_100%] animate-shimmer rounded-full" />
+            <div className="h-8 w-20 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 bg-[length:200%_100%] animate-shimmer rounded-full" />
+            <div className="h-8 w-20 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 bg-[length:200%_100%] animate-shimmer rounded-full" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="h-32 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 bg-[length:200%_100%] animate-shimmer rounded-xl" />
+            <div className="h-32 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 bg-[length:200%_100%] animate-shimmer rounded-xl" />
+            <div className="h-32 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 bg-[length:200%_100%] animate-shimmer rounded-xl" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (loading && mode === 'default') {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
+      </div>
+    );
+  }
+
+  // notes模式加载中显示骨架屏
+  if (mode === 'notes' && loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+        <CommandBar breadcrumb="笔记" showBack lastSync={null} />
+        <main className="max-w-7xl mx-auto px-4 py-4">
+          <div className="hidden md:flex gap-6">
+            <aside className="w-48 flex-shrink-0">
+              <div className="space-y-2">
+                <div className="h-8 shimmer-skeleton rounded-lg" />
+                <div className="h-8 shimmer-skeleton rounded-lg" />
+                <div className="h-8 shimmer-skeleton rounded-lg" />
+                <div className="h-8 shimmer-skeleton rounded-lg" />
+              </div>
+            </aside>
+            <div className="flex-1 space-y-4">
+              <div className="flex gap-2">
+                <div className="h-8 w-20 shimmer-skeleton rounded-full" />
+                <div className="h-8 w-20 shimmer-skeleton rounded-full" />
+                <div className="h-8 w-20 shimmer-skeleton rounded-full" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="h-32 shimmer-skeleton rounded-xl" />
+                <div className="h-32 shimmer-skeleton rounded-xl" />
+                <div className="h-32 shimmer-skeleton rounded-xl" />
+              </div>
+            </div>
+          </div>
+        </main>
       </div>
     );
   }
@@ -293,7 +668,8 @@ export default function Home({ categories = [], onVoiceInput }) {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <CommandBar
-        breadcrumb="首页"
+        breadcrumb={mode === 'notes' ? '笔记' : '首页'}
+        showBack={mode === 'notes'}
         lastSync={lastSync}
         onRefresh={refresh}
         loading={loading}
@@ -301,220 +677,39 @@ export default function Home({ categories = [], onVoiceInput }) {
       />
 
       <main className="max-w-7xl mx-auto px-4 py-4 space-y-6">
-        {/* 今日焦点模块 */}
-        <TodayFocus
-          username={user?.username}
-          allNotes={allNotes}
-          onNoteClick={handleNoteClick}
-          onCreateNote={handleCreateNote}
-          onVoiceInput={onVoiceInput}
-          onToggleStatus={handleToggleStatus}
-          onInsightAction={(action) => {
-            if (action === 'view-overdue') navigate('/ai/overdue');
-            else if (action === 'view-statistics') navigate('/ai/weekly');
-            else if (action === 'organize-tasks') navigate('/ai/associations');
-          }}
-        />
-
-        {/* 桌面端：分栏布局 */}
-        <div className="hidden md:flex gap-6">
-          {/* 分类侧边栏 */}
-          <aside className="w-48 flex-shrink-0">
-            <div className="category-sidebar">
-              <div className="category-sidebar-title">
-                <span>分类</span>
-                <button type="button"
-                  className="category-add-btn"
-                  onClick={() => { setAddingCategory(true); setNewCategoryName(''); }}
-                  title="新增分类"
-                >
-                  <Plus size={12} />
-                </button>
-              </div>
-              <div className="category-list">
-                <button type="button"
-                  onClick={() => setActiveCategory(null)}
-                  className={`category-item ${!activeCategory ? 'active' : ''}`}
-                >
-                  <span className="cat-name">
-                    <span className="cat-icon">📋</span>
-                    全部
-                  </span>
-                  <span className="cat-count">{activeCountNotes.length}</span>
-                </button>
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                  <SortableContext items={categories.map(c => c.name)} strategy={verticalListSortingStrategy}>
-                    {categories.map(cat => {
-                      const count = activeCountNotes.filter(n => n.category === cat.name).length;
-                      return (
-                        <SortableCategoryItem
-                          key={cat.name}
-                          cat={cat}
-                          active={activeCategory === cat.name}
-                          count={count}
-                          onClick={() => setActiveCategory(cat.name)}
-                        />
-                      );
-                    })}
-                  </SortableContext>
-                </DndContext>
-                <button type="button"
-                  onClick={() => setActiveCategory('__uncategorized__')}
-                  className={`category-item ${activeCategory === '__uncategorized__' ? 'active' : ''}`}
-                >
-                  <span className="cat-name">
-                    <span className="cat-icon">📂</span>
-                    未分类
-                  </span>
-                  <span className="cat-count">{activeCountNotes.filter(n => !n.category).length}</span>
-                </button>
-                {addingCategory && (
-                  <div className="category-add-form">
-                    <input
-                      autoFocus
-                      className="category-add-input"
-                      placeholder="分类名称..."
-                      value={newCategoryName}
-                      onChange={e => setNewCategoryName(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') handleCreateCategory();
-                        if (e.key === 'Escape') setAddingCategory(false);
-                      }}
-                      onBlur={() => {
-                        if (!newCategoryName.trim()) setAddingCategory(false);
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          </aside>
-
-          {/* 主内容区 */}
-          <div className="flex-1 min-w-0">
-            {/* 状态筛选栏：活跃笔记 */}
-            <div className="status-filter-bar" role="group">
-              {activeFilters.map(f => {
-                const count = f.value === ''
-                  ? categoryActiveNotes.length
-                  : categoryActiveNotes.filter(n => (n.status || 'note') === f.value).length;
-                const StatusIcon = f.value === '' ? FileText
-                  : f.value === 'note' ? FileText
-                  : f.value === 'todo' ? Circle
-                  : Loader;
-                return (
-                  <button type="button"
-                    key={f.value}
-                    onClick={() => handleStatusChange(f.value)}
-                    className={`status-pill ${getStatusActiveClass(f.value, activeStatus)}`}
-                  >
-                    <span className="pill-icon"><StatusIcon size={12} /></span>
-                    {f.label}
-                    <span className="pill-count">{count}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* 已完成/已归档状态栏 */}
-            <div className="status-filter-bar status-filter-bar-done">
-              {doneFilters.map(f => {
-                const count = categoryAllNotes.filter(n => n.status === f.value).length;
-                const StatusIcon = f.value === 'done' ? CheckCircle : Archive;
-                return (
-                  <button
-                    key={f.value}
-                    onClick={() => handleStatusChange(f.value)}
-                    className={`status-pill status-pill-done ${getStatusActiveClass(f.value, activeStatus)}`}
-                  >
-                    <span className="pill-icon"><StatusIcon size={12} /></span>
-                    {f.label}
-                    <span className="pill-count">{count}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* 区域标题行 + 视图切换 */}
-            <div className="section-header" style={{ marginTop: 20 }}>
-              <div className="section-header-left">
-                <span className="section-title-dot" />
-                <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                  全部笔记
-                </span>
-                <span className="section-count">{notes.length}</span>
-              </div>
-              <div className="view-toggle">
-                <button
-                  onClick={() => setViewMode('wall')}
-                  className={`view-btn ${viewMode === 'wall' ? 'active' : ''}`}
-                >
-                  <LayoutGrid size={14} />
-                  网格
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
-                >
-                  <List size={14} />
-                  列表
-                </button>
-                <button
-                  onClick={() => setViewMode('swimlane')}
-                  className={`view-btn ${viewMode === 'swimlane' ? 'active' : ''}`}
-                >
-                  <Columns size={14} />
-                  泳道
-                </button>
-              </div>
-            </div>
-
-            {/* 桌面版内容区域 */}
-            {notes.length === 0 && !activeTag && !activeStatus ? (
-              <EmptyState onCreateNote={handleCreateNote} />
-            ) : viewMode === 'wall' ? (
-              <CardWall
-                notes={notes}
-                onNoteClick={handleNoteClick}
-                onDelete={handleDelete}
-                onTagClick={handleTagClick}
-              />
-            ) : viewMode === 'list' ? (
-              <SmartCardGrid
-                notes={notes}
-                onNoteClick={handleNoteClick}
-                onDelete={handleDelete}
-                onTagClick={handleTagClick}
-              />
-            ) : (
-              <SwimlaneBoard
-                notes={notes}
-                categories={categories}
-                onNoteClick={handleNoteClick}
-                onDelete={handleDelete}
-                onTagClick={handleTagClick}
-                activeCategory={activeCategory}
-                onCategoryClick={setActiveCategory}
-                onMoveNote={handleMoveNote}
-              />
-            )}
-          </div>
-        </div>
-
-        {/* 移动版: 标签栏 + 页面指示点 + 滑动切换 */}
-        <div className="md:hidden flex flex-col" style={{ height: 'calc(100vh - 50px - 56px)' }}>
-          <div className="flex-1 min-h-0">
-            <SwipeStatusTabs
+        {/* mode=default: 工作台 + 欢迎/笔记 */}
+        {mode === 'default' && (
+          <>
+            <TodayFocus
+              username={user?.username}
               allNotes={allNotes}
-              activeStatus={activeStatus}
-              onStatusChange={handleStatusChange}
               onNoteClick={handleNoteClick}
-              onDelete={handleDelete}
-              onTagClick={handleTagClick}
               onCreateNote={handleCreateNote}
+              onVoiceInput={onVoiceInput}
+              onToggleStatus={handleToggleStatus}
+              onInsightAction={(action) => {
+                if (action === 'view-overdue') navigate('/ai/overdue');
+                else if (action === 'view-statistics') navigate('/ai/weekly');
+                else if (action === 'organize-tasks') navigate('/ai/associations');
+              }}
             />
-          </div>
-        </div>
+
+            {homeLayout === 'combined' ? (
+              notesReady ? (
+                <div className="animate-fade-in">
+                  {renderNotesSection}
+                </div>
+              ) : (
+                renderNotesSkeleton()
+              )
+            ) : (
+              renderWelcomeSection
+            )}
+          </>
+        )}
+
+        {/* mode=notes: 仅笔记详情区域 */}
+        {mode === 'notes' && renderNotesSection}
       </main>
 
       {(isCreating || editingNote) && (

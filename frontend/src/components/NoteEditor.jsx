@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
 import { X, Save, Eye } from 'lucide-react';
 import TagChip from './TagChip';
 import MarkdownRenderer from './MarkdownRenderer';
@@ -35,6 +35,13 @@ export default function NoteEditor({ note, onSave, onClose }) {
   const draftData = { title, content, tags, status, priority, dueDate, recurrence, category };
 
   const { clearDraft, getDraft } = useAutoSave(noteId, draftData);
+
+  // 聚焦编辑器但不滚动页面
+  useLayoutEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.focus({ preventScroll: true });
+    }
+  }, []);
 
   // Load draft on mount for new notes
   useEffect(() => {
@@ -212,7 +219,6 @@ export default function NoteEditor({ note, onSave, onClose }) {
                 placeholder="开始写作... 支持 Markdown 语法&#10;&#10;使用 #标签 来添加标签"
                 className="w-full h-full min-h-[300px] bg-transparent outline-none resize-none
                   text-gray-900 dark:text-gray-100 placeholder-gray-400 leading-relaxed"
-                autoFocus
               />
               <FloatingAIToolbar
                 editorRef={textareaRef}

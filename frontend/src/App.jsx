@@ -15,6 +15,7 @@ import Profile from './pages/Profile';
 import PasswordVault from './pages/PasswordVault';
 import AIChat from './pages/AIChat';
 import MemosPage from './pages/MemosPage';
+import NotesPage from './pages/NotesPage';
 import OverduePage from './pages/OverduePage';
 import WeeklyPage from './pages/WeeklyPage';
 import AssociationsPage from './pages/AssociationsPage';
@@ -179,6 +180,21 @@ export default function App() {
                     <ErrorBoundary>
                       <PageTransition>
                         <PasswordVault />
+                      </PageTransition>
+                    </ErrorBoundary>
+                  </AuthGuard>
+                }
+              />
+              <Route
+                path="/notes"
+                element={
+                  <AuthGuard>
+                    <ErrorBoundary>
+                      <PageTransition>
+                        <NotesPage
+                          categories={categories}
+                          onVoiceInput={handleOpenVoiceInput}
+                        />
                       </PageTransition>
                     </ErrorBoundary>
                   </AuthGuard>

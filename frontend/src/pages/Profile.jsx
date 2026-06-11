@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Lock, Monitor, LogOut, Save, Trash2, Palette, Keyboard, KeyRound, Brain, Eye, EyeOff } from 'lucide-react';
+import { User, Mail, Lock, Monitor, LogOut, Save, Trash2, Palette, Keyboard, KeyRound, Brain, Eye, EyeOff, Layout } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../utils/api';
 import ThemeCustomizer from '../components/ThemeCustomizer';
@@ -56,6 +56,8 @@ export default function Profile() {
   const [aiTesting, setAiTesting] = useState(false);
   const [aiSaving, setAiSaving] = useState(false);
 
+  const [homeLayout, setHomeLayout] = useState('combined');
+
   useEffect(() => {
     if (user) {
       setEmail(user.email || '');
@@ -72,6 +74,16 @@ export default function Profile() {
     }
     if (activeTab === 'vault-pin') {
       checkVaultPin();
+    }
+  }, [activeTab]);
+
+  // 加载首页布局设置
+  useEffect(() => {
+    if (activeTab === 'home-layout') {
+      api.settings.get().then(res => {
+        const s = res.data || {};
+        setHomeLayout(s.homeLayout || 'combined');
+      }).catch(() => {});
     }
   }, [activeTab]);
 
@@ -294,7 +306,18 @@ export default function Profile() {
     navigate('/login', { replace: true });
   };
 
-  // 保存AI设置
+  // 保存首页布局
+  const handleSaveHomeLayout = async () => {
+    setError('');
+    setSuccess('');
+    try {
+      await api.settings.update({ settings: { homeLayout } });
+      setSuccess('首页布局已保存');
+    } catch (err) {
+      setError(err.message || '保存失败');
+    }
+  };
+
   const handleSaveAI = async () => {
     setAiSaving(true);
     setError('');
@@ -356,6 +379,7 @@ export default function Profile() {
   };
 
   const tabs = [
+    { id: 'home-layout', label: '首页布局', icon: Layout },
     { id: 'profile', label: '个人资料', icon: User },
     { id: 'password', label: '修改密码', icon: Lock },
     { id: 'ai', label: 'AI设置', icon: Brain },
@@ -904,6 +928,231 @@ export default function Profile() {
                       {aiSaving ? '保存中...' : '保存设置'}
                     </button>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* 首页布局 */}
+            {activeTab === 'home-layout' && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">首页布局</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                  控制首页工作台与笔记详情的展示方式
+                </p>
+
+                <div className="space-y-4">
+                  {/* 合并一页 — 模拟 Win+↑ 最大化合并 */}
+                  <label
+                    onClick={() => setHomeLayout('combined')}
+                    className={`block p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                      homeLayout === 'combined'
+                        ? 'border-accent bg-accent-50 dark:bg-accent-900/20'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                    }`}
+                  >
+                    <div className="flex items-start gap-4">
+                      {/* 动效预览 */}
+                      <div className="relative w-28 h-24 flex-shrink-0 rounded-lg overflow-hidden">
+                        {/* 背景桌面 */}
+                        <div className="absolute inset-0 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600" />
+                        {/* 被拖拽合并 → 单个窗口占满 */}
+                        <div className={`absolute inset-1 rounded-md border-2 border-accent/40
+                          transition-all duration-700 ease-out overflow-hidden
+                          ${homeLayout === 'combined'
+                            ? 'opacity-100 scale-100'
+                            : 'opacity-30 scale-90 translate-y-2'
+                          }`}
+                          style={homeLayout === 'combined'
+                            ? { boxShadow: '0 0 12px rgba(99,102,241,0.3)' }
+                            : {}}>
+                          {/* 标题栏 */}
+                          <div className="h-3 bg-gray-200 dark:bg-gray-700 flex items-center px-1 gap-0.5">
+                            <div className="w-1 h-1 rounded-full bg-red-400" />
+                            <div className="w-1 h-1 rounded-full bg-yellow-400" />
+                            <div className="w-1 h-1 rounded-full bg-green-400" />
+                          </div>
+                          {/* 工作台区域 */}
+                          <div className={`h-[34%] bg-gradient-to-b from-red-100/80 to-red-50/60 dark:from-red-900/30 dark:to-red-800/20
+                            flex items-center justify-center text-[6px] font-semibold text-red-500 dark:text-red-400
+                            transition-all duration-500 delay-100
+                            ${homeLayout === 'combined' ? 'opacity-100' : 'opacity-60'}`}>
+                            <div className="flex flex-col items-center gap-0.5">
+                              <div className="flex gap-0.5">
+                                <div className="w-2 h-1 rounded-[1px] bg-red-300 dark:bg-red-600" />
+                                <div className="w-2 h-1 rounded-[1px] bg-red-300 dark:bg-red-600" />
+                              </div>
+                              <span className="tracking-wider">工作台</span>
+                            </div>
+                          </div>
+                          {/* 笔记区域 */}
+                          <div className={`h-[calc(100%-3px-34%)] bg-gradient-to-b from-blue-50/60 to-blue-100/80 dark:from-blue-800/20 dark:to-blue-900/30
+                            flex items-center justify-center text-[6px] font-semibold text-blue-500 dark:text-blue-400
+                            transition-all duration-500 delay-200
+                            ${homeLayout === 'combined' ? 'opacity-100' : 'opacity-40'}`}>
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className="tracking-wider">笔记</span>
+                              <div className="flex gap-0.5">
+                                <div className="w-1.5 h-1 rounded-[1px] bg-blue-300 dark:bg-blue-600" />
+                                <div className="w-1.5 h-1 rounded-[1px] bg-blue-300 dark:bg-blue-600" />
+                                <div className="w-1.5 h-1 rounded-[1px] bg-blue-300 dark:bg-blue-600" />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        {/* 选中时 snap 动效 */}
+                        {homeLayout === 'combined' && (
+                          <>
+                            <div className="absolute inset-0 border-2 border-accent rounded-lg animate-pulse pointer-events-none" style={{ animationDuration: '1.5s' }} />
+                            <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-accent rounded-full flex items-center justify-center">
+                              <svg className="w-2 h-2 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
+                            homeLayout === 'combined'
+                              ? 'border-accent bg-accent scale-110'
+                              : 'border-gray-300 dark:border-gray-600'
+                          }`}>
+                            {homeLayout === 'combined' && (
+                              <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                            )}
+                          </div>
+                          <div className="font-medium text-sm text-gray-900 dark:text-white">合并一页</div>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
+                          工作台与笔记详情在同一页面，模块间带加载动效过渡
+                        </p>
+                        <div className="mt-2 ml-6 flex gap-1.5">
+                          <span className="px-1.5 py-0.5 rounded text-[9px] bg-red-50 dark:bg-red-900/30 text-red-500 font-medium">
+                            ⌨ 工作台
+                          </span>
+                          <span className="text-[9px] text-gray-300 dark:text-gray-600 self-center">+</span>
+                          <span className="px-1.5 py-0.5 rounded text-[9px] bg-blue-50 dark:bg-blue-900/30 text-blue-500 font-medium">
+                            📋 笔记
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </label>
+
+                  {/* 分两页 — 模拟 Win+←/→ 并排分屏 */}
+                  <label
+                    onClick={() => setHomeLayout('separated')}
+                    className={`block p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                      homeLayout === 'separated'
+                        ? 'border-accent bg-accent-50 dark:bg-accent-900/20'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                    }`}
+                  >
+                    <div className="flex items-start gap-4">
+                      {/* 动效预览 — 两个窗口并排 */}
+                      <div className="relative w-28 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600">
+                        {/* 左侧窗口：首页 */}
+                        <div className={`absolute left-1 top-1 bottom-1 w-[38%]
+                          rounded-[3px] border overflow-hidden
+                          transition-all duration-600 ease-out
+                          ${homeLayout === 'separated'
+                            ? 'border-gray-300 dark:border-gray-500 opacity-100 translate-x-0'
+                            : 'border-gray-200 dark:border-gray-700 opacity-40 -translate-x-1'
+                          }`}
+                          style={homeLayout === 'separated'
+                            ? { boxShadow: '1px 0 5px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06)' }
+                            : {}}>
+                          {/* 标题栏 */}
+                          <div className="h-2.5 bg-gradient-to-r from-red-200 to-red-100 dark:from-red-800/60 dark:to-red-700/40 flex items-center px-1">
+                            <div className="w-0.5 h-0.5 rounded-full bg-red-500 dark:bg-red-400 mr-0.5" />
+                            <span className="text-[4px] font-bold text-red-700 dark:text-red-300">首页</span>
+                          </div>
+                          {/* 内容模拟 */}
+                          <div className="h-[calc(100%-10px)] bg-white/80 dark:bg-gray-700/60 flex flex-col items-center justify-center gap-0.5 text-[5px] text-red-500 dark:text-red-400">
+                            <div className="w-4 h-2 rounded-[1px] bg-red-100 dark:bg-red-900/40" />
+                            <div className="w-3 h-1.5 rounded-[1px] bg-red-100 dark:bg-red-900/40" />
+                            <span>工作台</span>
+                          </div>
+                        </div>
+                        {/* 右侧窗口：笔记 */}
+                        <div className={`absolute right-1 top-1 bottom-1 w-[38%]
+                          rounded-[3px] border overflow-hidden
+                          transition-all duration-600 ease-out
+                          ${homeLayout === 'separated'
+                            ? 'border-gray-300 dark:border-gray-500 opacity-100 translate-x-0'
+                            : 'opacity-40 translate-x-1'
+                          }`}
+                          style={homeLayout === 'separated'
+                            ? { boxShadow: '-1px 0 5px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06)' }
+                            : {}}>
+                          {/* 标题栏 */}
+                          <div className="h-2.5 bg-gradient-to-r from-blue-100 to-blue-200 dark:from-blue-700/40 dark:to-blue-800/60 flex items-center px-1">
+                            <div className="w-0.5 h-0.5 rounded-full bg-blue-500 dark:bg-blue-400 mr-0.5" />
+                            <span className="text-[4px] font-bold text-blue-700 dark:text-blue-300">笔记</span>
+                          </div>
+                          {/* 内容模拟 */}
+                          <div className="h-[calc(100%-10px)] bg-white/80 dark:bg-gray-700/60 flex flex-col items-center justify-center gap-0.5 text-[5px] text-blue-500 dark:text-blue-400">
+                            <div className="flex gap-0.5">
+                              <div className="w-1.5 h-1.5 rounded-[1px] bg-blue-100 dark:bg-blue-900/40" />
+                              <div className="w-1.5 h-1.5 rounded-[1px] bg-blue-100 dark:bg-blue-900/40" />
+                            </div>
+                            <div className="w-3 h-1 rounded-[1px] bg-blue-100 dark:bg-blue-900/40" />
+                            <span>全部笔记</span>
+                          </div>
+                        </div>
+                        {/* 中间间隙 + 半透明 snap 叠加指示 */}
+                        <div className="absolute left-1/2 top-1 bottom-1 w-[18%] flex items-center justify-center text-[6px] text-gray-400 font-medium">
+                          {homeLayout === 'separated' && (
+                            <div className="animate-pulse text-accent" style={{ animationDuration: '1.8s' }}>▮▮</div>
+                          )}
+                        </div>
+                        {/* 选中标记 */}
+                        {homeLayout === 'separated' && (
+                          <>
+                            <div className="absolute inset-0 border-2 border-accent rounded-lg animate-pulse pointer-events-none" style={{ animationDuration: '1.5s' }} />
+                            <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-accent rounded-full flex items-center justify-center">
+                              <svg className="w-2 h-2 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
+                            homeLayout === 'separated'
+                              ? 'border-accent bg-accent scale-110'
+                              : 'border-gray-300 dark:border-gray-600'
+                          }`}>
+                            {homeLayout === 'separated' && (
+                              <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                            )}
+                          </div>
+                          <div className="font-medium text-sm text-gray-900 dark:text-white">分两页</div>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
+                          首页仅展示工作台与欢迎页面，笔记详情独立为单独页面
+                        </p>
+                        <div className="mt-2 ml-6 flex gap-1.5">
+                          <span className="px-1.5 py-0.5 rounded text-[9px] bg-red-50 dark:bg-red-900/30 text-red-500 font-medium">
+                            🏠 首页
+                          </span>
+                          <span className="text-[9px] text-gray-300 dark:text-gray-600 self-center">→</span>
+                          <span className="px-1.5 py-0.5 rounded text-[9px] bg-blue-50 dark:bg-blue-900/30 text-blue-500 font-medium">
+                            📋 笔记页
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </label>
+
+                  <button
+                    onClick={handleSaveHomeLayout}
+                    className="px-6 py-2.5 bg-accent-500 hover:bg-accent-600 text-white font-medium rounded-lg transition-colors inline-flex items-center gap-2"
+                  >
+                    <Save size={18} />
+                    保存布局
+                  </button>
                 </div>
               </div>
             )}

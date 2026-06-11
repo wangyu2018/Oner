@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Calendar, ListTodo } from 'lucide-react';
 
 function getDueCategory(note) {
@@ -10,8 +10,16 @@ function getDueCategory(note) {
   const diff = Math.floor((due - today) / 86400000);
   if (diff < 0) return 'overdue';
   if (diff === 0) return 'today';
-  if (diff <= 3) return 'upcoming';
   return null;
+}
+
+function isTomorrow(note) {
+  if (!note.due_date) return false;
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const due = new Date(note.due_date);
+  due.setHours(0, 0, 0, 0);
+  return Math.floor((due - today) / 86400000) === 1;
 }
 
 export default function TodoList({ notes = [], onNoteClick, onToggleStatus }) {
@@ -22,14 +30,17 @@ export default function TodoList({ notes = [], onNoteClick, onToggleStatus }) {
 
   const overdue = todos.filter(n => getDueCategory(n) === 'overdue');
   const today = todos.filter(n => getDueCategory(n) === 'today');
-  const upcoming = todos.filter(n => getDueCategory(n) === 'upcoming');
 
-  const totalCount = overdue.length + today.length + upcoming.length;
+  // 全部明日待办
+  const tomorrow = todos.filter(n => isTomorrow(n));
+  const [showTomorrow, setShowTomorrow] = useState(false);
+
+  const totalCount = overdue.length + today.length;
 
   if (totalCount === 0) return null;
 
-  function renderItem(note) {
-    const cat = getDueCategory(note);
+  function renderItem(note, fixedCat) {
+    const cat = fixedCat || getDueCategory(note);
     const title = note.title || '无标题';
     const tagColorMap = {
       '工作': 'bg-blue-50 text-blue-600',
@@ -50,9 +61,8 @@ export default function TodoList({ notes = [], onNoteClick, onToggleStatus }) {
           transition-all duration-150 hover:bg-gray-50 dark:hover:bg-gray-800/50
           ${cat === 'overdue' ? 'border-l-[3px] border-red-500 pl-[calc(0.75rem-3px)]' : ''}
           ${cat === 'today' ? 'border-l-[3px] border-amber-500 pl-[calc(0.75rem-3px)]' : ''}
-          ${cat === 'upcoming' ? 'border-l-[3px] border-gray-300 dark:border-gray-600 pl-[calc(0.75rem-3px)]' : ''}
-        `}
-      >
+          ${cat === 'tomorrow' ? 'border-l-[3px] border-blue-300 dark:border-blue-500 pl-[calc(0.75rem-3px)]' : ''}
+        `}>
         {/* 复选框 — 点击切换完成状态 */}
         <button
           onClick={handleCircleClick}
@@ -83,12 +93,14 @@ export default function TodoList({ notes = [], onNoteClick, onToggleStatus }) {
             <span className={`inline-flex items-center gap-1 text-[11px] ${
               cat === 'overdue' ? 'text-red-500 font-medium' :
               cat === 'today' ? 'text-amber-600 font-medium' :
+              cat === 'tomorrow' ? 'text-blue-500 font-medium' :
               'text-gray-400'
             }`}>
               <Calendar size={10} />
               {new Date(note.due_date).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}
               {cat === 'overdue' && ' (已过期)'}
               {cat === 'today' && ' (今天)'}
+              {cat === 'tomorrow' && ' (明天)'}
             </span>
 
             {/* 标签 */}
@@ -128,16 +140,38 @@ export default function TodoList({ notes = [], onNoteClick, onToggleStatus }) {
           <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
           今日待办
         </h3>
-        <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400">
-          {totalCount} 项
-        </span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowTomorrow(s => !s)}
+            className={`text-[11px] font-medium px-2 py-0.5 rounded-full transition-all
+              ${showTomorrow
+                ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+              }`}
+          >
+            明天待办 {tomorrow.length > 0 && `(${tomorrow.length})`}
+          </button>
+          <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400">
+            {totalCount} 项
+          </span>
+        </div>
       </div>
 
-      {/* List — 用左边框颜色区分，移除分组标题 */}
+      {/* List */}
       <div className="p-2">
         {overdue.map(renderItem)}
         {today.map(renderItem)}
-        {upcoming.map(renderItem)}
+
+        {showTomorrow && tomorrow.length > 0 && (
+          <>
+            <div className="flex items-center gap-2 px-3 pt-3 pb-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+              <span className="text-[11px] font-semibold text-blue-600 dark:text-blue-400">明天待办</span>
+              <span className="text-[10px] text-gray-400 ml-auto">{tomorrow.length} 项</span>
+            </div>
+            {tomorrow.map(n => renderItem(n, 'tomorrow'))}
+          </>
+        )}
       </div>
     </div>
   );
