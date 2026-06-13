@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback, useEffect, forwardRef, useImperat
 import { Mic, ArrowUp, X, FileText, Circle, Loader2, Sparkles, Pencil, Trash2, Check } from 'lucide-react';
 import { matchKeywords, HIGHLIGHT_STYLES, stripKeywords } from '../utils/keywordMatcher';
 import { api } from '../utils/api';
+import { usePluginManagerContext } from '../App';
 
 export default forwardRef(function GlobalQuickEntry({
   onCreateNote, onVoiceInput, categories = [], activeCategory = null,
@@ -26,6 +27,8 @@ export default forwardRef(function GlobalQuickEntry({
   // 润色预览卡片
   const [polishPreview, setPolishPreview] = useState(null); // { text, keywords }
   const [editingNote, setEditingNote] = useState(null); // 内联编辑的笔记
+  const { isPluginActive } = usePluginManagerContext();
+  const aiEnabled = isPluginActive?.('oner.plugin.ai') ?? true;
 
   // 预览卡片展开编辑
   const [expanded, setExpanded] = useState(false);
@@ -575,8 +578,8 @@ export default forwardRef(function GlobalQuickEntry({
               )}
             </div>
 
-            {/* AI 润色按钮 */}
-            {hasText && !creating && !compact && (
+            {/* AI 润色按钮 — AI 插件启用时显示 */}
+            {hasText && !creating && !compact && aiEnabled && (
               <button
                 onClick={handlePolish}
                 disabled={polishing}

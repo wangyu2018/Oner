@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, ChevronDown, ChevronUp, Lightbulb, BookOpen, PenLine, Loader2 } from 'lucide-react';
+import { Sparkles, ChevronDown, ChevronUp, Lightbulb, BookOpen, PenLine, Loader2, PlugZap } from 'lucide-react';
 import { api } from '../utils/api';
+import { usePluginManagerContext } from '../App';
 
 const QUICK_TAGS = [
   '拆解任务', '推荐行动', '扩展内容', '总结要点', '生成标题', '翻译英文', '润色表达',
@@ -13,6 +14,8 @@ export default function AIAssistant({ noteId, content, title, onContentUpdate })
   const [continuations, setContinuations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeAction, setActiveAction] = useState(null);
+  const { isPluginActive } = usePluginManagerContext();
+  const aiEnabled = isPluginActive?.('oner.plugin.ai') ?? true;
 
   // 加载建议
   useEffect(() => {
@@ -93,6 +96,20 @@ export default function AIAssistant({ noteId, content, title, onContentUpdate })
       onContentUpdate(content + '\n\n' + text.replace('...', ''));
     }
   };
+
+  // AI 插件已停用
+  if (!aiEnabled) {
+    return (
+      <div className="border-t border-gray-100 dark:border-gray-800">
+        <div className="h-10 flex items-center gap-2 px-4 opacity-40 cursor-not-allowed">
+          <PlugZap size={14} className="text-gray-400" />
+          <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">AI 助手</span>
+          <span className="text-[10px] px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 text-gray-400 rounded">已停用</span>
+          <span className="ml-auto text-[10px] text-gray-400">前往设置启用</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="border-t border-gray-100 dark:border-gray-800">

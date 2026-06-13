@@ -127,11 +127,16 @@ export default function App() {
 
   const isLoggedIn = !!auth.user;
 
+  // 插件状态查询（稳定引用）
+  const isPluginActive = useCallback((pluginId) => {
+    return plugins.some(p => p.id === pluginId && p.status === 'active');
+  }, [plugins]);
+
   return (
     <ThemeContext.Provider value={{ ...theme, customTheme }}>
       <AuthContext.Provider value={auth}>
         <CommandPaletteContext.Provider value={{ openPalette, closePalette, setCategories }}>
-          <PluginManagerContext.Provider value={{ pluginManager, plugins, sidebarItems, pluginCommands }}>
+          <PluginManagerContext.Provider value={{ pluginManager, plugins, sidebarItems, pluginCommands, isPluginActive }}>
             <BrowserRouter>
               <Routes>
                 {/* 公开路由 */}

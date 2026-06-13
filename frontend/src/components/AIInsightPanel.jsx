@@ -1,9 +1,12 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Calendar, BarChart3, Share2, AlertTriangle } from 'lucide-react';
+import { Sparkles, Calendar, BarChart3, Share2, AlertTriangle, PlugZap } from 'lucide-react';
+import { usePluginManagerContext } from '../App';
 
 export default function AIInsightPanel({ allNotes = [], onNoteClick, onInsightAction }) {
   const navigate = useNavigate();
+  const { isPluginActive } = usePluginManagerContext();
+  const aiEnabled = isPluginActive?.('oner.plugin.ai') ?? true;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -82,6 +85,22 @@ export default function AIInsightPanel({ allNotes = [], onNoteClick, onInsightAc
       route: '/ai/associations',
     },
   ];
+
+  // AI 插件已停用时显示禁用状态
+  if (!aiEnabled) {
+    return (
+      <div className="bg-gray-50 dark:bg-gray-800/50 rounded-[14px] border border-gray-200 dark:border-gray-800 p-4 opacity-60">
+        <div className="flex items-center gap-2 mb-2">
+          <PlugZap size={14} className="text-gray-400" />
+          <span className="text-sm font-medium text-gray-500 dark:text-gray-400">AI 洞察</span>
+          <span className="text-[10px] px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded">已停用</span>
+        </div>
+        <p className="text-xs text-gray-400 dark:text-gray-500">
+          AI 插件已禁用，前往 <button onClick={() => navigate('/profile')} className="text-accent hover:underline">设置 → 插件管理</button> 启用
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gradient-to-br from-violet-50/80 via-white to-indigo-50/80
