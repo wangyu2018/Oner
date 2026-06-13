@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { api } from '../utils/api';
 import ThemeCustomizer from '../components/ThemeCustomizer';
 import CommandBar from '../components/CommandBar';
+import { usePluginManagerContext } from '../App';
 
 const DEFAULT_SHORTCUTS = {
   commandPalette: { key: 'k', ctrl: true, shift: false, meta: true, label: '打开命令面板' },
@@ -61,6 +62,42 @@ export default function Profile() {
   // 插件管理
   const [installedPlugins, setInstalledPlugins] = useState([]);
   const [loadingPlugins, setLoadingPlugins] = useState(false);
+  const [togglingPlugin, setTogglingPlugin] = useState(null);
+  const pluginCtx = usePluginManagerContext();
+
+  // 插件功能描述
+  const PLUGIN_INFO = {
+    'oner.plugin.core-notes': {
+      desc: '笔记管理核心模块，提供笔记创建、编辑、分类、搜索等全部基础能力',
+      features: ['笔记 CRUD', '分类管理', '全文搜索', '状态筛选', '标签系统'],
+      routes: ['/ (首页)', '/notes/:id (笔记详情)'],
+      icon: '📝', tagClass: 'bg-accent-50 dark:bg-accent-900/30 text-accent-600 dark:text-accent-400',
+    },
+    'oner.plugin.ai': {
+      desc: 'AI 智能助手，支持笔记分析、任务拆解、内容润色和智能对话',
+      features: ['智能对话', '笔记分析', '内容润色', '分类总结'],
+      routes: ['/ai (AI 对话)'],
+      icon: '🤖', tagClass: 'bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400',
+    },
+    'oner.plugin.password': {
+      desc: '密码保险库，安全存储和管理各类账号密码，支持 PIN 二次验证',
+      features: ['密码存储', '自动分类', 'PIN 保护', '搜索过滤'],
+      routes: ['/passwords (密码库)'],
+      icon: '🔐', tagClass: 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400',
+    },
+    'oner.plugin.kanban': {
+      desc: '看板视图，以泳道/卡片形式管理任务，支持拖拽排序和状态流转',
+      features: ['泳道看板', '拖拽排序', '状态流转', '今日概览'],
+      routes: ['/board (看板)'],
+      icon: '📋', tagClass: 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
+    },
+    'oner.plugin.memo': {
+      desc: '备忘插件，快速记录和回顾碎片化备忘信息',
+      features: ['快速备忘', '时间线', '分类筛选'],
+      routes: ['/memos (备忘)'],
+      icon: '📌', tagClass: 'bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400',
+    },
+  };
 
   useEffect(() => {
     if (user) {
@@ -100,6 +137,27 @@ export default function Profile() {
       setSessions(data.sessions);
     } catch (err) {
       console.error('Load sessions error:', err);
+    }
+  };
+
+  // 切换插件启用/停用
+  const handleTogglePlugin = async (pluginId, currentStatus) => {
+    if (!pluginCtx?.pluginManager) return;
+    setTogglingPlugin(pluginId);
+    try {
+      if (currentStatus === 'active') {
+        await pluginCtx.pluginManager.deactivate(pluginId);
+      } else {
+        await pluginCtx.pluginManager.activate(pluginId);
+      }
+      // 更新本地状态
+      setInstalledPlugins(prev => prev.map(p =>
+        p.id === pluginId ? { ...p, status: currentStatus === 'active' ? 'inactive' : 'active' } : p
+      ));
+    } catch (err) {
+      console.error('Toggle plugin error:', err);
+    } finally {
+      setTogglingPlugin(null);
     }
   };
 
@@ -1229,12 +1287,13 @@ export default function Profile() {
                     {installedPlugins.map(plugin => (
                       <div
                         key={plugin.id}
-                        className={`flex items-center justify-between p-4 rounded-lg border transition-all ${
+                        className={`p-4 rounded-lg border transition-all ${
                           plugin.status === 'active'
                             ? 'border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-900/20'
                             : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800'
                         }`}
                       >
+                        <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg ${
                             plugin.type === 'core'
@@ -1276,13 +1335,18 @@ export default function Profile() {
                         <div className="flex items-center gap-2">
                           {!plugin.required && (
                             <button
+                              type="button"
+                              onClick={() => handleTogglePlugin(plugin.id, plugin.status)}
+                              disabled={togglingPlugin === plugin.id}
                               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1 ${
                                 plugin.status === 'active'
                                   ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50'
                                   : 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/50'
-                              }`}
+                              } disabled:opacity-50`}
                             >
-                              {plugin.status === 'active' ? (
+                              {togglingPlugin === plugin.id ? (
+                                <span className="animate-pulse">处理中...</span>
+                              ) : plugin.status === 'active' ? (
                                 <><PowerOff size={12} /> 停用</>
                               ) : (
                                 <><Power size={12} /> 启用</>
@@ -1290,6 +1354,35 @@ export default function Profile() {
                             </button>
                           )}
                         </div>
+                        </div>
+
+                        {/* 插件功能预览 */}
+                        {(() => {
+                          const info = PLUGIN_INFO[plugin.id];
+                          if (!info) return null;
+                          return (
+                            <div className={`mt-3 p-3 rounded-lg border transition-all ${
+                              plugin.status === 'active'
+                                ? 'bg-white dark:bg-gray-800/50 border-gray-100 dark:border-gray-700'
+                                : 'bg-gray-50 dark:bg-gray-800/30 border-gray-100 dark:border-gray-800 opacity-60'
+                            }`}>
+                              <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">{info.desc}</p>
+                              <div className="flex items-center gap-2 flex-wrap mb-2">
+                                {info.features.map(f => (
+                                  <span key={f} className={`px-1.5 py-0.5 text-[10px] rounded font-medium ${info.tagClass}`}>
+                                    {f}
+                                  </span>
+                                ))}
+                              </div>
+                              <div className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-500">
+                                <span>📍</span>
+                                {info.routes.map((r, i) => (
+                                  <span key={i} className="font-mono">{r}{i < info.routes.length - 1 ? ' · ' : ''}</span>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
                     ))}
                   </div>
