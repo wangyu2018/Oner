@@ -112,9 +112,19 @@ async function loadPlugins(manager) {
     }
   }
 
-  // 按依赖顺序激活
+  // 读取持久化的禁用列表，跳过已停用的插件
+  const disabledPlugins = (() => {
+    try {
+      const raw = localStorage.getItem('oner_disabled_plugins');
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  })();
+
+  // 按依赖顺序激活（跳过已停用的）
   const pluginIds = ['oner.plugin.core-notes', 'oner.plugin.ai', 'oner.plugin.password', 'oner.plugin.kanban'];
-  await manager.activateAll(pluginIds.filter((id) => !manager.isActive(id)));
+  await manager.activateAll(
+    pluginIds.filter((id) => !manager.isActive(id) && !disabledPlugins.includes(id))
+  );
 }
 
 export default usePluginManager;

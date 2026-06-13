@@ -14,6 +14,21 @@ import { PluginShell } from './PluginShell';
 import { PluginCommandBar } from './PluginCommandBar';
 import { PluginContextFactory } from './PluginContext';
 
+const PLUGIN_DISABLED_KEY = 'oner_disabled_plugins';
+
+function getDisabledPlugins() {
+  try {
+    const raw = localStorage.getItem(PLUGIN_DISABLED_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveDisabledPlugins(ids) {
+  try {
+    localStorage.setItem(PLUGIN_DISABLED_KEY, JSON.stringify(ids));
+  } catch { /* ignore */ }
+}
+
 export class PluginManager {
   constructor({ onRoutesChange, onUIChange, onCommandsChange, onPluginsChange }) {
     // 内核组件
@@ -89,6 +104,14 @@ export class PluginManager {
       plugin.status = 'active';
       console.log(`[PluginManager] Plugin activated: ${pluginId}`);
 
+      // 从禁用列表中移除
+      const disabled = getDisabledPlugins();
+      const idx = disabled.indexOf(pluginId);
+      if (idx !== -1) {
+        disabled.splice(idx, 1);
+        saveDisabledPlugins(disabled);
+      }
+
       // 发送全局事件
       this.eventBus.emit('plugin:activated', { pluginId });
       this._onPluginsChange(this.getPluginList());
@@ -135,6 +158,13 @@ export class PluginManager {
       plugin.status = 'registered';
       plugin.ctx = null;
       console.log(`[PluginManager] Plugin deactivated: ${pluginId}`);
+
+      // 记录禁用状态
+      const disabled = getDisabledPlugins();
+      if (!disabled.includes(pluginId)) {
+        disabled.push(pluginId);
+        saveDisabledPlugins(disabled);
+      }
 
       this.eventBus.emit('plugin:deactivated', { pluginId });
       this._onPluginsChange(this.getPluginList());
