@@ -161,7 +161,7 @@ export default function Profile() {
     }
   };
 
-  // 加载插件列表
+  // 加载插件列表 — 优先使用 PluginManagerContext 的实时状态
   const loadPlugins = async () => {
     setLoadingPlugins(true);
     try {
@@ -170,14 +170,19 @@ export default function Profile() {
       setInstalledPlugins(data.plugins || []);
     } catch (err) {
       console.error('Load plugins error:', err);
-      // 回退显示前端已知插件
-      setInstalledPlugins([
-        { id: 'oner.plugin.core-notes', name: '核心笔记', type: 'core', status: 'active', required: true },
-        { id: 'oner.plugin.ai', name: 'AI 智能助手', type: 'feature', status: 'active', required: false },
-        { id: 'oner.plugin.password', name: '密码保险库', type: 'feature', status: 'active', required: false },
-        { id: 'oner.plugin.kanban', name: '看板视图', type: 'feature', status: 'active', required: false },
-        { id: 'oner.plugin.memo', name: '备忘插件', type: 'feature', status: 'active', required: false },
-      ]);
+      // 从 PluginManagerContext 获取真实插件状态
+      const ctxPlugins = pluginCtx?.plugins || [];
+      const known = [
+        { id: 'oner.plugin.core-notes', name: '核心笔记', type: 'core', required: true },
+        { id: 'oner.plugin.ai', name: 'AI 智能助手', type: 'feature', required: false },
+        { id: 'oner.plugin.password', name: '密码保险库', type: 'feature', required: false },
+        { id: 'oner.plugin.kanban', name: '看板视图', type: 'feature', required: false },
+        { id: 'oner.plugin.memo', name: '备忘插件', type: 'feature', required: false },
+      ];
+      setInstalledPlugins(known.map(base => {
+        const live = ctxPlugins.find(p => p.id === base.id);
+        return { ...base, status: live ? live.status : 'active' };
+      }));
     } finally {
       setLoadingPlugins(false);
     }
