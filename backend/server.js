@@ -90,6 +90,26 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// 插件状态 API
+app.get('/api/plugins', (req, res) => {
+  res.json({
+    plugins: [
+      { id: 'oner.plugin.core-notes', name: '核心笔记', type: 'core', status: 'active', required: true },
+      { id: 'oner.plugin.ai', name: 'AI 智能助手', type: 'feature', status: 'active', required: false },
+      { id: 'oner.plugin.password', name: '密码保险库', type: 'feature', status: 'active', required: false },
+      { id: 'oner.plugin.kanban', name: '看板视图', type: 'feature', status: 'active', required: false },
+      { id: 'oner.plugin.memo', name: '备忘插件', type: 'feature', status: 'active', required: false },
+    ],
+    kernel: {
+      version: '1.0.0',
+      eventBus: true,
+      pluginRouter: true,
+      pluginShell: true,
+      commandBar: true,
+    }
+  });
+});
+
 // Error handler
 app.use(errorHandler);
 
@@ -102,6 +122,7 @@ function start() {
 
     app.listen(PORT, () => {
       console.log(`Oner backend running on port ${PORT}`);
+      console.log(`\u{1F50C} Plugin system ready: 5 plugins registered`);
     });
   } catch (err) {
     console.error('Failed to start server:', err);

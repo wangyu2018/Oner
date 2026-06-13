@@ -5,8 +5,9 @@
  * 负责：注册路由、注册侧边栏、注册命令栏、注册 UI 组件
  */
 
-import NotesPage from './pages/NotesPage';
-import NoteEditor from './pages/NoteEditor';
+// 迁移阶段：引用现有页面
+import NotesPage from '../../../pages/NotesPage';
+import NoteEditor from '../../../pages/ViewNote';
 
 export default {
   /**

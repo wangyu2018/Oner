@@ -2,7 +2,8 @@
  * @oner/plugin-password — 密码保险库插件入口
  */
 
-import PasswordVault from './pages/PasswordVault';
+// 迁移阶段：引用现有页面
+import PasswordVault from '../../../pages/PasswordVault';
 
 export default {
   async activate(ctx) {

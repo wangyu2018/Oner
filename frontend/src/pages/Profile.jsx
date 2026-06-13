@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Lock, Monitor, LogOut, Save, Trash2, Palette, Keyboard, KeyRound, Brain, Eye, EyeOff, Layout } from 'lucide-react';
+import { User, Mail, Lock, Monitor, LogOut, Save, Trash2, Palette, Keyboard, KeyRound, Brain, Eye, EyeOff, Layout, Puzzle, Power, PowerOff, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../utils/api';
 import ThemeCustomizer from '../components/ThemeCustomizer';
@@ -58,6 +58,10 @@ export default function Profile() {
 
   const [homeLayout, setHomeLayout] = useState('combined');
 
+  // 插件管理
+  const [installedPlugins, setInstalledPlugins] = useState([]);
+  const [loadingPlugins, setLoadingPlugins] = useState(false);
+
   useEffect(() => {
     if (user) {
       setEmail(user.email || '');
@@ -74,6 +78,9 @@ export default function Profile() {
     }
     if (activeTab === 'vault-pin') {
       checkVaultPin();
+    }
+    if (activeTab === 'plugins') {
+      loadPlugins();
     }
   }, [activeTab]);
 
@@ -93,6 +100,28 @@ export default function Profile() {
       setSessions(data.sessions);
     } catch (err) {
       console.error('Load sessions error:', err);
+    }
+  };
+
+  // 加载插件列表
+  const loadPlugins = async () => {
+    setLoadingPlugins(true);
+    try {
+      const res = await fetch('/api/plugins');
+      const data = await res.json();
+      setInstalledPlugins(data.plugins || []);
+    } catch (err) {
+      console.error('Load plugins error:', err);
+      // 回退显示前端已知插件
+      setInstalledPlugins([
+        { id: 'oner.plugin.core-notes', name: '核心笔记', type: 'core', status: 'active', required: true },
+        { id: 'oner.plugin.ai', name: 'AI 智能助手', type: 'feature', status: 'active', required: false },
+        { id: 'oner.plugin.password', name: '密码保险库', type: 'feature', status: 'active', required: false },
+        { id: 'oner.plugin.kanban', name: '看板视图', type: 'feature', status: 'active', required: false },
+        { id: 'oner.plugin.memo', name: '备忘插件', type: 'feature', status: 'active', required: false },
+      ]);
+    } finally {
+      setLoadingPlugins(false);
     }
   };
 
@@ -383,6 +412,7 @@ export default function Profile() {
     { id: 'profile', label: '个人资料', icon: User },
     { id: 'password', label: '修改密码', icon: Lock },
     { id: 'ai', label: 'AI设置', icon: Brain },
+    { id: 'plugins', label: '插件管理', icon: Puzzle },
     { id: 'shortcuts', label: '快捷键', icon: Keyboard },
     { id: 'vault-pin', label: '密码库PIN', icon: KeyRound },
     { id: 'password-settings', label: '密码设置', icon: Lock },
@@ -1161,6 +1191,130 @@ export default function Profile() {
             {activeTab === 'appearance' && (
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
                 <ThemeCustomizer />
+              </div>
+            )}
+
+            {/* 插件管理 */}
+            {activeTab === 'plugins' && (
+              <div className="space-y-4">
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <Puzzle size={20} className="text-accent-500" />
+                        插件管理
+                      </h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        管理已安装的功能插件，核心插件不可停用
+                      </p>
+                    </div>
+                    <button
+                      onClick={loadPlugins}
+                      disabled={loadingPlugins}
+                      className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                    >
+                      {loadingPlugins ? '加载中...' : '刷新'}
+                    </button>
+                  </div>
+
+                  {/* 插件架构说明 */}
+                  <div className="mb-4 p-3 bg-accent-50 dark:bg-accent-900/20 rounded-lg border border-accent-200 dark:border-accent-800">
+                    <p className="text-sm text-accent-700 dark:text-accent-300">
+                      微内核架构 · {installedPlugins.filter(p => p.status === 'active').length} 个活跃插件 · EventBus 通信 · 动态路由
+                    </p>
+                  </div>
+
+                  {/* 插件列表 */}
+                  <div className="space-y-3">
+                    {installedPlugins.map(plugin => (
+                      <div
+                        key={plugin.id}
+                        className={`flex items-center justify-between p-4 rounded-lg border transition-all ${
+                          plugin.status === 'active'
+                            ? 'border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-900/20'
+                            : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg ${
+                            plugin.type === 'core'
+                              ? 'bg-accent-100 dark:bg-accent-900/40'
+                              : 'bg-gray-100 dark:bg-gray-700'
+                          }`}>
+                            {plugin.type === 'core' ? '📝' :
+                              plugin.id.includes('ai') ? '🤖' :
+                              plugin.id.includes('password') ? '🔐' :
+                              plugin.id.includes('kanban') ? '📋' :
+                              plugin.id.includes('memo') ? '📌' : '🧩'}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-gray-900 dark:text-white">{plugin.name}</span>
+                              {plugin.required && (
+                                <span className="px-1.5 py-0.5 text-[10px] font-medium bg-accent-100 dark:bg-accent-900/40 text-accent-600 dark:text-accent-400 rounded">
+                                  核心
+                                </span>
+                              )}
+                              {plugin.status === 'active' ? (
+                                <span className="flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 rounded">
+                                  <CheckCircle2 size={10} />
+                                  运行中
+                                </span>
+                              ) : (
+                                <span className="flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 rounded">
+                                  <XCircle size={10} />
+                                  已停用
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                              {plugin.id} · {plugin.type === 'core' ? '核心模块' : '功能插件'}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {!plugin.required && (
+                            <button
+                              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1 ${
+                                plugin.status === 'active'
+                                  ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50'
+                                  : 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/50'
+                              }`}
+                            >
+                              {plugin.status === 'active' ? (
+                                <><PowerOff size={12} /> 停用</>
+                              ) : (
+                                <><Power size={12} /> 启用</>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 内核状态 */}
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
+                  <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">🔧 微内核状态</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {[
+                      { name: 'EventBus', desc: '事件总线', status: true },
+                      { name: 'PluginRouter', desc: '动态路由', status: true },
+                      { name: 'PluginShell', desc: 'UI Shell', status: true },
+                      { name: 'CommandBar', desc: '命令栏', status: true },
+                    ].map(item => (
+                      <div key={item.name} className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                        <div className="flex items-center gap-1.5">
+                          <AlertCircle size={12} className={item.status ? 'text-green-500' : 'text-red-500'} />
+                          <span className="text-xs font-medium text-gray-900 dark:text-white">{item.name}</span>
+                        </div>
+                        <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{item.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
           </div>

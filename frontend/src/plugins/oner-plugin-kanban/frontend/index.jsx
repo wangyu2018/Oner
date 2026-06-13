@@ -2,7 +2,8 @@
  * @oner/plugin-kanban — 看板视图插件入口
  */
 
-import BoardPage from './pages/BoardPage';
+// 迁移阶段：引用现有页面
+import BoardPage from '../../../pages/BoardPage';
 
 export default {
   async activate(ctx) {

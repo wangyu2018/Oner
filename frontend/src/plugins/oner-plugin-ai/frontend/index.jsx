@@ -2,7 +2,8 @@
  * @oner/plugin-ai — AI 智能助手插件入口
  */
 
-import AIChat from './pages/AIChat';
+// 迁移阶段：引用现有页面，后续替换为插件内页面
+import AIChat from '../../../pages/AIChat';
 
 export default {
   async activate(ctx) {
