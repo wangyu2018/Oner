@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Plus, Send, Trash2, MessageSquare, Loader2, Tag, FileText, Sparkles
+  Plus, Send, Trash2, MessageSquare, Loader2, Tag, FileText, Sparkles,
+  Lightbulb, Zap, BookOpen, ArrowRight
 } from 'lucide-react';
 import { api } from '../utils/api';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import CommandBar from '../components/CommandBar';
+import AIThinkingIndicator from '../components/AIThinkingIndicator';
 
 export default function AIChat() {
   const navigate = useNavigate();
@@ -19,6 +21,8 @@ export default function AIChat() {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [showSidebar, setShowSidebar] = useState(false);
+  const [thinkingElapsed, setThinkingElapsed] = useState(0);
+  const thinkingTimerRef = useRef(null);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = useCallback(() => {
@@ -82,6 +86,8 @@ export default function AIChat() {
     setLoading(true);
     setStreaming(true);
     setStreamContent('');
+    setThinkingElapsed(0);
+    thinkingTimerRef.current = Date.now();
 
     let convId = activeConv?.id;
     let fullContent = '';
@@ -97,9 +103,11 @@ export default function AIChat() {
         (chunk) => {
           fullContent += chunk;
           setStreamContent(fullContent);
+          setThinkingElapsed(0); // 收到第一个 chunk 后停止思考计时
         },
         () => {
           setStreaming(false);
+          setThinkingElapsed(0);
           setMessages(prev => [...prev, { role: 'assistant', content: fullContent, timestamp: Date.now() }]);
           setStreamContent('');
           loadConversations();
@@ -107,11 +115,33 @@ export default function AIChat() {
       );
     } catch (err) {
       setStreaming(false);
+      setThinkingElapsed(0);
       setStreamContent('');
       setMessages(prev => [...prev, { role: 'assistant', content: `错误：${err.message}`, isError: true, timestamp: Date.now() }]);
     } finally {
       setLoading(false);
     }
+  };
+
+  // 思考计时器
+  useEffect(() => {
+    if (loading && !streamContent && thinkingTimerRef.current) {
+      const interval = setInterval(() => {
+        setThinkingElapsed(Date.now() - thinkingTimerRef.current);
+      }, 100);
+      return () => clearInterval(interval);
+    }
+  }, [loading, streamContent]);
+
+  // 快捷提示
+  const quickPrompts = [
+    { icon: Lightbulb, text: '帮我整理今天的待办事项', color: 'text-amber-500' },
+    { icon: Zap, text: '分析我最近的效率趋势', color: 'text-blue-500' },
+    { icon: BookOpen, text: '总结本周的笔记要点', color: 'text-green-500' },
+  ];
+
+  const handleQuickPrompt = (text) => {
+    setInput(text);
   };
 
   const handleSummarize = async () => {
@@ -194,13 +224,41 @@ export default function AIChat() {
           {/* 消息列表 */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.length === 0 && !streaming && (
-              <div className="flex flex-col items-center justify-center h-full text-gray-400">
-                <Sparkles size={48} className="mb-4 opacity-30" />
-                <p className="text-lg font-medium mb-2">开始AI对话</p>
-                <p className="text-sm text-center max-w-md">
-                  在下方输入问题，AI会结合你的笔记和待办给出建议。
-                  可以选择分类来带入上下文。
+              <div className="flex flex-col items-center justify-center h-full">
+                {/* Logo + 标题 */}
+                <div className="relative mb-6">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent/20 to-purple-500/20 flex items-center justify-center">
+                    <Sparkles size={32} className="text-accent" />
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-green-400 border-2 border-white dark:border-gray-950 flex items-center justify-center">
+                    <div className="w-2 h-2 rounded-full bg-white" />
+                  </div>
+                </div>
+                <p className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-1">AI 智能助手</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500 mb-8 text-center max-w-sm">
+                  结合你的笔记和待办，给出个性化建议
                 </p>
+
+                {/* 快捷提示卡片 */}
+                <div className="grid gap-2 w-full max-w-sm">
+                  {quickPrompts.map((prompt, i) => {
+                    const Icon = prompt.icon;
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => handleQuickPrompt(prompt.text)}
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl
+                          bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700
+                          hover:border-accent/30 dark:hover:border-accent/30
+                          hover:shadow-sm transition-all text-left group"
+                      >
+                        <Icon size={16} className={prompt.color} />
+                        <span className="flex-1 text-sm text-gray-700 dark:text-gray-300">{prompt.text}</span>
+                        <ArrowRight size={14} className="text-gray-300 dark:text-gray-600 group-hover:text-accent transition-colors" />
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
@@ -224,31 +282,28 @@ export default function AIChat() {
               </div>
             ))}
 
-            {/* 流式输出 */}
+            {/* 流式输出 + 打字机光标 */}
             {streaming && streamContent && (
               <div className="flex justify-start">
-                <div className="max-w-[85%] md:max-w-[70%] rounded-2xl px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm rounded-bl-md">
+                <div className="max-w-[85%] md:max-w-[70%] rounded-2xl px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm rounded-bl-md border border-gray-100 dark:border-gray-700">
                   <div className="markdown-content">
                     <MarkdownRenderer content={streamContent} />
                   </div>
-                  <span className="inline-block w-1.5 h-4 bg-accent animate-pulse ml-0.5" />
+                  <span className="inline-block w-0.5 h-4 bg-accent animate-pulse ml-0.5 align-middle" />
                 </div>
               </div>
             )}
 
+            {/* AI 思考可视化 */}
             {loading && !streamContent && (
-              <div className="flex justify-start">
-                <div className="px-4 py-3 rounded-2xl bg-white dark:bg-gray-800 shadow-sm rounded-bl-md">
-                  <Loader2 size={18} className="animate-spin text-accent" />
-                </div>
-              </div>
+              <AIThinkingIndicator elapsed={thinkingElapsed} />
             )}
 
             <div ref={messagesEndRef} />
           </div>
 
-          {/* 输入区域 */}
-          <div className="border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
+          {/* 输入区域 - 玻璃态 */}
+          <div className="border-t border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
             {/* 分类选择 + 总结 */}
             <div className="flex items-center gap-2 mb-2 overflow-x-auto scrollbar-none">
               <Tag size={14} className="text-gray-400 flex-shrink-0" />

@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, BookMarked } from 'lucide-react';
+import { Calendar, BookMarked, TrendingUp } from 'lucide-react';
 import TodoList from './TodoList';
 import AIInsightPanel from './AIInsightPanel';
 
@@ -42,6 +42,14 @@ export default function TodayFocus({
   const memoCount = allNotes.filter(n => n.status === 'note' || n.status === undefined || n.status === null).length;
   const pendingTodos = todoCount + inProgressCount;
 
+  // 今日完成率
+  const completionRate = useMemo(() => {
+    const total = urgentCount + inProgressCount + todoCount;
+    if (total === 0) return 100;
+    const doneCount = allNotes.filter(n => n.status === 'done').length;
+    return Math.round((doneCount / (total + doneCount)) * 100);
+  }, [allNotes, urgentCount, inProgressCount, todoCount]);
+
   return (
     <div className="space-y-4">
       {/* Header: Greeting + Date + Quick Stats */}
@@ -55,9 +63,23 @@ export default function TodayFocus({
             {getTodayDate()} · 你有 {pendingTodos} 个待办事项需要关注
           </p>
         </div>
-    
-        {/* Quick Stats Pills — 始终显示4个固定标签 */}
+
+        {/* 完成率 + 统计标签 */}
         <div className="flex items-center gap-2 flex-wrap">
+          {/* 完成率迷你进度 */}
+          {pendingTodos > 0 && (
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium
+              bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400">
+              <TrendingUp size={12} />
+              <span>{completionRate}%</span>
+              <div className="w-12 h-1.5 rounded-full bg-violet-200 dark:bg-violet-800 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-violet-500 transition-all duration-500"
+                  style={{ width: `${completionRate}%` }}
+                />
+              </div>
+            </div>
+          )}
           <button
             onClick={() => navigate('/memos')}
             className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium

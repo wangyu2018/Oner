@@ -9,6 +9,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { api } from '../utils/api';
 import CommandBar from '../components/CommandBar';
+import TodayStrip from '../components/TodayStrip';
 import NoteEditor from '../components/NoteEditor';
 import EmptyState from '../components/EmptyState';
 import ReminderOverlay from '../components/ReminderOverlay';
@@ -765,6 +766,9 @@ export default function BoardPage({ onVoiceInput }) {
           </button>
         }
       />
+
+      {/* 今日概览条 */}
+      <TodayStrip notes={notes} onNoteClick={(note) => navigate(`/notes/${note.id}`)} />
 
       <main className="px-4 py-4">
         {/* 操作栏 */}
