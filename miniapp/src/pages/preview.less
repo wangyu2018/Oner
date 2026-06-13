@@ -1,0 +1,261 @@
+/* 预览页面通用样式 */
+.page-preview {
+  padding: 16px;
+  min-height: 100vh;
+  background: #f5f5f5;
+}
+
+.loading {
+  text-align: center;
+  padding: 48px 0;
+  font-size: 14px;
+  color: #9ca3af;
+}
+
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.preview-header__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.preview-header__count {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* 笔记卡片 */
+.note-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.note-card__title {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.note-card__excerpt {
+  display: block;
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.note-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.note-card__status {
+  padding: 1px 6px;
+  font-size: 10px;
+  color: #6366f1;
+  background: #eef2ff;
+  border-radius: 4px;
+}
+
+.note-card__date {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* 密码条目 */
+.password-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.password-item__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #fef3c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.password-item__info {
+  flex: 1;
+}
+
+.password-item__site {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.password-item__username {
+  display: block;
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
+/* 备忘时间线 */
+.memo-timeline {
+  padding-left: 12px;
+}
+
+.memo-item {
+  display: flex;
+  gap: 10px;
+}
+
+.memo-item__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #14b8a6;
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+
+.memo-item__line {
+  width: 1px;
+  flex: 1;
+  background: #e5e7eb;
+  margin: 0 auto;
+}
+
+.memo-item__content {
+  flex: 1;
+  padding-bottom: 16px;
+}
+
+.memo-item__day {
+  display: block;
+  font-size: 11px;
+  color: #9ca3af;
+  margin-bottom: 4px;
+}
+
+.memo-item__text {
+  display: block;
+  font-size: 13px;
+  color: #1f2937;
+  background: #fff;
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+/* AI 对话气泡 */
+.ai-chat {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.ai-chat__bubble {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ai-chat__bubble--user {
+  flex-direction: row-reverse;
+}
+
+.ai-chat__avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.ai-chat__avatar--ai {
+  background: #f0f0ff;
+}
+
+.ai-chat__avatar--user {
+  background: #f3f4f6;
+}
+
+.ai-chat__text {
+  max-width: 70%;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.ai-chat__text--ai {
+  background: #f0f0ff;
+  color: #1f2937;
+}
+
+.ai-chat__text--user {
+  background: #6366f1;
+  color: #fff;
+}
+
+/* 看板泳道 */
+.kanban-board {
+  display: flex;
+  gap: 10px;
+}
+
+.kanban-column {
+  flex: 1;
+  background: #f9fafb;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.kanban-column__title {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.kanban-column__title--todo {
+  color: #3b82f6;
+}
+
+.kanban-column__title--doing {
+  color: #f59e0b;
+}
+
+.kanban-column__title--done {
+  color: #22c55e;
+}
+
+.kanban-card {
+  background: #fff;
+  border-radius: 6px;
+  padding: 8px;
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: #4b5563;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}

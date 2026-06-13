@@ -254,6 +254,27 @@ export function migrate() {
       console.log('Created ai_conversations table');
     }
 
+    // 创建 wechat_subscriptions 表（微信订阅消息）
+    const wcTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='wechat_subscriptions'").get();
+    if (!wcTable) {
+      db.exec(`
+        CREATE TABLE wechat_subscriptions (
+          id              TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+          user_id         TEXT NOT NULL,
+          template_id     TEXT NOT NULL,
+          openid          TEXT NOT NULL,
+          remind_type     TEXT NOT NULL DEFAULT 'todo_due',
+          enabled         INTEGER NOT NULL DEFAULT 1,
+          created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+          last_sent_at    TEXT,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+      `);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_wx_sub_user ON wechat_subscriptions(user_id)');
+      db.exec('CREATE INDEX IF NOT EXISTS idx_wx_sub_type ON wechat_subscriptions(remind_type)');
+      console.log('Created wechat_subscriptions table');
+    }
+
     console.log('Migration completed successfully');
 
   } catch (err) {

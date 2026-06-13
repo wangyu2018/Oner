@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import crypto from 'crypto';
+import https from 'https';
 import { queryAll, queryOne, runQuery } from '../db/helpers.js';
 import { hashPassword, comparePassword } from '../utils/crypto.js';
 import { generateToken, authMiddleware } from '../middleware/auth.js';
@@ -221,6 +222,79 @@ router.post('/login', loginLimiter, async (req, res) => {
       error: '登录失败，请稍后重试',
       code: 500
     });
+  }
+});
+
+// POST /api/auth/mini-login - 微信小程序登录（wx.login → code → openid → token）
+router.post('/mini-login', async (req, res) => {
+  try {
+    const { code } = req.body;
+    if (!code) {
+      return res.status(400).json({ success: false, error: '缺少 code', code: 400 });
+    }
+
+    const appid = process.env.WX_APPID;
+    const secret = process.env.WX_APPSECRET;
+
+    if (!appid || !secret) {
+      // 开发模式：模拟登录
+      console.warn('[mini-login] WX_APPID/WX_APPSECRET 未配置，使用模拟登录');
+      const mockUser = queryOne('SELECT id, username, email, avatar FROM users LIMIT 1');
+      if (mockUser) {
+        const device = req.headers['user-agent'] || '';
+        const token = generateToken(mockUser.id, device);
+        return res.json({ success: true, data: { token, user: mockUser } });
+      }
+      return res.status(500).json({ success: false, error: '无用户且未配置微信登录', code: 500 });
+    }
+
+    // 通过微信 API 换取 openid
+    const url = `https://api.weixin.qq.com/sns/jscode2session?appid=${appid}&secret=${secret}&js_code=${code}&grant_type=authorization_code`;
+
+    const wxRes = await new Promise((resolve, reject) => {
+      https.get(url, (resp) => {
+        let data = '';
+        resp.on('data', chunk => data += chunk);
+        resp.on('end', () => {
+          try { resolve(JSON.parse(data)); } catch (e) { reject(e); }
+        });
+      }).on('error', reject);
+    });
+
+    if (wxRes.errcode) {
+      console.error('[mini-login] 微信登录失败:', wxRes.errmsg);
+      return res.status(401).json({ success: false, error: '微信登录失败', code: 401 });
+    }
+
+    const { openid, session_key } = wxRes;
+
+    // 查找或创建用户（以 openid 作为用户名）
+    let user = queryOne('SELECT id, username, email, avatar FROM users WHERE username = ?', [`wx_${openid.slice(0, 8)}`]);
+    if (!user) {
+      const id = crypto.randomUUID().replace(/-/g, '').slice(0, 16);
+      const username = `wx_${openid.slice(0, 8)}`;
+      const hashedPassword = await hashPassword(crypto.randomBytes(16).toString('hex'));
+      runQuery(
+        'INSERT INTO users (id, username, password) VALUES (?, ?, ?)',
+        [id, username, hashedPassword]
+      );
+      user = { id, username, email: null, avatar: '' };
+    }
+
+    // 生成 token
+    const device = req.headers['user-agent'] || '';
+    const token = generateToken(user.id, device);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const sessionId = crypto.randomUUID().replace(/-/g, '').slice(0, 16);
+    runQuery(
+      'INSERT INTO sessions (id, user_id, device, ip, token, expires_at) VALUES (?, ?, ?, ?, ?, ?)',
+      [sessionId, user.id, device, req.ip, token, expiresAt]
+    );
+
+    res.json({ success: true, data: { token, user, openid } });
+  } catch (err) {
+    console.error('[mini-login] 错误:', err);
+    res.status(500).json({ success: false, error: '登录失败', code: 500 });
   }
 });
 

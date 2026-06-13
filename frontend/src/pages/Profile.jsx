@@ -63,6 +63,7 @@ export default function Profile() {
   const [installedPlugins, setInstalledPlugins] = useState([]);
   const [loadingPlugins, setLoadingPlugins] = useState(false);
   const [togglingPlugin, setTogglingPlugin] = useState(null);
+  const [previewPlugin, setPreviewPlugin] = useState(null);
   const pluginCtx = usePluginManagerContext();
 
   // 插件功能描述
@@ -152,7 +153,7 @@ export default function Profile() {
       }
       // 更新本地状态
       setInstalledPlugins(prev => prev.map(p =>
-        p.id === pluginId ? { ...p, status: currentStatus === 'active' ? 'inactive' : 'active' } : p
+        p.id === pluginId ? { ...p, status: currentStatus === 'active' ? 'registered' : 'active' } : p
       ));
     } catch (err) {
       console.error('Toggle plugin error:', err);
@@ -1299,7 +1300,8 @@ export default function Profile() {
                     {installedPlugins.map(plugin => (
                       <div
                         key={plugin.id}
-                        className={`p-4 rounded-lg border transition-all ${
+                        onClick={() => setPreviewPlugin(previewPlugin === plugin.id ? null : plugin.id)}
+                        className={`p-4 rounded-lg border transition-all cursor-pointer ${
                           plugin.status === 'active'
                             ? 'border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-900/20'
                             : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800'
@@ -1395,6 +1397,109 @@ export default function Profile() {
                             </div>
                           );
                         })()}
+
+                        {/* 点击展开预览 */}
+                        {previewPlugin === plugin.id && (
+                          <div className="mt-3 border-t border-gray-200 dark:border-gray-700 pt-3">
+                            <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-800">
+                              {/* AI 插件预览：对话气泡 */}
+                              {plugin.id === 'oner.plugin.ai' && (
+                                <div className="p-4 space-y-3">
+                                  <div className="flex items-start gap-2">
+                                    <div className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-[10px]">🤖</div>
+                                    <div className="flex-1 bg-purple-50 dark:bg-purple-900/20 rounded-lg p-2 text-xs text-gray-700 dark:text-gray-300">
+                                      你好！我可以帮你分析笔记、总结内容、拆解任务。
+                                    </div>
+                                  </div>
+                                  <div className="flex items-start gap-2 flex-row-reverse">
+                                    <div className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-[10px]">👤</div>
+                                    <div className="flex-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-2 text-xs text-gray-700 dark:text-gray-300">
+                                      帮我总结今天的待办事项
+                                    </div>
+                                  </div>
+                                  <div className="flex items-start gap-2">
+                                    <div className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-[10px]">🤖</div>
+                                    <div className="flex-1 bg-purple-50 dark:bg-purple-900/20 rounded-lg p-2 text-xs text-gray-700 dark:text-gray-300">
+                                      今天你有 3 个待办事项，其中 1 个已逾期...
+                                    </div>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <input type="text" disabled className="flex-1 px-3 py-2 text-xs border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-400" placeholder="输入消息..." />
+                                    <button disabled className="px-3 py-2 text-xs bg-purple-500 text-white rounded-lg opacity-50">发送</button>
+                                  </div>
+                                </div>
+                              )}
+                              {/* 看板插件预览：泳道列 */}
+                              {plugin.id === 'oner.plugin.kanban' && (
+                                <div className="p-4">
+                                  <div className="flex gap-2 h-24">
+                                    <div className="flex-1 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2 flex flex-col">
+                                      <div className="text-[10px] font-medium text-blue-600 dark:text-blue-400 mb-1">待办</div>
+                                      <div className="h-5 bg-white dark:bg-gray-700 rounded text-[8px] px-2 flex items-center text-gray-500 mb-1">设计首页</div>
+                                      <div className="h-5 bg-white dark:bg-gray-700 rounded text-[8px] px-2 flex items-center text-gray-500">修复bug</div>
+                                    </div>
+                                    <div className="flex-1 bg-amber-50 dark:bg-amber-900/20 rounded-lg p-2 flex flex-col">
+                                      <div className="text-[10px] font-medium text-amber-600 dark:text-amber-400 mb-1">进行中</div>
+                                      <div className="h-5 bg-white dark:bg-gray-700 rounded text-[8px] px-2 flex items-center text-gray-500">API开发</div>
+                                    </div>
+                                    <div className="flex-1 bg-green-50 dark:bg-green-900/20 rounded-lg p-2 flex flex-col">
+                                      <div className="text-[10px] font-medium text-green-600 dark:text-green-400 mb-1">完成</div>
+                                      <div className="h-5 bg-white dark:bg-gray-700 rounded text-[8px] px-2 flex items-center text-gray-500 line-through">需求评审</div>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                              {/* 密码插件预览：条目列表 */}
+                              {plugin.id === 'oner.plugin.password' && (
+                                <div className="p-4">
+                                  <div className="space-y-2">
+                                    {[{ site: 'github.com', user: 'user1' }, { site: 'google.com', user: 'user2' }, { site: 'twitter.com', user: 'user3' }].map(item => (
+                                      <div key={item.site} className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                        <div className="w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center text-[10px]">🔐</div>
+                                        <div className="flex-1">
+                                          <div className="text-xs font-medium text-gray-700 dark:text-gray-300">{item.site}</div>
+                                          <div className="text-[10px] text-gray-400">{item.user} · ********</div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {/* 备忘插件预览：时间线 */}
+                              {plugin.id === 'oner.plugin.memo' && (
+                                <div className="p-4">
+                                  <div className="space-y-0">
+                                    {[{ day: '今天', text: '记得提交周报' }, { day: '昨天', text: '整理项目文档' }, { day: '周二', text: '设置新目标' }].map(item => (
+                                      <div key={item.day} className="flex gap-2">
+                                        <div className="flex flex-col items-center">
+                                          <div className="w-2 h-2 rounded-full bg-teal-400" />
+                                          <div className="w-px flex-1 bg-gray-200 dark:bg-gray-700" />
+                                        </div>
+                                        <div className="flex-1 pb-3">
+                                          <div className="text-[10px] text-gray-400">{item.day}</div>
+                                          <div className="text-xs text-gray-700 dark:text-gray-300 mt-0.5">{item.text}</div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {/* 核心笔记预览：卡片网格 */}
+                              {plugin.id === 'oner.plugin.core-notes' && (
+                                <div className="p-4">
+                                  <div className="grid grid-cols-2 gap-2">
+                                    {[{ t: '项目计划', s: '待办' }, { t: '会议记录', s: '完成' }, { t: '学习笔记', s: '进行中' }, { t: '灵感碎片', s: '备忘' }].map((item, i) => (
+                                      <div key={i} className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                        <div className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{item.t}</div>
+                                        <div className="text-[10px] text-gray-400 mt-0.5">{item.s}</div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

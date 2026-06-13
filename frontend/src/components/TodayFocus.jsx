@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Calendar, BookMarked, TrendingUp } from 'lucide-react';
 import TodoList from './TodoList';
 import AIInsightPanel from './AIInsightPanel';
+import { usePluginManagerContext } from '../App';
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -30,6 +31,7 @@ export default function TodayFocus({
   onToggleStatus,
 }) {
   const navigate = useNavigate();
+  const { isPluginActive } = usePluginManagerContext();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayEnd = new Date(today);
@@ -106,7 +108,7 @@ export default function TodayFocus({
       {/* Grid: TodoList | AIInsightPanel */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4">
         <TodoList notes={allNotes} onNoteClick={onNoteClick} onToggleStatus={onToggleStatus} />
-        <AIInsightPanel allNotes={allNotes} onNoteClick={onNoteClick} onInsightAction={onInsightAction} />
+        {isPluginActive('oner.plugin.ai') && <AIInsightPanel allNotes={allNotes} onNoteClick={onNoteClick} onInsightAction={onInsightAction} />}
       </div>
     </div>
   );

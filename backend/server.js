@@ -17,6 +17,7 @@ import settingsRouter from './src/routes/settings.js';
 import passwordsRouter from './src/routes/passwords.js';
 import filesRouter from './src/routes/files.js';
 import aiRouter from './src/routes/ai.js';
+import wechatRouter, { checkAndSendReminders } from './src/routes/wechat.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -80,6 +81,7 @@ app.use('/api/settings', settingsRouter);
 app.use('/api/passwords', passwordsRouter);
 app.use('/api/files', filesRouter);
 app.use('/api/ai', aiRouter);
+app.use('/api/wechat', wechatRouter);
 
 // 静态文件服务（上传文件访问）
 const uploadsDir = path.resolve(process.env.UPLOAD_DIR || path.join(import.meta.dirname, 'uploads'));
@@ -123,6 +125,14 @@ function start() {
     app.listen(PORT, () => {
       console.log(`Oner backend running on port ${PORT}`);
       console.log(`\u{1F50C} Plugin system ready: 5 plugins registered`);
+
+      // 启动微信待办提醒定时任务（每 10 分钟检查一次）
+      if (process.env.WX_APPID) {
+        setInterval(checkAndSendReminders, 10 * 60 * 1000);
+        console.log('\u{23F0} WeChat reminder scheduler started (interval: 10min)');
+        // 启动后立即执行一次
+        setTimeout(checkAndSendReminders, 5000);
+      }
     });
   } catch (err) {
     console.error('Failed to start server:', err);

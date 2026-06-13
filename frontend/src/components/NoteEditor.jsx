@@ -11,11 +11,13 @@ import CategorySelector from './CategorySelector';
 import FileAttachments from './FileAttachments';
 import AIAssistant from './AIAssistant';
 import FloatingAIToolbar from './FloatingAIToolbar';
+import { usePluginManagerContext } from '../App';
 import { api } from '../utils/api';
 import { parseTags } from '../utils/tags';
 import { useAutoSave } from '../hooks/useAutoSave';
 
 export default function NoteEditor({ note, onSave, onClose }) {
+  const { isPluginActive } = usePluginManagerContext();
   const [title, setTitle] = useState(note?.title || '');
   const [content, setContent] = useState(note?.content || '');
   const [tags, setTags] = useState(note?.tags || []);
@@ -220,7 +222,7 @@ export default function NoteEditor({ note, onSave, onClose }) {
                 className="w-full h-full min-h-[300px] bg-transparent outline-none resize-none
                   text-gray-900 dark:text-gray-100 placeholder-gray-400 leading-relaxed"
               />
-              <FloatingAIToolbar
+              {isPluginActive('oner.plugin.ai') && <FloatingAIToolbar
                 editorRef={textareaRef}
                 onAction={(action) => {
                   const el = textareaRef.current;
@@ -245,7 +247,7 @@ export default function NoteEditor({ note, onSave, onClose }) {
                   }
                   setContent(newContent);
                 }}
-              />
+              />}
             </div>
           )}
         </div>
@@ -254,7 +256,7 @@ export default function NoteEditor({ note, onSave, onClose }) {
         {note?.id && <SubtaskList noteId={note.id} />}
 
         {/* AI 助手 */}
-        {note?.id && <AIAssistant noteId={note.id} content={content} title={title} onContentUpdate={setContent} />}
+        {note?.id && isPluginActive('oner.plugin.ai') && <AIAssistant noteId={note.id} content={content} title={title} onContentUpdate={setContent} />}
 
         {/* 文件附件 */}
         {note?.id && (

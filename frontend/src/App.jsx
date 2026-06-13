@@ -1,22 +1,18 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useTheme } from './hooks/useTheme';
 import { useCustomTheme } from './hooks/useCustomTheme';
 import { useAuth } from './hooks/useAuth';
 import useShortcuts from './hooks/useShortcuts';
 import { usePluginManager } from './plugins/usePluginManager';
 import Home from './pages/Home';
-import BoardPage from './pages/BoardPage';
 import { api } from './utils/api';
 import ErrorBoundary from './components/ErrorBoundary';
 import ViewNote from './pages/ViewNote';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
-import PasswordVault from './pages/PasswordVault';
-import AIChat from './pages/AIChat';
 import MemosPage from './pages/MemosPage';
-import NotesPage from './pages/NotesPage';
 import OverduePage from './pages/OverduePage';
 import WeeklyPage from './pages/WeeklyPage';
 import AssociationsPage from './pages/AssociationsPage';
@@ -159,18 +155,7 @@ export default function App() {
                   </AuthGuard>
                 }
               />
-              <Route
-                path="/board"
-                element={
-                  <AuthGuard>
-                    <ErrorBoundary>
-                      <PageTransition>
-                        <BoardPage onVoiceInput={handleOpenVoiceInput} />
-                      </PageTransition>
-                    </ErrorBoundary>
-                  </AuthGuard>
-                }
-              />
+              {/* 插件动态注册路由：/board(看板)、/passwords(密码)、/notes(笔记)、/ai(AI) */}
               <Route
                 path="/note/:id"
                 element={
@@ -196,33 +181,6 @@ export default function App() {
                 }
               />
               <Route
-                path="/passwords"
-                element={
-                  <AuthGuard>
-                    <ErrorBoundary>
-                      <PageTransition>
-                        <PasswordVault />
-                      </PageTransition>
-                    </ErrorBoundary>
-                  </AuthGuard>
-                }
-              />
-              <Route
-                path="/notes"
-                element={
-                  <AuthGuard>
-                    <ErrorBoundary>
-                      <PageTransition>
-                        <NotesPage
-                          categories={categories}
-                          onVoiceInput={handleOpenVoiceInput}
-                        />
-                      </PageTransition>
-                    </ErrorBoundary>
-                  </AuthGuard>
-                }
-              />
-              <Route
                 path="/memos"
                 element={
                   <AuthGuard>
@@ -234,18 +192,8 @@ export default function App() {
                   </AuthGuard>
                 }
               />
-              <Route
-                path="/ai"
-                element={
-                  <AuthGuard>
-                    <ErrorBoundary>
-                      <PageTransition>
-                        <AIChat />
-                      </PageTransition>
-                    </ErrorBoundary>
-                  </AuthGuard>
-                }
-              />
+              {isPluginActive('oner.plugin.ai') && (
+                <>
               <Route
                 path="/ai/overdue"
                 element={
@@ -294,6 +242,8 @@ export default function App() {
                   </AuthGuard>
                 }
               />
+                </>
+              )}
 
               {/* 插件动态路由 */}
               {pluginRoutes.map((route) => {

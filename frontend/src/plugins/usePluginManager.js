@@ -100,6 +100,10 @@ async function loadPlugins(manager) {
       manifest: () => import('./oner-plugin-kanban/plugin.json'),
       module: () => import('./oner-plugin-kanban/frontend/index.jsx'),
     },
+    {
+      manifest: () => import('./oner-plugin-memo/plugin.json'),
+      module: () => import('./oner-plugin-memo/frontend/index.jsx'),
+    },
   ];
 
   // 注册所有插件
@@ -121,7 +125,7 @@ async function loadPlugins(manager) {
   })();
 
   // 按依赖顺序激活（跳过已停用的）
-  const pluginIds = ['oner.plugin.core-notes', 'oner.plugin.ai', 'oner.plugin.password', 'oner.plugin.kanban'];
+  const pluginIds = ['oner.plugin.core-notes', 'oner.plugin.ai', 'oner.plugin.password', 'oner.plugin.kanban', 'oner.plugin.memo'];
   await manager.activateAll(
     pluginIds.filter((id) => !manager.isActive(id) && !disabledPlugins.includes(id))
   );
