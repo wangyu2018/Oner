@@ -1,0 +1,110 @@
+{
+  "id": "oner.plugin.core-notes",
+  "name": "核心笔记",
+  "version": "1.0.0",
+  "type": "core",
+  "required": true,
+  "description": "Oner 核心笔记模块，提供笔记创建、编辑、分类、标签等基础能力。其他所有插件都依赖此模块。",
+  "author": "Oner Team",
+  "icon": "📝",
+  "category": "core",
+  "tags": ["笔记", "核心", "不可卸载"],
+
+  "dependencies": [],
+
+  "permissions": [
+    "notes:read",
+    "notes:write",
+    "notes:delete",
+    "category:read",
+    "category:write",
+    "tag:read",
+    "tag:write"
+  ],
+
+  "frontend": {
+    "entry": "./frontend/index.jsx",
+    "routes": [
+      {
+        "path": "/notes",
+        "component": "./frontend/pages/NotesPage.jsx",
+        "exact": true,
+        "title": "全部笔记"
+      },
+      {
+        "path": "/notes/:id",
+        "component": "./frontend/pages/NoteEditor.jsx",
+        "title": "编辑笔记"
+      }
+    ],
+    "sidebar": [
+      {
+        "id": "core-notes",
+        "label": "笔记",
+        "icon": "FileText",
+        "path": "/notes",
+        "priority": 100,
+        "slot": "sidebar.main"
+      }
+    ],
+    "commands": [
+      {
+        "id": "note.create",
+        "title": "新建笔记",
+        "icon": "Plus",
+        "shortcut": "Ctrl+N",
+        "slot": "commandbar.quick"
+      }
+    ],
+    "floatingBubbles": []
+  },
+
+  "backend": {
+    "entry": "./backend/index.js",
+    "routes": [
+      {
+        "path": "/api/notes",
+        "file": "./backend/routes/notes.js"
+      },
+      {
+        "path": "/api/categories",
+        "file": "./backend/routes/categories.js"
+      },
+      {
+        "path": "/api/tags",
+        "file": "./backend/routes/tags.js"
+      }
+    ],
+    "migrations": [
+      "./backend/migrations/001_create_notes_table.sql",
+      "./backend/migrations/002_create_categories_table.sql",
+      "./backend/migrations/003_create_tags_table.sql"
+    ]
+  },
+
+  "lifecycle": {
+    "install": "./backend/hooks/install.js",
+    "uninstall": "./backend/hooks/uninstall.js",
+    "activate": "./frontend/hooks/activate.js",
+    "deactivate": "./frontend/hooks/deactivate.js"
+  },
+
+  "config": {
+    "schema": {
+      "defaultView": {
+        "type": "select",
+        "options": ["grid", "list", "swimlane"],
+        "default": "swimlane"
+      },
+      "autoArchiveDays": {
+        "type": "number",
+        "default": 30
+      }
+    }
+  },
+
+  "metadata": {
+    "createdAt": "2026-06-13",
+    "updatedAt": "2026-06-13"
+  }
+}

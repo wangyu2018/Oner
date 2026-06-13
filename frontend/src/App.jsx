@@ -4,6 +4,7 @@ import { useTheme } from './hooks/useTheme';
 import { useCustomTheme } from './hooks/useCustomTheme';
 import { useAuth } from './hooks/useAuth';
 import useShortcuts from './hooks/useShortcuts';
+import { usePluginManager } from './plugins/usePluginManager';
 import Home from './pages/Home';
 import BoardPage from './pages/BoardPage';
 import { api } from './utils/api';
@@ -32,6 +33,7 @@ import { useToast } from './hooks/useToast';
 const ThemeContext = createContext();
 const AuthContext = createContext();
 const CommandPaletteContext = createContext();
+const PluginManagerContext = createContext();
 
 export function useThemeContext() {
   return useContext(ThemeContext);
@@ -45,10 +47,24 @@ export function useCommandPalette() {
   return useContext(CommandPaletteContext);
 }
 
+export function usePluginManagerContext() {
+  return useContext(PluginManagerContext);
+}
+
 export default function App() {
   const theme = useTheme();
   const customTheme = useCustomTheme(theme.isDark);
   const auth = useAuth();
+
+  // 插件系统
+  const {
+    pluginManager,
+    routes: pluginRoutes,
+    sidebarItems,
+    commands: pluginCommands,
+    plugins,
+    isReady: pluginsReady,
+  } = usePluginManager();
 
   // 命令面板状态
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -115,11 +131,12 @@ export default function App() {
     <ThemeContext.Provider value={{ ...theme, customTheme }}>
       <AuthContext.Provider value={auth}>
         <CommandPaletteContext.Provider value={{ openPalette, closePalette, setCategories }}>
-          <BrowserRouter>
-            <Routes>
-              {/* 公开路由 */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
+          <PluginManagerContext.Provider value={{ pluginManager, plugins, sidebarItems, pluginCommands }}>
+            <BrowserRouter>
+              <Routes>
+                {/* 公开路由 */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
 
               {/* 需要登录的路由 */}
               <Route
@@ -272,6 +289,27 @@ export default function App() {
                   </AuthGuard>
                 }
               />
+
+              {/* 插件动态路由 */}
+              {pluginRoutes.map((route) => {
+                const Component = route.component;
+                return (
+                  <Route
+                    key={route.path}
+                    path={route.path}
+                    exact={route.exact}
+                    element={
+                      <AuthGuard>
+                        <ErrorBoundary>
+                          <PageTransition>
+                            <Component />
+                          </PageTransition>
+                        </ErrorBoundary>
+                      </AuthGuard>
+                    }
+                  />
+                );
+              })}
             </Routes>
 
             {/* 全局Toast容器 */}
@@ -304,9 +342,19 @@ export default function App() {
 
             {/* 移动端底部导航 */}
             {isLoggedIn && <BottomNav />}
+
+            {/* 插件状态指示器 */}
+            {pluginsReady && plugins.length > 0 && (
+              <div className="fixed bottom-20 left-2 z-10">
+                <span className="text-[10px] text-gray-400 dark:text-gray-600">
+                  {plugins.filter(p => p.status === 'active').length} 插件已加载
+                </span>
+              </div>
+            )}
           </BrowserRouter>
-        </CommandPaletteContext.Provider>
-      </AuthContext.Provider>
+        </PluginManagerContext.Provider>
+      </CommandPaletteContext.Provider>
+    </AuthContext.Provider>
     </ThemeContext.Provider>
   );
 }

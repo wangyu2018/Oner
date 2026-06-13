@@ -1,0 +1,90 @@
+{
+  "id": "oner.plugin.password",
+  "name": "密码保险库",
+  "version": "1.0.0",
+  "type": "feature",
+  "required": false,
+  "description": "安全存储密码、API Key、Token 等敏感信息。支持 AES-256 加密、PIN 保护、自动生成强密码。",
+  "author": "Oner Team",
+  "icon": "🔐",
+  "category": "security",
+  "tags": ["密码", "安全", "加密", "保险库"],
+
+  "dependencies": [],
+
+  "permissions": [
+    "password:read",
+    "password:write",
+    "password:delete"
+  ],
+
+  "frontend": {
+    "entry": "./frontend/index.jsx",
+    "routes": [
+      {
+        "path": "/passwords",
+        "component": "./frontend/pages/PasswordVault.jsx",
+        "exact": true,
+        "title": "密码保险库"
+      }
+    ],
+    "sidebar": [
+      {
+        "id": "password-vault",
+        "label": "密码库",
+        "icon": "Lock",
+        "path": "/passwords",
+        "priority": 60,
+        "slot": "sidebar.tools"
+      }
+    ],
+    "commands": [
+      {
+        "id": "password.generate",
+        "title": "生成强密码",
+        "icon": "Key",
+        "shortcut": "Ctrl+Shift+P",
+        "slot": "commandbar.tools"
+      }
+    ]
+  },
+
+  "backend": {
+    "entry": "./backend/index.js",
+    "routes": [
+      {
+        "path": "/api/passwords",
+        "file": "./backend/routes/passwords.js"
+      }
+    ],
+    "migrations": [
+      "./backend/migrations/001_create_passwords_table.sql"
+    ]
+  },
+
+  "config": {
+    "schema": {
+      "autoLockMinutes": {
+        "type": "number",
+        "default": 15,
+        "min": 1,
+        "max": 60
+      },
+      "passwordLength": {
+        "type": "number",
+        "default": 16,
+        "min": 8,
+        "max": 64
+      },
+      "includeSymbols": {
+        "type": "boolean",
+        "default": true
+      }
+    }
+  },
+
+  "metadata": {
+    "createdAt": "2026-06-13",
+    "updatedAt": "2026-06-13"
+  }
+}

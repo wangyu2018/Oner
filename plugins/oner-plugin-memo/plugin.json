@@ -1,0 +1,152 @@
+{
+  "id": "oner.plugin.memo",
+  "name": "智能备忘",
+  "version": "1.0.0",
+  "type": "optional",
+  "required": false,
+  "description": "智能备忘模块，提供快速记录、字典识别（自动判断备忘/待办）、关键字快捷录入、思维链可视化、智能关联等高级能力。",
+  "author": "Oner Team",
+  "icon": "🧠",
+  "category": "productivity",
+  "tags": ["备忘", "思维链", "智能关联", "字典识别"],
+
+  "dependencies": [
+    { "id": "oner.plugin.core-notes", "version": ">=1.0.0", "optional": false }
+  ],
+
+  "permissions": [
+    "notes:read",
+    "notes:write",
+    "category:read",
+    "ai:invoke",
+    "ai:summarize",
+    "ai:classify"
+  ],
+
+  "frontend": {
+    "entry": "./frontend/index.jsx",
+    "routes": [
+      {
+        "path": "/memos",
+        "component": "./frontend/pages/MemosPage.jsx",
+        "title": "备忘录"
+      },
+      {
+        "path": "/memos/chain",
+        "component": "./frontend/pages/MindChainPage.jsx",
+        "title": "思维链"
+      },
+      {
+        "path": "/memos/chain/:id",
+        "component": "./frontend/pages/MindChainPage.jsx",
+        "title": "思维链详情"
+      }
+    ],
+    "sidebar": [
+      {
+        "id": "memo-main",
+        "label": "备忘",
+        "icon": "BookMarked",
+        "path": "/memos",
+        "priority": 90,
+        "slot": "sidebar.main"
+      }
+    ],
+    "commands": [
+      {
+        "id": "memo.quick",
+        "title": "快速备忘",
+        "icon": "Zap",
+        "shortcut": "Ctrl+M",
+        "slot": "commandbar.quick"
+      }
+    ],
+    "floatingBubbles": [
+      {
+        "id": "memo-quick-input",
+        "component": "./frontend/components/MemoQuickInput.jsx",
+        "slot": "floating-ball",
+        "position": "bottom-right",
+        "priority": 80,
+        "icon": "Sparkles",
+        "tooltip": "快速备忘 (Ctrl+M)"
+      }
+    ]
+  },
+
+  "backend": {
+    "entry": "./backend/index.js",
+    "routes": [
+      {
+        "path": "/api/memo/parse",
+        "file": "./backend/routes/parse.js"
+      },
+      {
+        "path": "/api/memo/chain",
+        "file": "./backend/routes/chain.js"
+      },
+      {
+        "path": "/api/memo/associations",
+        "file": "./backend/routes/associations.js"
+      }
+    ],
+    "migrations": [
+      "./backend/migrations/001_create_memo_chains.sql",
+      "./backend/migrations/002_create_memo_associations.sql"
+    ],
+    "dictionaries": [
+      "./backend/dictionaries/time-keywords.json",
+      "./backend/dictionaries/action-verbs.json",
+      "./backend/dictionaries/priority-keywords.json"
+    ]
+  },
+
+  "lifecycle": {
+    "install": "./backend/hooks/install.js",
+    "uninstall": "./backend/hooks/uninstall.js",
+    "activate": "./frontend/hooks/activate.js",
+    "deactivate": "./frontend/hooks/deactivate.js"
+  },
+
+  "config": {
+    "schema": {
+      "dictBasedRecognition": {
+        "type": "boolean",
+        "default": true,
+        "label": "启用字典识别"
+      },
+      "aiAssist": {
+        "type": "boolean",
+        "default": false,
+        "label": "启用 AI 辅助（需配置 API Key）"
+      },
+      "aiProvider": {
+        "type": "select",
+        "options": ["openai", "claude", "deepseek", "qwen", "none"],
+        "default": "none",
+        "label": "AI 提供商"
+      },
+      "chainView": {
+        "type": "select",
+        "options": ["timeline", "graph", "tree", "list"],
+        "default": "timeline",
+        "label": "思维链默认视图"
+      }
+    }
+  },
+
+  "preview": {
+    "demo": "./preview/demo.html",
+    "screenshots": [
+      "./preview/mobile.png",
+      "./preview/desktop.png",
+      "./preview/chain-view.png"
+    ],
+    "video": "./preview/demo.mp4"
+  },
+
+  "metadata": {
+    "createdAt": "2026-06-13",
+    "updatedAt": "2026-06-13"
+  }
+}

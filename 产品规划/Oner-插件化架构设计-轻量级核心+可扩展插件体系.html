@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oner 插件化架构设计 — 轻量级核心 + 可扩展插件体系</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f8fafc; color: #1e293b; }
+
+  .page { max-width: 1400px; margin: 0 auto; padding: 40px 32px 80px; }
+  .hero { text-align: center; margin-bottom: 48px; padding: 48px 0; }
+  .hero h1 { font-size: 36px; font-weight: 800; background: linear-gradient(135deg, #6366f1, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 12px; }
+  .hero p { font-size: 16px; color: #64748b; max-width: 600px; margin: 0 auto; line-height: 1.6; }
+
+  .section { margin-bottom: 56px; }
+  .section-title { font-size: 22px; font-weight: 700; color: #0f172a; margin-bottom: 8px; display:flex; align-items:center; gap:10px; }
+  .section-desc { font-size: 14px; color: #94a3b8; margin-bottom: 24px; line-height: 1.6; }
+
+  /* Architecture Diagram */
+  .arch-diagram { background: #fff; border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,.06); border: 1px solid #e2e8f0; margin-bottom: 32px; }
+  .arch-layer { margin-bottom: 24px; }
+  .arch-layer:last-child { margin-bottom: 0; }
+  .layer-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 8px; }
+  .layer-boxes { display: flex; gap: 12px; flex-wrap: wrap; }
+  .layer-box { border-radius: 10px; padding: 12px 16px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .core-box { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; }
+  .plugin-box { background: #f1f5f9; border: 1px solid #e2e8f0; color: #475569; }
+  .plugin-box.active { background: #eef2ff; border-color: #6366f1; color: #4338ca; }
+  .arrow-down { text-align: center; color: #cbd5e1; font-size: 20px; margin: 4px 0; }
+
+  /* Plugin Card */
+  .plugin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .plugin-card { background: #fff; border-radius: 12px; padding: 20px; border: 1px solid #e2e8f0; transition: all .2s; }
+  .plugin-card:hover { border-color: #6366f1; box-shadow: 0 4px 12px rgba(99,102,241,.1); }
+  .plugin-card h4 { font-size: 15px; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+  .plugin-card .plugin-id { font-size: 11px; color: #6366f1; font-family: 'JetBrains Mono', monospace; margin-bottom: 8px; }
+  .plugin-card p { font-size: 13px; color: #64748b; line-height: 1.5; }
+  .plugin-card .plugin-meta { display: flex; gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f1f5f9; font-size: 11px; color: #94a3b8; }
+
+  /* Code Block */
+  .code-block { background: #1e293b; border-radius: 12px; padding: 24px; margin-bottom: 24px; overflow-x: auto; }
+  .code-block pre { color: #e2e8f0; font-size: 13px; line-height: 1.7; font-family: 'JetBrains Mono', monospace; white-space: pre; }
+  .code-comment { color: #64748b; }
+  .code-key { color: #7dd3fc; }
+  .code-str { color: #86efac; }
+  .code-num { color: #fbbf24; }
+  .code-punct { color: #94a3b8; }
+
+  /* Table */
+  .compare-table { width: 100%; border-collapse: collapse; margin-bottom: 32px; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+  .compare-table th { padding: 12px 16px; font-size: 13px; font-weight: 600; text-align: left; background: #f8fafc; border-bottom: 2px solid #e2e8f0; color: #475569; }
+  .compare-table td { padding: 10px 16px; font-size: 13px; border-bottom: 1px solid #f1f5f9; color: #334155; vertical-align: top; }
+  .compare-table tr:last-child td { border-bottom: none; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .tag-purple { background: #eef2ff; color: #4338ca; }
+  .tag-green { background: #f0fdf4; color: #15803d; }
+  .tag-gray { background: #f1f5f9; color: #64748b; }
+
+  /* Flow Diagram */
+  .flow-diagram { background: #fff; border-radius: 12px; padding: 24px; border: 1px solid #e2e8f0; margin-bottom: 24px; }
+  .flow-step { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 20px; position: relative; }
+  .flow-step:not(:last-child)::after { content: ''; position: absolute; left: 20px; top: 44px; bottom: -20px; width: 2px; background: #e2e8f0; }
+  .flow-num { width: 40px; height: 40px; border-radius: 10px; background: #6366f1; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0; }
+  .flow-content h4 { font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+  .flow-content p { font-size: 13px; color: #64748b; }
+
+  /* Highlight Box */
+  .highlight-box { background: linear-gradient(135deg, #eef2ff, #faf5ff); border: 1px solid #c7d2fe; border-radius: 12px; padding: 20px; margin-bottom: 24px; }
+  .highlight-box h4 { font-size: 15px; font-weight: 700; color: #4338ca; margin-bottom: 8px; }
+  .highlight-box p { font-size: 13px; color: #4f46e5; line-height: 1.6; }
+
+  /* Tabs */
+  .tab-bar { display: flex; gap: 4px; margin-bottom: 16px; background: #f1f5f9; border-radius: 10px; padding: 4px; }
+  .tab-bar button { padding: 8px 20px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; background: transparent; color: #64748b; transition: all .15s; }
+  .tab-bar button.active { background: #fff; color: #6366f1; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <!-- Hero -->
+  <div class="hero">
+    <h1>🔌 Oner 插件化架构设计</h1>
+    <p>轻量级核心框架 + 可扩展插件体系<br>AI 插件 · 备忘插件 · 密码插件 · 看板插件 · 自定义插件</p>
+  </div>
+
+  <!-- ==================== SECTION 1: 架构总览 ==================== -->
+  <div class="section">
+    <div class="section-title">① 架构总览 — 三层设计</div>
+    <div class="section-desc">
+      核心原则：<strong>Kernel（内核）</strong>只提供最基础能力，所有业务功能通过 <strong>Plugin（插件）</strong> 接入。<br>
+      插件可以独立开发、测试、发布、启用/禁用，不影响核心稳定性。
+    </div>
+
+    <div class="arch-diagram">
+      <!-- Layer 1: Kernel -->
+      <div class="arch-layer">
+        <div class="layer-label">🧱 Kernel — 内核（~2000 行，永不修改）</div>
+        <div class="layer-boxes">
+          <div class="layer-box core-box">⚙️ Plugin Manager</div>
+          <div class="layer-box core-box">🔐 Auth & User</div>
+          <div class="layer-box core-box">🗄️ Database Core</div>
+          <div class="layer-box core-box">🌐 API Gateway</div>
+          <div class="layer-box core-box">🎨 UI Shell</div>
+          <div class="layer-box core-box">📡 Event Bus</div>
+        </div>
+      </div>
+
+      <div class="arrow-down">↓ 提供 Plugin API</div>
+
+      <!-- Layer 2: Plugins -->
+      <div class="arch-layer">
+        <div class="layer-label">🔌 Plugins — 插件层（可插拔，独立仓库）</div>
+        <div class="layer-boxes">
+          <div class="layer-box plugin-box active">📝 Notes Plugin</div>
+          <div class="layer-box plugin-box active">🤖 AI Plugin</div>
+          <div class="layer-box plugin-box active">📋 Memo Plugin</div>
+          <div class="layer-box plugin-box">🔒 Password Plugin</div>
+          <div class="layer-box plugin-box">📊 Board Plugin</div>
+          <div class="layer-box plugin-box">📅 Calendar Plugin</div>
+          <div class="layer-box plugin-box">🏷️ Tags Plugin</div>
+          <div class="layer-box plugin-box">🔔 Reminder Plugin</div>
+          <div class="layer-box plugin-box" style="border-style:dashed;">➕ Custom Plugin...</div>
+        </div>
+      </div>
+
+      <div class="arrow-down">↓ 注册 UI  Slot / API Route / DB Table</div>
+
+      <!-- Layer 3: App -->
+      <div class="arch-layer">
+        <div class="layer-label">📱 App — 最终应用（动态组装）</div>
+        <div class="layer-boxes">
+          <div class="layer-box plugin-box" style="background:#f0fdf4;border-color:#22c55e;">侧边栏导航（动态生成）</div>
+          <div class="layer-box plugin-box" style="background:#f0fdf4;border-color:#22c55e;">路由表（动态注册）</div>
+          <div class="layer-box plugin-box" style="background:#f0fdf4;border-color:#22c55e;">命令面板（动态注入）</div>
+          <div class="layer-box plugin-box" style="background:#f0fdf4;border-color:#22c55e;">设置页面（动态扩展）</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="highlight-box">
+      <h4>💡 核心设计理念</h4>
+      <p>
+        <strong>Kernel 不依赖任何 Plugin</strong>，Plugin 只依赖 Kernel 提供的 API。<br>
+        用户安装 Oner 后，默认只有 <strong>Notes Plugin（笔记核心）</strong>。<br>
+        AI、Memo、Password 等功能都是可选插件，用户可以选择性安装。
+      </p>
+    </div>
+  </div>
+
+  <!-- ==================== SECTION 2: Plugin 生命周期 ==================== -->
+  <div class="section">
+    <div class="section-title">② Plugin 生命周期 — 4 个阶段</div>
+    <div class="section-desc">每个插件都遵循相同的生命周期，Kernel 统一管理</div>
+
+    <div class="flow-diagram">
+      <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div class="flow-content">
+          <h4>install() — 安装阶段</h4>
+          <p>插件第一次被添加到项目时调用。执行数据库迁移（创建表）、初始化配置、注册权限声明。<br>
+          只执行一次，数据持久化到插件元数据库。</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div class="flow-content">
+          <h4>activate() — 激活阶段</h4>
+          <p>每次应用启动时调用（如果插件处于 enabled 状态）。注册前端路由、后端 API 路由、侧边栏菜单项、命令面板命令。<br>
+          这是插件"生效"的阶段。</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">3</div>
+        <div class="flow-content">
+          <h4>deactivate() — 停用阶段</h4>
+          <p>用户禁用插件时调用。注销路由、菜单项、命令，停止后台服务。数据保留，可重新激活。<br>
+          插件功能消失，但用户数据不丢失。</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num" style="background:#64748b;">4</div>
+        <div class="flow-content">
+          <h4>uninstall() — 卸载阶段（可选）</h4>
+          <p>用户彻底删除插件时调用。可选择是否删除数据表和数据。如果保留数据，重新安装时可恢复。<br>
+          这是唯一可能丢失数据的操作，需用户确认。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== SECTION 3: Plugin Manifest ==================== -->
+  <div class="section">
+    <div class="section-title">③ Plugin Manifest — plugin.json 规范</div>
+    <div class="section-desc">每个插件根目录必须有 <code>plugin.json</code>，Kernel 根据它了解插件的能力和依赖</div>
+
+    <div class="code-block">
+<pre><span class="code-comment">// plugins/ai/plugin.json — AI 插件示例</span>
+<span class="code-punct">{</span>
+  <span class="code-str">"id"</span><span class="code-punct">:</span> <span class="code-str">"oner.plugin.ai"</span><span class="code-punct">,</span>
+  <span class="code-str">"name"</span><span class="code-punct">:</span> <span class="code-str">"AI 智能助手"</span><span class="code-punct">,</span>
+  <span class="code-str">"version"</span><span class="code-punct">:</span> <span class="code-str">"1.0.0"</span><span class="code-punct">,</span>
+  <span class="code-str">"description"</span><span class="code-punct">:</span> <span class="code-str">"AI 洞察、智能关联、思维链分析"</span><span class="code-punct">,</span>
+  <span class="code-str">"author"</span><span class="code-punct">:</span> <span class="code-str">"Oner Team"</span><span class="code-punct">,</span>
+  <span class="code-str">"minKernelVersion"</span><span class="code-punct">:</span> <span class="code-str">"1.0.0"</span><span class="code-punct">,</span>
+
+  <span class="code-comment">// 依赖的其他插件（id + 版本范围）</span>
+  <span class="code-str">"dependencies"</span><span class="code-punct">:</span> <span class="code-punct">[</span>
+    <span class="code-punct">{</span> <span class="code-str">"id"</span><span class="code-punct">:</span> <span class="code-str">"oner.plugin.notes"</span><span class="code-punct">,</span> <span class="code-str">"version"</span><span class="code-punct">:</span> <span class="code-str">"&gt;=1.0.0"</span> <span class="code-punct">}</span>
+  <span class="code-punct">],</span>
+
+  <span class="code-comment">// 需要的权限（Kernel 会提示用户授权）</span>
+  <span class="code-str">"permissions"</span><span class="code-punct">:</span> <span class="code-punct">[</span>
+    <span class="code-str">"notes:read"</span><span class="code-punct">,</span>
+    <span class="code-str">"notes:summarize"</span><span class="code-punct">,</span>
+    <span class="code-str">"network:external"</span><span class="code-punct">,</span>
+    <span class="code-str">"settings:read:ai"</span>
+  <span class="code-punct">],</span>
+
+  <span class="code-comment">// 前端入口文件（相对 plugin.json 的路径）</span>
+  <span class="code-str">"frontend"</span><span class="code-punct">:</span> <span class="code-punct">{</span>
+    <span class="code-str">"entry"</span><span class="code-punct">:</span> <span class="code-str">"./frontend/index.jsx"</span><span class="code-punct">,</span>
+    <span class="code-str">"routes"</span><span class="code-punct">:</span> <span class="code-punct">[</span>
+      <span class="code-punct">{</span> <span class="code-str">"path"</span><span class="code-punct">:</span> <span class="code-str">"/ai"</span><span class="code-punct">,</span> <span class="code-str">"component"</span><span class="code-punct">:</span> <span class="code-str">"./pages/AIChat.jsx"</span> <span class="code-punct">},</span>
+      <span class="code-punct">{</span> <span class="code-str">"path"</span><span class="code-punct">:</span> <span class="code-str">"/ai/overdue"</span><span class="code-punct">,</span> <span class="code-str">"component"</span><span class="code-punct">:</span> <span class="code-str">"./pages/OverduePage.jsx"</span> <span class="code-punct">},</span>
+      <span class="code-str">"weight"</span><span class="code-punct">:</span> <span class="code-num">100</span><span class="code-punct">,</span>
+      <span class="code-str">"icon"</span><span class="code-punct">:</span> <span class="code-str">"🤖"</span>
+    <span class="code-punct">],</span>
+    <span class="code-str">"sidebar"</span><span class="code-punct">:</span> <span class="code-punct">[</span>
+      <span class="code-punct">{</span> <span class="code-str">"id"</span><span class="code-punct">:</span> <span class="code-str">"ai"</span><span class="code-punct">,</span> <span class="code-str">"label"</span><span class="code-punct">:</span> <span class="code-str">"AI 助手"</span><span class="code-punct">,</span> <span class="code-str">"icon"</span><span class="code-punct">:</span> <span class="code-str">"🤖"</span><span class="code-punct">,</span> <span class="code-str">"path"</span><span class="code-punct">:</span> <span class="code-str">"/ai"</span><span class="code-punct">,</span> <span class="code-str">"weight"</span><span class="code-punct">:</span> <span class="code-num">90</span> <span class="code-punct">}</span>
+    <span class="code-punct">]</span>
+  <span class="code-punct">},</span>
+
+  <span class="code-comment">// 后端入口文件</span>
+  <span class="code-str">"backend"</span><span class="code-punct">:</span> <span class="code-punct">{</span>
+    <span class="code-str">"entry"</span><span class="code-punct">:</span> <span class="code-str">"./backend/index.js"</span><span class="code-punct">,</span>
+    <span class="code-str">"routes"</span><span class="code-punct">:</span> <span class="code-punct">[</span>
+      <span class="code-punct">{</span> <span class="code-str">"path"</span><span class="code-punct">:</span> <span class="code-str">"/api/ai"</span><span class="code-punct">,</span> <span class="code-str">"file"</span><span class="code-punct">:</span> <span class="code-str">"./backend/routes/ai.js"</span> <span class="code-punct">}</span>
+    <span class="code-punct">],</span>
+    <span class="code-str">"migrations"</span><span class="code-punct">:</span> <span class="code-punct">[</span>
+      <span class="code-str">"./backend/migrations/001_create_ai_insights.sql"</span>
+    <span class="code-punct">]</span>
+  <span class="code-punct">}</span>
+<span class="code-punct">}</span></pre>
+    </div>
+  </div>
+
+  <!-- ==================== SECTION 4: Kernel API ==================== -->
+  <div class="section">
+    <div class="section-title">④ Kernel API — Plugin 能调用的核心接口</div>
+    <div class="section-desc">Kernel 暴露一组稳定的 API，插件通过这套 API 注册功能、存取数据、响应事件</div>
+
+    <div class="code-block">
+<pre><span class="code-comment">// Kernel API TypeScript 类型定义（插件作者参考）</span>
+<span class="code-key">interface</span> <span class="code-num">OnerKernel</span> <span class="code-punct">{</span>
+  <span class="code-comment">// === 前端 API ===</span>
+  frontend<span class="code-punct">:</span> <span class="code-punct">{</span>
+    <span class="code-comment">// 注册路由（插件加载时调用）</span>
+    registerRoute<span class="code-punct">(</span>route<span class="code-punct">:</span> PluginRoute<span class="code-punct">):</span> <span class="code-key">void</span><span class="code-punct">;</span>
+
+    <span class="code-comment">// 注册侧边栏菜单项</span>
+    registerSidebarItem<span class="code-punct">(</span>item<span class="code-punct">:</span> SidebarItem<span class="code-punct">):</span> <span class="code-key">void</span><span class="code-punct">;</span>
+
+    <span class="code-comment">// 注册命令面板命令</span>
+    registerCommand<span class="code-punct">(</span>cmd<span class="code-punct">:</span> CommandItem<span class="code-punct">):</span> <span class="code-key">void</span><span class="code-punct">;</span>
+
+    <span class="code-comment">// 注册设置页面 Tab</span>
+    registerSettingsTab<span class="code-punct">(</span>tab<span class="code-punct">:</span> SettingsTab<span class="code-punct">):</span> <span class="code-key">void</span><span class="code-punct">;</span>
+
+    <span class="code-comment">// 注册底部导航项（移动端）</span>
+    registerBottomNavItem<span class="code-punct">(</span>item<span class="code-punct">:</span> BottomNavItem<span class="code-punct">):</span> <span class="code-key">void</span><span class="code-punct">;</span>
+
+    <span class="code-comment">// 渲染 Slot（在指定位置注入组件）</span>
+    registerSlot<span class="code-punct">(</span>slotName<span class="code-punct">:</span> <span class="code-key">string</span><span class="code-punct">,</span> component<span class="code-punct">:</span> React.Component<span class="code-punct">):</span> <span class="code-key">void</span><span class="code-punct">;</span>
+  <span class="code-punct">};</span>
+
+  <span class="code-comment">// === 后端 API ===</span>
+  backend<span class="code-punct">:</span> <span class="code-punct">{</span>
+    <span class="code-comment">// 注册 Express 路由</span>
+    registerRoute<span class="code-punct">(</span>path<span class="code-punct">:</span> <span class="code-key">string</span><span class="code-punct">,</span> router<span class="code-punct">:</span> Express.Router<span class="code-punct">):</span> <span class="code-key">void</span><span class="code-punct">;</span>
+
+    <span class="code-comment">// 注册数据库迁移</span>
+    registerMigration<span class="code-punct">(</span>migration<span class="code-punct">:</span> Migration<span class="code-punct">):</span> <span class="code-key">void</span><span class="code-punct">;</span>
+
+    <span class="code-comment">// 注册定时任务</span>
+    registerCron<span class="code-punct">(</span>job<span class="code-punct">:</span> CronJob<span class="code-punct">):</span> <span class="code-key">void</span><span class="code-punct">;</span>
+  <span class="code-punct">};</span>
+
+  <span class="code-comment">// === 数据 API ===</span>
+  data<span class="code-punct">:</span> <span class="code-punct">{</span>
+    <span class="code-comment">// 调用其他插件的 API（通过插件 ID）</span>
+    callPluginAPI<span class="code-punct">(</span>pluginId<span class="code-punct">:</span> <span class="code-key">string</span><span class="code-punct">,</span> method<span class="code-punct">:</span> <span class="code-key">string</span><span class="code-punct">,</span> params<span class="code-punct">:</span> <span class="code-key">any</span><span class="code-punct">):</span> Promise<span class="code-punct">&lt;</span><span class="code-key">any</span><span class="code-punct">&gt;;</span>
+
+    <span class="code-comment">// 读取插件配置</span>
+    getConfig<span class="code-punct">(</span>key<span class="code-punct">:</span> <span class="code-key">string</span><span class="code-punct">):</span> <span class="code-key">any</span><span class="code-punct">;</span>
+    setConfig<span class="code-punct">(</span>key<span class="code-punct">:</span> <span class="code-key">string</span><span class="code-punct">,</span> value<span class="code-punct">:</span> <span class="code-key">any</span><span class="code-punct">):</span> <span class="code-key">void</span><span class="code-punct">;</span>
+  <span class="code-punct">};</span>
+
+  <span class="code-comment">// === 事件 API ===</span>
+  events<span class="code-punct">:</span> <span class="code-punct">{</span>
+    <span class="code-comment">// 监听事件</span>
+    on<span class="code-punct">(</span>event<span class="code-punct">:</span> <span class="code-key">string</span><span class="code-punct">,</span> handler<span class="code-punct">:</span> EventHandler<span class="code-punct">):</span> <span class="code-key">void</span><span class="code-punct">;</span>
+    <span class="code-comment">// 触发事件（广播给其他插件）</span>
+    emit<span class="code-punct">(</span>event<span class="code-punct">:</span> <span class="code-key">string</span><span class="code-punct">,</span> data<span class="code-punct">:</span> <span class="code-key">any</span><span class="code-punct">):</span> <span class="code-key">void</span><span class="code-punct">;</span>
+  <span class="code-punct">};</span>
+<span class="code-punct">}</span></pre>
+    </div>
+  </div>
+
+  <!-- ==================== SECTION 5: 目录结构 ==================== -->
+  <div class="section">
+    <div class="section-title">⑤ 目录结构 — 改造后的项目布局</div>
+    <div class="section-desc">将现有单体应用拆分为 Kernel + Plugins 结构，保持向后兼容</div>
+
+    <div class="code-block">
+<pre><span class="code-comment"># Oner 插件化架构 — 目录结构</span>
+oner/
+├── kernel/                      <span class="code-comment"># 内核（不修改，只扩展 API）</span>
+│   ├── frontend/                <span class="code-comment"># 前端内核</span>
+│   │   ├── AppShell.jsx        <span class="code-comment"># 应用外壳（Sidebar + Header + Content Slot）</span>
+│   │   ├── PluginManager.js    <span class="code-comment"># 前端插件管理器</span>
+│   │   ├── kernel-api.js       <span class="code-comment"># 暴露给插件的 API</span>
+│   │   ├── slots/             <span class="code-comment"># 预留的 Slot 位置</span>
+│   │   │   ├── SidebarSlots.jsx
+│   │   │   ├── HeaderSlots.jsx
+│   │   │   └── CommandPaletteSlots.jsx
+│   │   └── index.js           <span class="code-comment"># 内核入口</span>
+│   ├── backend/                 <span class="code-comment"># 后端内核</span>
+│   │   ├── PluginManager.js    <span class="code-comment"># 后端插件管理器</span>
+│   │   ├── kernel-api.js       <span class="code-comment"># 后端 Kernel API</span>
+│   │   ├── db-core.js         <span class="code-comment"># 数据库核心（迁移管理、连接池）</span>
+│   │   └── index.js
+│   └── shared/                 <span class="code-comment"># 前后端共享类型/常量</span>
+│       └── plugin-types.d.ts
+│
+├── plugins/                     <span class="code-comment"># 插件目录（每个插件独立文件夹）</span>
+│   ├── notes/                  <span class="code-comment"># 📝 笔记核心插件（默认启用）</span>
+│   │   ├── plugin.json
+│   │   ├── frontend/
+│   │   │   ├── index.jsx      <span class="code-comment"># 插件前端入口（export activate/deactivate）</span>
+│   │   │   ├── pages/
+│   │   │   └── components/
+│   │   └── backend/
+│   │       ├── index.js        <span class="code-comment"># 插件后端入口</span>
+│   │       ├── routes/
+│   │       └── migrations/
+│   │
+│   ├── ai/                     <span class="code-comment"># 🤖 AI 插件（可选）</span>
+│   │   ├── plugin.json
+│   │   ├── frontend/
+│   │   └── backend/
+│   │
+│   ├── memo/                   <span class="code-comment"># 📋 备忘插件（可选）</span>
+│   │   ├── plugin.json
+│   │   ├── frontend/
+│   │   └── backend/
+│   │
+│   ├── passwords/              <span class="code-comment"># 🔒 密码插件（可选）</span>
+│   ├── board/                  <span class="code-comment"># 📊 看板插件（可选）</span>
+│   └── reminder/              <span class="code-comment"># 🔔 提醒插件（可选）</span>
+│
+├── frontend/                    <span class="code-comment"># 前端构建入口（Vite）</span>
+│   ├── src/
+│   │   ├── main.jsx           <span class="code-comment"># 新入口：加载 kernel → 加载 plugins → 启动 App</span>
+│   │   └── App.jsx           <span class="code-comment"># 简化为 Shell，路由/组件都来自插件</span>
+│   └── vite.config.js        <span class="code-comment"># 配置多入口、插件热加载</span>
+│
+├── backend/                     <span class="code-comment"># 后端（Express）</span>
+│   ├── server.js              <span class="code-comment"># 简化：只启动 Kernel，Kernel 加载插件</span>
+│   └── src/
+│       └── db/
+│           └── kernel.db.js   <span class="code-comment"># Kernel 专属数据库操作</span>
+│
+└── package.json                <span class="code-comment"># 根 package.json（workspace 配置）</span></pre>
+    </div>
+  </div>
+
+  <!-- ==================== SECTION 6: 插件示例 ==================== -->
+  <div class="section">
+    <div class="section-title">⑥ 插件实现示例 — AI 插件前端入口</div>
+    <div class="section-desc">展示一个插件如何通过 Kernel API 注册路由、侧边栏、命令</div>
+
+    <div class="code-block">
+<pre><span class="code-comment">// plugins/ai/frontend/index.jsx — AI 插件前端入口</span>
+<span class="code-key">import</span> <span class="code-num">React</span> <span class="code-key">from</span> <span class="code-str">'react'</span><span class="code-punct">;</span>
+<span class="code-key">import</span> <span class="code-num">AIChatPage</span> <span class="code-key">from</span> <span class="code-str">'./pages/AIChatPage.jsx'</span><span class="code-punct">;</span>
+<span class="code-key">import</span> <span class="code-num">OverduePage</span> <span class="code-key">from</span> <span class="code-str">'./pages/OverduePage.jsx'</span><span class="code-punct">;</span>
+<span class="code-key">import</span> <span class="code-num">WeeklyPage</span> <span class="code-key">from</span> <span class="code-str">'./pages/WeeklyPage.jsx'</span><span class="code-punct">;</span>
+<span class="code-key">import</span> <span class="code-num">AssociationsPage</span> <span class="code-key">from</span> <span class="code-str">'./pages/AssociationsPage.jsx'</span><span class="code-punct">;</span>
+
+<span class="code-comment">// 插件激活时调用 — Kernel 传入 kernelAPI</span>
+<span class="code-key">export function</span> <span class="code-num">activate</span><span class="code-punct">(</span><span class="code-num">kernelAPI</span><span class="code-punct">)</span> <span class="code-punct">{</span>
+  <span class="code-key">const</span> <span class="code-punct">{</span> frontend<span class="code-punct">,</span> events <span class="code-punct">}</span> <span class="code-punct">=</span> kernelAPI<span class="code-punct">;</span>
+
+  <span class="code-comment">// 1. 注册前端路由</span>
+  frontend<span class="code-punct">.</span>registerRoute<span class="code-punct">({</span>
+    path<span class="code-punct">:</span> <span class="code-str">'/ai'</span><span class="code-punct">,</span>
+    component<span class="code-punct">:</span> <span class="code-num">AIChatPage</span><span class="code-punct">,</span>
+    exact<span class="code-punct">:</span> <span class="code-key">false</span><span class="code-punct">,</span>  <span class="code-comment">// 支持 /ai/* 子路由</span>
+  <span class="code-punct">});</span>
+
+  frontend<span class="code-punct">.</span>registerRoute<span class="code-punct">({</span>
+    path<span class="code-punct">:</span> <span class="code-str">'/ai/overdue'</span><span class="code-punct">,</span>
+    component<span class="code-punct">:</span> <span class="code-num">OverduePage</span><span class="code-punct">,</span>
+  <span class="code-punct">});</span>
+
+  frontend<span class="code-punct">.</span>registerRoute<span class="code-punct">({</span>
+    path<span class="code-punct">:</span> <span class="code-str">'/ai/weekly'</span><span class="code-punct">,</span>
+    component<span class="code-punct">:</span> <span class="code-num">WeeklyPage</span><span class="code-punct">,</span>
+  <span class="code-punct">});</span>
+
+  frontend<span class="code-punct">.</span>registerRoute<span class="code-punct">({</span>
+    path<span class="code-punct">:</span> <span class="code-str">'/ai/associations'</span><span class="code-punct">,</span>
+    component<span class="code-punct">:</span> <span class="code-num">AssociationsPage</span><span class="code-punct">,</span>
+  <span class="code-punct">});</span>
+
+  <span class="code-comment">// 2. 注册侧边栏菜单项</span>
+  frontend<span class="code-punct">.</span>registerSidebarItem<span class="code-punct">({</span>
+    id<span class="code-punct">:</span> <span class="code-str">'ai-chat'</span><span class="code-punct">,</span>
+    label<span class="code-punct">:</span> <span class="code-str">'AI 助手'</span><span class="code-punct">,</span>
+    icon<span class="code-punct">:</span> <span class="code-str">'🤖'</span><span class="code-punct">,</span>
+    path<span class="code-punct">:</span> <span class="code-str">'/ai'</span><span class="code-punct">,</span>
+    weight<span class="code-punct">:</span> <span class="code-num">90</span><span class="code-punct">,</span>  <span class="code-comment">// 控制排序，数字越大越靠下</span>
+    badge<span class="code-punct">:</span> <span class="code-num">null</span><span class="code-punct">,</span>  <span class="code-comment">// 可选的 badge 计数</span>
+  <span class="code-punct">});</span>
+
+  <span class="code-comment">// 3. 注册命令面板命令</span>
+  frontend<span class="code-punct">.</span>registerCommand<span class="code-punct">({</span>
+    id<span class="code-punct">:</span> <span class="code-str">'ai:summary'</span><span class="code-punct">,</span>
+    label<span class="code-punct">:</span> <span class="code-str">'AI 总结当前笔记'</span><span class="code-punct">,</span>
+    icon<span class="code-punct">:</span> <span class="code-str">'🤖'</span><span class="code-punct">,</span>
+    action<span class="code-punct">:</span> <span class="code-punct">()</span> <span class="code-punct">=&gt;</span> <span class="code-punct">{</span>
+      events<span class="code-punct">.</span>emit<span class="code-punct">(</span><span class="code-str">'ai:request-summary'</span><span class="code-punct">,</span> <span class="code-punct">{</span> noteId<span class="code-punct">:</span> <span class="code-num">null</span> <span class="code-punct">});</span>
+    <span class="code-punct">},</span>
+    shortcut<span class="code-punct">:</span> <span class="code-str">'Cmd+Shift+A'</span><span class="code-punct">,</span>
+  <span class="code-punct">});</span>
+
+  <span class="code-comment">// 4. 注册底部导航（移动端）</span>
+  frontend<span class="code-punct">.</span>registerBottomNavItem<span class="code-punct">({</span>
+    id<span class="code-punct">:</span> <span class="code-str">'ai'</span><span class="code-punct">,</span>
+    label<span class="code-punct">:</span> <span class="code-str">'AI'</span><span class="code-punct">,</span>
+    icon<span class="code-punct">:</span> <span class="code-num">Bot</span><span class="code-punct">,</span>  <span class="code-comment">// Lucide icon name</span>
+    path<span class="code-punct">:</span> <span class="code-str">'/ai'</span><span class="code-punct">,</span>
+    weight<span class="code-punct">:</span> <span class="code-num">80</span><span class="code-punct">,</span>
+  <span class="code-punct">});</span>
+
+  <span class="code-comment">// 5. 监听事件（笔记保存时触发 AI 分析）</span>
+  events<span class="code-punct">.</span>on<span class="code-punct">(</span><span class="code-str">'note:saved'</span><span class="code-punct">,</span> <span class="code-key">async</span> <span class="code-punct">(</span>data<span class="code-punct">)</span> <span class="code-punct">=&gt;</span> <span class="code-punct">{</span>
+    <span class="code-comment">// 调用后端 AI 插件进行分析</span>
+    <span class="code-key">await</span> kernelAPI<span class="code-punct">.</span>data<span class="code-punct">.</span>callPluginAPI<span class="code-punct">(</span>
+      <span class="code-str">'oner.plugin.ai.backend'</span><span class="code-punct">,</span>
+      <span class="code-str">'analyzeNote'</span><span class="code-punct">,</span>
+      <span class="code-punct">{</span> noteId<span class="code-punct">:</span> data<span class="code-punct">.</span>noteId <span class="code-punct">}</span>
+    <span class="code-punct">);</span>
+  <span class="code-punct">});</span>
+
+  <span class="code-comment">// 返回清理函数（deactivate 时调用）</span>
+  <span class="code-key">return function</span> <span class="code-num">cleanup</span><span class="code-punct">()</span> <span class="code-punct">{</span>
+    console<span class="code-punct">.</span>log<span class="code-punct">(</span><span class="code-str">'AI Plugin frontend deactivated'</span><span class="code-punct">);</span>
+  <span class="code-punct">};</span>
+<span class="code-punct">}</span>
+
+<span class="code-comment">// 插件停用时调用</span>
+<span class="code-key">export function</span> <span class="code-num">deactivate</span><span class="code-punct">(</span><span class="code-num">kernelAPI</span><span class="code-punct">)</span> <span class="code-punct">{</span>
+  <span class="code-comment">// Kernel 会自动注销该插件注册的所有路由/菜单</span>
+  <span class="code-comment">// 这里只做插件自身的清理工作（定时器、WebSocket 等）</span>
+  kernelAPI<span class="code-punct">.</span>backend<span class="code-punct">.</span>stopCron<span class="code-punct">(</span><span class="code-str">'ai-daily-insight'</span><span class="code-punct">);</span>
+<span class="code-punct">}</span></pre>
+    </div>
+  </div>
+
+  <!-- ==================== SECTION 7: 后端插件示例 ==================== -->
+  <div class="section">
+    <div class="section-title">⑦ 后端插件示例 — AI 插件后端入口</div>
+    <div class="section-desc">后端插件注册 Express 路由、数据库迁移、定时任务</div>
+
+    <div class="code-block">
+<pre><span class="code-comment">// plugins/ai/backend/index.js — AI 插件后端入口</span>
+<span class="code-key">import</span> <span class="code-num">express</span> <span class="code-key">from</span> <span class="code-str">'express'</span><span class="code-punct">;</span>
+<span class="code-key">import</span> <span class="code-num">aiRoutes</span> <span class="code-key">from</span> <span class="code-str">'./routes/ai.js'</span><span class="code-punct">;</span>
+<span class="code-key">import</span> <span class="code-num">migration001</span> <span class="code-key">from</span> <span class="code-str">'./migrations/001_create_ai_insights.js'</span><span class="code-punct">;</span>
+
+<span class="code-key">export function</span> <span class="code-num">activate</span><span class="code-punct">(</span><span class="code-num">kernelAPI</span><span class="code-punct">)</span> <span class="code-punct">{</span>
+  <span class="code-key">const</span> <span class="code-punct">{</span> backend<span class="code-punct">,</span> data<span class="code-punct">,</span> events <span class="code-punct">}</span> <span class="code-punct">=</span> kernelAPI<span class="code-punct">;</span>
+
+  <span class="code-comment">// 1. 注册后端 API 路由（自动挂载到 /api/plugin/ai/...）</span>
+  <span class="code-key">const</span> <span class="code-num">router</span> <span class="code-punct">=</span> express<span class="code-punct">.</span>Router<span class="code-punct">();</span>
+  router<span class="code-punct">.</span>use<span class="code-punct">(</span><span class="code-str">'/ai'</span><span class="code-punct">,</span> aiRoutes<span class="code-punct">);</span>
+  backend<span class="code-punct">.</span>registerRoute<span class="code-punct">(</span><span class="code-str">'/api/plugin/ai'</span><span class="code-punct">,</span> router<span class="code-punct">);</span>
+
+  <span class="code-comment">// 2. 注册数据库迁移</span>
+  backend<span class="code-punct">.</span>registerMigration<span class="code-punct">(</span><span class="code-punct">{</span>
+    version<span class="code-punct">:</span> <span class="code-num">1</span><span class="code-punct">,</span>
+    name<span class="code-punct">:</span> <span class="code-str">'create_ai_insights_table'</span><span class="code-punct">,</span>
+    up<span class="code-punct">:</span> migration001<span class="code-punct">.</span>up<span class="code-punct">,</span>
+    down<span class="code-punct">:</span> migration001<span class="code-punct">.</span>down<span class="code-punct">,</span>
+  <span class="code-punct">});</span>
+
+  <span class="code-comment">// 3. 注册定时任务（每天 8:00 生成 AI 洞察）</span>
+  backend<span class="code-punct">.</span>registerCron<span class="code-punct">({</span>
+    id<span class="code-punct">:</span> <span class="code-str">'ai-daily-insight'</span><span class="code-punct">,</span>
+    schedule<span class="code-punct">:</span> <span class="code-str">'0 8 * * *'</span><span class="code-punct">,</span>  <span class="code-comment">// cron 表达式</span>
+    handler<span class="code-punct">:</span> <span class="code-key">async</span> <span class="code-punct">()</span> <span class="code-punct">=&gt;</span> <span class="code-punct">{</span>
+      <span class="code-key">const</span> <span class="code-num">users</span> <span class="code-punct">=</span> <span class="code-key">await</span> data<span class="code-punct">.</span>db<span class="code-punct">.</span>all<span class="code-punct">(</span><span class="code-str">'SELECT id FROM users'</span><span class="code-punct">);</span>
+      <span class="code-key">for</span> <span class="code-punct">(</span><span class="code-key">const</span> <span class="code-num">user</span> <span class="code-punct">of</span> users<span class="code-punct">)</span> <span class="code-punct">{</span>
+        <span class="code-key">await</span> kernelAPI<span class="code-punct">.</span>data<span class="code-punct">.</span>callPluginAPI<span class="code-punct">(</span>
+          <span class="code-str">'oner.plugin.ai.backend'</span><span class="code-punct">,</span>
+          <span class="code-str">'generateDailyInsight'</span><span class="code-punct">,</span>
+          <span class="code-punct">{</span> userId<span class="code-punct">:</span> user<span class="code-punct">.</span>id <span class="code-punct">}</span>
+        <span class="code-punct">);</span>
+      <span class="code-punct">}</span>
+    <span class="code-punct">},</span>
+  <span class="code-punct">});</span>
+
+  <span class="code-comment">// 4. 注册可被其他插件调用的 API 方法</span>
+  data<span class="code-punct">.</span>registerAPIMethod<span class="code-punct">(</span><span class="code-str">'analyzeNote'</span><span class="code-punct">,</span> <span class="code-key">async</span> <span class="code-punct">(</span>params<span class="code-punct">)</span> <span class="code-punct">=&gt;</span> <span class="code-punct">{</span>
+    <span class="code-comment">// ... 实现笔记分析逻辑</span>
+    <span class="code-key">return</span> <span class="code-punct">{</span> insights<span class="code-punct">:</span> <span class="code-punct">[]</span> <span class="code-punct">};</span>
+  <span class="code-punct">});</span>
+
+  <span class="code-comment">// 5. 监听事件</span>
+  events<span class="code-punct">.</span>on<span class="code-punct">(</span><span class="code-str">'note:created'</span><span class="code-punct">,</span> <span class="code-key">async</span> <span class="code-punct">(</span>data<span class="code-punct">)</span> <span class="code-punct">=&gt;</span> <span class="code-punct">{</span>
+    <span class="code-comment">// 新笔记创建后，触发 AI 关联分析</span>
+  <span class="code-punct">});</span>
+
+  console<span class="code-punct">.</span>log<span class="code-punct">(</span><span class="code-str">'✅ AI Plugin backend activated'</span><span class="code-punct">);</span>
+<span class="code-punct">}</span>
+
+<span class="code-key">export function</span> <span class="code-num">deactivate</span><span class="code-punct">(</span><span class="code-num">kernelAPI</span><span class="code-punct">)</span> <span class="code-punct">{</span>
+  <span class="code-comment">// Kernel 自动注销路由和定时任务</span>
+  console<span class="code-punct">.</span>log<span class="code-punct">(</span><span class="code-str">'AI Plugin backend deactivated'</span><span class="code-punct">);</span>
+<span class="code-punct">}</span></pre>
+    </div>
+  </div>
+
+  <!-- ==================== SECTION 8: Kernel 核心实现 ==================== -->
+  <div class="section">
+    <div class="section-title">⑧ Kernel 核心 — PluginManager 简化实现</div>
+    <div class="section-desc">Kernel 的 PluginManager 负责发现、加载、激活、停用插件</div>
+
+    <div class="code-block">
+<pre><span class="code-comment">// kernel/frontend/PluginManager.js — 前端插件管理器（简化版）</span>
+<span class="code-key">import</span> <span class="code-num">React</span> <span class="code-key">from</span> <span class="code-str">'react'</span><span class="code-punct">;</span>
+<span class="code-key">import</span> <span class="code-num">kernelAPI</span> <span class="code-key">from</span> <span class="code-str">'./kernel-api.js'</span><span class="code-punct">;</span>
+
+<span class="code-key">class</span> <span class="code-num">PluginManager</span> <span class="code-punct">{</span>
+  <span class="code-num">plugins</span> <span class="code-punct">=</span> <span class="code-key">new</span> <span class="code-num">Map</span><span class="code-punct">();</span>  <span class="code-comment">// pluginId → pluginState</span>
+  <span class="code-num">routes</span> <span class="code-punct">=</span> <span class="code-key">new</span> <span class="code-num">Map</span><span class="code-punct">();</span>  <span class="code-comment">// routePath → component</span>
+  <span class="code-num">sidebarItems</span> <span class="code-punct">=</span> <span class="code-key">new</span> <span class="code-num">Map</span><span class="code-punct">();</span>  <span class="code-comment">// itemId → itemConfig</span>
+  <span class="code-num">commands</span> <span class="code-punct">=</span> <span class="code-key">new</span> <span class="code-num">Map</span><span class="code-punct">();</span>  <span class="code-comment">// cmdId → cmdConfig</span>
+
+  <span class="code-comment">// 扫描 plugins/ 目录，发现所有插件</span>
+  <span class="code-key">async</span> <span class="code-num">discoverPlugins</span><span class="code-punct">()</span> <span class="code-punct">{</span>
+    <span class="code-key">const</span> <span class="code-num">pluginDirs</span> <span class="code-punct">=</span> <span class="code-key">await</span> window<span class="code-punct">.</span>electronAPI<span class="code-punct">?.</span>listPlugins<span class="code-punct">()</span>
+      <span class="code-punct">??</span> <span class="code-punct">[];</span>  <span class="code-comment">// 后端提供的 API</span>
+
+    <span class="code-key">for</span> <span class="code-punct">(</span><span class="code-key">const</span> <span class="code-num">dir</span> <span class="code-punct">of</span> pluginDirs<span class="code-punct">)</span> <span class="code-punct">{</span>
+      <span class="code-key">try</span> <span class="code-punct">{</span>
+        <span class="code-key">const</span> <span class="code-num">manifest</span> <span class="code-punct">=</span> <span class="code-key">await</span> <span class="code-num">import</span><span class="code-punct">(</span><span class="code-str">`/plugins/${dir}/plugin.json`</span><span class="code-punct">);</span>
+        <span class="code-key">this</span><span class="code-punct">.</span>plugins<span class="code-punct">.</span>set<span class="code-punct">(</span>manifest<span class="code-punct">.</span>id<span class="code-punct">,</span> <span class="code-punct">{</span>
+          manifest<span class="code-punct">,</span>
+          status<span class="code-punct">:</span> <span class="code-str">'discovered'</span><span class="code-punct">,</span>  <span class="code-comment">// discovered → installed → active</span>
+          frontendModule<span class="code-punct">:</span> <span class="code-key">null</span><span class="code-punct">,</span>
+        <span class="code-punct">});</span>
+      <span class="code-punct">}</span> <span class="code-key">catch</span> <span class="code-punct">(</span>e<span class="code-punct">)</span> <span class="code-punct">{</span>
+        console<span class="code-punct">.</span>warn<span class="code-punct">(</span><span class="code-str">`Failed to load plugin manifest: ${dir}`</span><span class="code-punct">,</span> e<span class="code-punct">);</span>
+      <span class="code-punct">}</span>
+    <span class="code-punct">}</span>
+  <span class="code-punct">}</span>
+
+  <span class="code-comment">// 激活一个插件（调用其 activate 函数）</span>
+  <span class="code-key">async</span> <span class="code-num">activatePlugin</span><span class="code-punct">(</span><span class="code-num">pluginId</span><span class="code-punct">)</span> <span class="code-punct">{</span>
+    <span class="code-key">const</span> <span class="code-num">plugin</span> <span class="code-punct">=</span> <span class="code-key">this</span><span class="code-punct">.</span>plugins<span class="code-punct">.</span>get<span class="code-punct">(</span>pluginId<span class="code-punct">);</span>
+    <span class="code-key">if</span> <span class="code-punct">(!</span>plugin <span class="code-punct">||</span> plugin<span class="code-punct">.</span>status <span class="code-punct">===</span> <span class="code-str">'active'</span><span class="code-punct">)</span> <span class="code-key">return</span><span class="code-punct">;</span>
+
+    <span class="code-comment">// 动态 import 插件前端入口</span>
+    <span class="code-key">const</span> <span class="code-num">module</span> <span class="code-punct">=</span> <span class="code-key">await</span> <span class="code-num">import</span><span class="code-punct">(</span><span class="code-str">`/plugins/${pluginId}/frontend/index.jsx`</span><span class="code-punct">);</span>
+    plugin<span class="code-punct">.</span>frontendModule <span class="code-punct">=</span> module<span class="code-punct">;</span>
+
+    <span class="code-comment">// 调用插件的 activate 函数，传入 kernelAPI</span>
+    <span class="code-key">const</span> <span class="code-num">cleanup</span> <span class="code-punct">=</span> <span class="code-key">await</span> module<span class="code-punct">.</span>activate<span class="code-punct">(</span>kernelAPI<span class="code-punct">);</span>
+    plugin<span class="code-punct">.</span>cleanup <span class="code-punct">=</span> cleanup<span class="code-punct">;</span>
+    plugin<span class="code-punct">.</span>status <span class="code-punct">=</span> <span class="code-str">'active'</span><span class="code-punct">;</span>
+
+    <span class="code-comment">// 触发重新渲染（通知 App 更新路由/菜单）</span>
+    <span class="code-key">this</span><span class="code-punct">.</span>emitChange<span class="code-punct">();</span>
+  <span class="code-punct">}</span>
+
+  <span class="code-comment">// 停用插件</span>
+  <span class="code-key">async</span> <span class="code-num">deactivatePlugin</span><span class="code-punct">(</span><span class="code-num">pluginId</span><span class="code-punct">)</span> <span class="code-punct">{</span>
+    <span class="code-key">const</span> <span class="code-num">plugin</span> <span class="code-punct">=</span> <span class="code-key">this</span><span class="code-punct">.</span>plugins<span class="code-punct">.</span>get<span class="code-punct">(</span>pluginId<span class="code-punct">);</span>
+    <span class="code-key">if</span> <span class="code-punct">(!</span>plugin <span class="code-punct">||</span> plugin<span class="code-punct">.</span>status <span class="code-punct">!==</span> <span class="code-str">'active'</span><span class="code-punct">)</span> <span class="code-key">return</span><span class="code-punct">;</span>
+
+    <span class="code-comment">// 调用插件 deactivate</span>
+    <span class="code-key">await</span> plugin<span class="code-punct">.</span>frontendModule<span class="code-punct">?.</span>deactivate<span class="code-punct">?.(</span>kernelAPI<span class="code-punct">);</span>
+
+    <span class="code-comment">// 调用 cleanup（activate 返回的清理函数）</span>
+    <span class="code-key">await</span> plugin<span class="code-punct">.</span>cleanup<span class="code-punct">?.(</span><span class="code-punct">);</span>
+
+    <span class="code-comment">// 注销该插件注册的所有内容</span>
+    <span class="code-key">this</span><span class="code-punct">.</span>unregisterAllByPlugin<span class="code-punct">(</span>pluginId<span class="code-punct">);</span>
+
+    plugin<span class="code-punct">.</span>status <span class="code-punct">=</span> <span class="code-str">'installed'</span><span class="code-punct">;</span>
+    <span class="code-key">this</span><span class="code-punct">.</span>emitChange<span class="code-punct">();</span>
+  <span class="code-punct">}</span>
+
+  <span class="code-comment">// 供 Kernel API 调用：注册路由</span>
+  <span class="code-num">registerRoute</span><span class="code-punct">(</span><span class="code-num">pluginId</span><span class="code-punct">,</span> <span class="code-num">route</span><span class="code-punct">)</span> <span class="code-punct">{</span>
+    <span class="code-key">this</span><span class="code-punct">.</span>routes<span class="code-punct">.</span>set<span class="code-punct">(</span>route<span class="code-punct">.</span>path<span class="code-punct">,</span> <span class="code-punct">{</span> <span class="code-num">...route</span><span class="code-punct">,</span> pluginId <span class="code-punct">});</span>
+  <span class="code-punct">}</span>
+
+  <span class="code-comment">// 供 App.jsx 使用：获取所有已注册路由（动态生成 &lt;Route&gt;）</span>
+  <span class="code-num">getRoutes</span><span class="code-punct">()</span> <span class="code-punct">{</span>
+    <span class="code-key">return</span> <span class="code-punct">[...</span><span class="code-key">this</span><span class="code-punct">.</span>routes<span class="code-punct">.</span>values<span class="code-punct">()];</span>
+  <span class="code-punct">}</span>
+
+  <span class="code-comment">// 供 Sidebar.jsx 使用：获取所有侧边栏项（已排序）</span>
+  <span class="code-num">getSidebarItems</span><span class="code-punct">()</span> <span class="code-punct">{</span>
+    <span class="code-key">return</span> <span class="code-punct">[...</span><span class="code-key">this</span><span class="code-punct">.</span>sidebarItems<span class="code-punct">.</span>values<span class="code-punct">()]</span>
+      <span class="code-punct">.</span>sort<span class="code-punct">((</span>a<span class="code-punct">,</span>b<span class="code-punct">)</span> <span class="code-punct">=&gt;</span> a<span class="code-punct">.</span>weight <span class="code-punct">-</span> b<span class="code-punct">.</span>weight<span class="code-punct">);</span>
+  <span class="code-punct">}</span>
+<span class="code-punct">}</span>
+
+<span class="code-key">export default new</span> <span class="code-num">PluginManager</span><span class="code-punct">();</span></pre>
+    </div>
+  </div>
+
+  <!-- ==================== SECTION 9: 迁移路径 ==================== -->
+  <div class="section">
+    <div class="section-title">⑨ 迁移路径 — 从单体到插件（3 阶段）</div>
+    <div class="section-desc">不需要一次性重写，可以渐进式迁移，降低风险</div>
+
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>阶段</th>
+          <th>目标</th>
+          <th>改动范围</th>
+          <th>风险</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="tag tag-purple">Phase 1</span></td>
+          <td><strong>建立 Kernel 壳</strong><br>抽离 PluginManager，现有代码暂不迁移</td>
+          <td>新建 <code>kernel/</code> 目录<br>创建 PluginManager 基础框架<br><code>App.jsx</code> 改为动态加载路由（兼容旧代码）</td>
+          <td>🟢 低</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-purple">Phase 2</span></td>
+          <td><strong>迁移第一个插件</strong><br>把 AI 功能迁出为独立插件</td>
+          <td>创建 <code>plugins/ai/</code><br>移动 AI 相关页面/组件/路由<br>验证插件激活/停用流程</td>
+          <td>🟡 中</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-purple">Phase 3</span></td>
+          <td><strong>全面插件化</strong><br>Notes/Memo/Password/Board 全部插件化</td>
+          <td>逐个迁移剩余功能<br>建立插件市场/安装机制<br>文档和工具链完善</td>
+          <td>🔴 高（需充分测试）</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="highlight-box">
+      <h4>💡 Phase 1 详细步骤（推荐先执行）</h4>
+      <p>
+        <strong>Step 1</strong>: 创建 <code>kernel/frontend/PluginManager.js</code> — 实现基本的插件发现和注册机制<br>
+        <strong>Step 2</strong>: 修改 <code>frontend/src/App.jsx</code> — 改为从 PluginManager 获取路由，而不是直接 import<br>
+        <strong>Step 3</strong>: 创建 <code>plugins/notes/</code> — 把现有的 Home/NotesPage/ViewNote 移入（作为"内置插件"）<br>
+        <strong>Step 4</strong>: 验证 — 应用正常启动，功能无变化，但架构已支持插件化<br>
+        <em>完成 Phase 1 后，新功能（如 AI 插件）就可以作为独立插件开发了，不影响主线代码。</em>
+      </p>
+    </div>
+  </div>
+
+  <!-- ==================== SECTION 10: 插件市场设想 ==================== -->
+  <div class="section">
+    <div class="section-title">⑩ 插件生态 — 未来的插件市场</div>
+    <div class="section-desc">插件化架构的终极目标：形成插件生态，社区可以贡献插件</div>
+
+    <div class="plugin-grid">
+      <div class="plugin-card">
+        <h4>📦 插件仓库</h4>
+        <div class="plugin-id">oner-plugin-registry</div>
+        <p>中央插件注册表，存储插件元数据、版本历史、下载统计。类似 npm registry，但专为 Oner 设计。</p>
+        <div class="plugin-meta">
+          <span>🌐 HTTP API</span>
+          <span>📊 下载统计</span>
+        </div>
+      </div>
+
+      <div class="plugin-card">
+        <h4>🔍 插件发现</h4>
+        <div class="plugin-id">内置插件市场 UI</div>
+        <p>在 Oner 设置页面内集成插件市场，用户浏览、搜索、安装插件，无需离开应用。</p>
+        <div class="plugin-meta">
+          <span>🛒 一键安装</span>
+          <span>⭐ 评分系统</span>
+        </div>
+      </div>
+
+      <div class="plugin-card">
+        <h4>🔐 插件安全</h4>
+        <div class="plugin-id">签名验证 + 沙箱</div>
+        <p>所有插件需签名，Kernel 验证签名后才加载。敏感操作（网络、文件系统）需用户授权。</p>
+        <div class="plugin-meta">
+          <span>✅ 签名验证</span>
+          <span>🛡️ 权限申请</span>
+        </div>
+      </div>
+
+      <div class="plugin-card">
+        <h4>📝 插件开发 SDK</h4>
+        <div class="plugin-id">oner-plugin-cli</div>
+        <p>提供 CLI 工具快速创建插件脚手架，内置热重载、类型检查、打包发布流程。</p>
+        <div class="plugin-meta">
+          <span>⚡ 热重载</span>
+          <span>📦 打包工具</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="text-align:center;padding:32px 0 0;border-top:1px solid #e2e8f0;color:#94a3b8;font-size:13px;">
+    Oner 插件化架构设计方案 v1 · 轻量级 Kernel + 可插拔 Plugin 体系<br>
+    设计：UI Designer · 日期：2026-06-13
+  </div>
+
+</div>
+
+</body>
+</html>
