@@ -1,10 +1,13 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { Sparkles } from 'lucide-react';
+import { usePluginManagerContext } from '../App';
 
 export default function FloatingAIToolbar({ editorRef, onAction }) {
   const [visible, setVisible] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
   const toolbarRef = useRef(null);
+  const { isPluginActive } = usePluginManagerContext();
+  const aiEnabled = isPluginActive?.('oner.plugin.ai') ?? true;
 
   const updatePosition = useCallback(() => {
     const el = editorRef?.current;
@@ -75,6 +78,7 @@ export default function FloatingAIToolbar({ editorRef, onAction }) {
 
       <div className="w-px h-5 bg-gray-700 mx-0.5" />
 
+      {aiEnabled && (<>
       <button
         onClick={() => handleAction('ai-continue')}
         className="inline-flex items-center gap-1 px-2 h-7 rounded-md
@@ -107,6 +111,7 @@ export default function FloatingAIToolbar({ editorRef, onAction }) {
         📋
         总结
       </button>
+      </>)}
     </div>
   );
 }

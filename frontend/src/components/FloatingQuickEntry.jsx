@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Pen, Mic, Pin, PinOff, Sparkles, X } from 'lucide-react';
+import { Pen, Mic, Pin, PinOff, Sparkles, X, PlugZap } from 'lucide-react';
 import GlobalQuickEntry from './GlobalQuickEntry';
+import { usePluginManagerContext } from '../App';
 
 const STORAGE_KEY_POS = 'floatingEntry_pos';
 const STORAGE_KEY_PIN = 'floatingEntry_pinned';
@@ -27,6 +28,8 @@ export default function FloatingQuickEntry({
   const [dragging, setDragging] = useState(false);
   const dragRef = useRef(null);
   const containerRef = useRef(null);
+  const { isPluginActive } = usePluginManagerContext();
+  const aiEnabled = isPluginActive?.('oner.plugin.ai') ?? true;
 
   // 持久化状态
   useEffect(() => { localStorage.setItem(STORAGE_KEY_PIN, String(pinned)); }, [pinned]);
@@ -163,18 +166,20 @@ export default function FloatingQuickEntry({
             <Mic size={13} />
           </button>
 
-          {/* AI 模式切换 */}
-          <button
-            onClick={(e) => { e.stopPropagation(); setAiMode(a => !a); }}
-            className={`p-1 rounded-md transition-colors ${
-              aiMode
-                ? 'text-accent bg-accent/10'
-                : 'text-gray-400/70 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
-            }`}
-            title={aiMode ? 'AI 模式' : '普通模式'}
-          >
-            <Sparkles size={13} />
-          </button>
+          {/* AI 模式切换 — AI 插件启用时显示 */}
+          {aiEnabled && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setAiMode(a => !a); }}
+              className={`p-1 rounded-md transition-colors ${
+                aiMode
+                  ? 'text-accent bg-accent/10'
+                  : 'text-gray-400/70 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
+              }`}
+              title={aiMode ? 'AI 模式' : '普通模式'}
+            >
+              <Sparkles size={13} />
+            </button>
+          )}
 
           {/* 固定 */}
           <button
