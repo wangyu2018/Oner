@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Plus, Send, Trash2, MessageSquare, Loader2, Tag, FileText
+  Plus, Send, Trash2, MessageSquare, Loader2, Tag, FileText, Sparkles
 } from 'lucide-react';
 import { api } from '../utils/api';
 import MarkdownRenderer from '../components/MarkdownRenderer';
