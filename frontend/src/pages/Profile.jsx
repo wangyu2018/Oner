@@ -161,16 +161,11 @@ export default function Profile() {
     }
   };
 
-  // 加载插件列表 — 优先使用 PluginManagerContext 的实时状态
-  const loadPlugins = async () => {
+  // 加载插件列表 — 从 PluginManagerContext 读取实时状态
+  const loadPlugins = () => {
     setLoadingPlugins(true);
     try {
-      const res = await fetch('/api/plugins');
-      const data = await res.json();
-      setInstalledPlugins(data.plugins || []);
-    } catch (err) {
-      console.error('Load plugins error:', err);
-      // 从 PluginManagerContext 获取真实插件状态
+      // 后端 /api/plugins 硬编码返回 active，改用前端 PluginManager 真实状态
       const ctxPlugins = pluginCtx?.plugins || [];
       const known = [
         { id: 'oner.plugin.core-notes', name: '核心笔记', type: 'core', required: true },
@@ -181,8 +176,11 @@ export default function Profile() {
       ];
       setInstalledPlugins(known.map(base => {
         const live = ctxPlugins.find(p => p.id === base.id);
-        return { ...base, status: live ? live.status : 'active' };
+        return { ...base, status: live ? live.status : 'registered' };
       }));
+    } catch (err) {
+      console.error('Load plugins error:', err);
+      setInstalledPlugins([]);
     } finally {
       setLoadingPlugins(false);
     }
@@ -853,6 +851,15 @@ export default function Profile() {
                         type="button"
                         onClick={async () => {
                           if (!confirm('确定清除密码库 PIN 保护？')) return;
+                          // 检查是否有密码条目
+                          try {
+                            const pwRes = await api.passwords.list({ limit: 1 });
+                            const pwCount = pwRes?.data?.entries?.length ?? pwRes?.data?.passwords?.length ?? 0;
+                            if (pwCount > 0) {
+                              setError(`密码库中还有 ${pwCount} 条密码条目，请先删除所有密码后再清除 PIN`);
+                              return;
+                            }
+                          } catch { /* 查询失败则跳过检查 */ }
                           setLoading(true);
                           try {
                             await api.auth.updateProfile({ vault_pin: '' });
