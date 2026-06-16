@@ -122,6 +122,66 @@ router.post('/', notesWriteLimiter, (req, res) => {
   res.status(201).json({ success: true, data: { note: { ...note, tags: JSON.parse(note.tags) } } });
 });
 
+// POST /api/notes/batch - 批量操作笔记
+router.post('/batch', notesWriteLimiter, (req, res) => {
+  const userId = req.user.id;
+  const { ids = [], action, status, priority } = req.body;
+
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ success: false, error: '请选择至少一条笔记', code: 400 });
+  }
+  if (ids.length > 100) {
+    return res.status(400).json({ success: false, error: '单次最多操作100条笔记', code: 400 });
+  }
+
+  const validActions = ['delete', 'update_status', 'update_priority'];
+  if (!validActions.includes(action)) {
+    return res.status(400).json({ success: false, error: '无效的操作类型', code: 400 });
+  }
+
+  const placeholders = ids.map(() => '?').join(',');
+  let affected = 0;
+
+  if (action === 'delete') {
+    const result = runQuery(
+      `UPDATE notes SET deleted_at=datetime('now'), updated_at=datetime('now')
+       WHERE id IN (${placeholders}) AND user_id=? AND deleted_at IS NULL`,
+      [...ids, userId]
+    );
+    affected = result?.changes || 0;
+    runQuery(
+      `UPDATE notes SET deleted_at=datetime('now'), updated_at=datetime('now')
+       WHERE parent_id IN (${placeholders}) AND user_id=? AND deleted_at IS NULL`,
+      [...ids, userId]
+    );
+  } else if (action === 'update_status') {
+    const validStatuses = ['note', 'todo', 'in_progress', 'done', 'archived'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ success: false, error: '无效的状态', code: 400 });
+    }
+    const completedAt = status === 'done' ? new Date().toISOString() : null;
+    const result = runQuery(
+      `UPDATE notes SET status=?, completed_at=?, updated_at=datetime('now')
+       WHERE id IN (${placeholders}) AND user_id=? AND deleted_at IS NULL`,
+      [status, completedAt, ...ids, userId]
+    );
+    affected = result?.changes || 0;
+  } else if (action === 'update_priority') {
+    const validPriorities = ['low', 'normal', 'high', 'urgent'];
+    if (!validPriorities.includes(priority)) {
+      return res.status(400).json({ success: false, error: '无效的优先级', code: 400 });
+    }
+    const result = runQuery(
+      `UPDATE notes SET priority=?, updated_at=datetime('now')
+       WHERE id IN (${placeholders}) AND user_id=? AND deleted_at IS NULL`,
+      [priority, ...ids, userId]
+    );
+    affected = result?.changes || 0;
+  }
+
+  res.json({ success: true, data: { affected, action } });
+});
+
 // GET /api/notes/:id - 获取单条笔记
 router.get('/:id', (req, res) => {
   const userId = req.user.id;

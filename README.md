@@ -4,7 +4,7 @@
 
 一个自托管的全栈个人备忘录和任务管理应用，支持 PWA、移动端优化、AI智能助手、密码保险库和 Docker 部署。
 
-> **当前版本：V1.2** — 首页双模式布局 + 图谱星链风格 + 全局输入统一入口
+> **当前版本：V1.3** — 全覆盖测试体系 + 批量操作 + AI 独立对话 + 泳道看板精修
 
 ## ✨ UI 预览
 
@@ -24,13 +24,15 @@
 
 ### 核心亮点
 
-| 🖥️ 首页双模式 | 🌌 关联图谱 | 🤖 AI 智能助手 |
-|:---:|:---:|:---:|
-| 合并一页 / 分两页可切换<br>Shimmer 骨架屏动效过渡 | Obsidian StarLink 星链风格<br>力导向无极画布 | 笔记拆解 / 推荐 / 扩展<br>全局对话 + 流式回复 |
-
-| 🏊 泳道看板 | 🔐 密码保险库 | 📱 PWA + 桌面端 |
-|:---:|:---:|:---:|
-| 水平状态×垂直分类矩阵<br>拖拽排序 + 子任务折叠 | AES-256-GCM 加密<br>PIN 双因素认证 | 添加到主屏幕运行<br>Electron 原生应用 |
+| 功能 | 状态 |
+|:---:|:---:|
+| 🖥️ 首页双模式 | ✅ |
+| 🌌 关联图谱 (StarLink 星链) | ✅ |
+| 🤖 AI 智能助手 | ✅ |
+| 🏊 泳道看板 | ✅ |
+| 🔐 密码保险库 | ✅ |
+| 📱 PWA + 桌面端 | ✅ |
+| 🧪 全覆盖测试体系 | ✅ |
 
 ---
 
@@ -41,6 +43,11 @@
 - 新增「分两页」模式：首页仅展示工作台与欢迎导航，笔记详情独立为 `/notes` 路由页面
 - 布局选项添加 Windows Aero Snap 风格视觉预览（Win+↑ 最大化 / Win+←→ 并排分屏）
 - 在「我的」设置页新增「首页布局」tab，支持切换并持久化至后端
+
+### 🧪 全覆盖测试体系
+- 后端 18 个测试文件、193 个用例，覆盖所有路由、中间件、数据库层
+- 前端 14 个测试文件、99+ 用例，覆盖工具函数、Hooks、组件、页面
+- 使用 Vitest 4 + Testing Library，支持 Watch 模式和覆盖率报告
 
 ### 📋 待办与笔记体验
 - TodoList 新增「明日待办」toggle 开关，开启后展示全部分类明日任务（不限工作分类）
@@ -116,7 +123,7 @@
 
 ### AI 智能助手
 - **笔记AI面板**：打开笔记即可拆解任务、推荐行动、扩展内容、自由问答
-- **全局AI对话**：独立对话页，选择分类带入上下文，流式逐字回复
+- **AI 独立对话页**：独立对话路由 `/ai`，选择分类带入上下文，流式逐字回复
 - **分类总结**：一键总结某分类下所有笔记的关键信息和趋势
 - **多模型支持**：DeepSeek / MiMo / OpenAI / 自定义OpenAI兼容API
 - **在线配置**：设置页配置提供商、API Key、模型，测试连接
@@ -134,7 +141,10 @@
 - **看板视图**：4列拖拽看板，支持合并子任务、提升子任务
 - **撤销删除**：5 秒窗口内可撤销
 
-### 全局搜索与命令面板
+### 批量操作与卡片视图
+- **批量操作栏**：多选笔记后批量删除、状态变更、标记
+- **智能卡片网格**：FilterList + 分类筛选 + 状态筛选联动
+- **泳道视图**：水平状态×垂直分类矩阵，拖拽排序 + 子任务折叠
 - **全文搜索**：FTS5 引擎，支持中文子串匹配
 - **命令面板**：`Cmd/Ctrl+K` 唤起，Spotlight 风格
 - **自然语言解析**：识别"今天"、"待办"、"紧急"等关键词自动创建笔记
@@ -270,8 +280,8 @@ docker-compose down
 
 | 层级 | 技术 |
 |------|------|
-| 前端 | React 18, Vite 6, TailwindCSS 3, React Router 6, @dnd-kit, Lucide React |
-| 后端 | Node.js 20, Express 4, node:sqlite (原生), bcryptjs, jsonwebtoken, multer |
+| 前端 | React 18, Vite 6, TailwindCSS 3, React Router 6, @dnd-kit, Lucide React, Vitest 4, Testing Library |
+| 后端 | Node.js 20, Express 4, node:sqlite (原生), bcryptjs, jsonwebtoken, multer, Vitest 4 |
 | 桌面端 | Electron 28, electron-builder |
 | 部署 | Docker Compose, Nginx 反向代理 |
 | 搜索 | SQLite FTS5 (trigram tokenizer, 支持中文) |
@@ -330,6 +340,38 @@ docker-compose down
 | GET | /api/backup/export | 导出 ZIP |
 | GET | /api/backup/download-db | 下载数据库（仅开发环境） |
 
+### 微信消息推送
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | /api/wechat/bind | 绑定微信 openid |
+| GET | /api/wechat/status | 查询绑定状态 |
+| POST | /api/wechat/unbind | 解绑微信 |
+| POST | /api/wechat/test | 测试推送 |
+
+## 测试覆盖
+
+项目已建立完整的 Vitest 自动化测试体系，覆盖后端 API、中间件、数据库层及前端组件、Hooks、页面：
+
+| 层级 | 文件数 | 用例数 | 覆盖内容 |
+|------|--------|--------|----------|
+| 后端路由测试 | 14 | ~120 | auth/notes/categories/search/settings/ai/files/backup/reminders/wechat/vault |
+| 后端中间件测试 | 3 | ~44 | rateLimiter/authMiddleware/errorHandler |
+| 后端数据库测试 | 1 | ~7 | db helpers (runQuery/queryOne) |
+| 前端工具测试 | 4 | ~26 | api/tags/keywordMatcher/themeColors |
+| 前端 Hooks 测试 | 6 | ~28 | useAuth/useNotes/useUndoDelete/usePasswords/useShortcuts/useAIChat |
+| 前端组件测试 | 2 | ~8 | AuthGuard/TagChip |
+| 前端页面测试 | 2 | ~11 | Login/Register |
+
+```bash
+# 运行全部后端测试
+cd backend
+npx vitest run
+
+# 运行全部前端测试
+cd frontend
+npx vitest run
+```
+
 ## 环境变量
 
 | 变量 | 必填 | 默认值 | 说明 |
@@ -349,17 +391,25 @@ oner/
 │   ├── src/
 │   │   ├── db/          # 数据库（迁移、helpers）
 │   │   ├── middleware/   # 认证中间件
-│   │   ├── routes/       # API 路由（auth/notes/search/passwords/files/settings/backup/ai）
+│   │   ├── routes/       # API 路由（auth/notes/search/passwords/files/settings/backup/ai/wechat）
 │   │   └── utils/        # 工具（crypto、aiProvider）
+│   ├── __tests__/        # 后端测试（~193 cases）
+│   ├── vitest.config.js  # Vitest 配置
 │   ├── server.js
 │   └── package.json
 ├── frontend/
 │   ├── src/
-│   │   ├── components/   # UI 组件（NoteEditor/SmartCardGrid/SwimlaneBoard/TodayFocus/CommandBar/FloatingQuickEntry...）
-│   │   ├── hooks/        # 自定义 Hooks（useNotes/useAuth/usePasswords/useShortcuts/useCustomTheme...）
-│   │   ├── pages/        # 页面（Home/BoardPage/NotesPage/Profile/PasswordVault/AIChat/MindChainPage...）
-│   │   ├── utils/        # 工具（api、tags、keywordMatcher）
-│   │   └── styles/       # 全局样式
+│   │   ├── components/   # UI 组件（NoteEditor/SmartCardGrid/SwimlaneBoard/TodayFocus/CommandBar/FloatingQuickEntry/BatchActionBar...）
+│   │   ├── hooks/        # 自定义 Hooks（useNotes/useAuth/usePasswords/useShortcuts/useCustomTheme/useAIChat/useBatchSelect...）
+│   │   ├── pages/        # 页面（Home/BoardPage/NotesPage/Profile/PasswordVault/AIChat/MindChainPage/Login/Register...）
+│   │   ├── utils/        # 工具（api、tags、keywordMatcher、themeColors）
+│   │   └── styles/       # 全局样式（globals.css）
+│   ├── __tests__/        # 前端测试（~99 cases）
+│   │   ├── utils/        # 工具函数测试
+│   │   ├── hooks/        # Hooks 测试
+│   │   ├── components/   # 组件测试
+│   │   └── pages/        # 页面测试
+│   ├── vitest.config.js  # Vitest 配置
 │   ├── public/
 │   │   ├── manifest.json  # PWA 配置
 │   │   ├── sw.js          # Service Worker
@@ -369,6 +419,8 @@ oner/
 ├── nginx/nginx.conf       # Nginx 配置
 ├── docker-compose.yml     # Docker 编排
 ├── .env.example           # 环境变量模板
+├── docs/                  # 文档 & 截图
+│   └── screenshots/       # UI 预览截图
 └── README.md
 ```
 

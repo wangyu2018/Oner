@@ -111,12 +111,17 @@ export default function NoteEditor({ note, onSave, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center md:p-4"
+      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm md:bg-black/30 md:backdrop-blur-[2px]"
       onClick={onClose}
     >
+      {/* 桌面端: 右侧抽屉面板 | 移动端: 全屏弹窗 */}
       <div
-        className="w-full h-full md:h-auto md:max-w-3xl md:max-h-[90vh] md:rounded-2xl bg-white dark:bg-gray-900
-          md:shadow-2xl flex flex-col overflow-hidden"
+        className={`
+          w-full h-full flex flex-col overflow-hidden
+          md:fixed md:top-0 md:right-0 md:bottom-0 md:w-[480px] md:max-w-[90vw]
+          md:rounded-l-2xl md:shadow-2xl md:animate-slide-in-right
+          bg-white dark:bg-gray-900
+        `}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >

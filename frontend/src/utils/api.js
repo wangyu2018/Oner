@@ -149,6 +149,11 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+    // 批量操作
+    batch: (ids, action, data = {}) => fetchJSON('/notes/batch', {
+      method: 'POST',
+      body: JSON.stringify({ ids, action, ...data }),
+    }),
   },
 
   // 提醒

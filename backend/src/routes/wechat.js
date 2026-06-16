@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import crypto from 'crypto';
+import https from 'https';
 import { queryAll, queryOne, runQuery } from '../db/helpers.js';
 import { authMiddleware } from '../middleware/auth.js';
 
@@ -34,7 +36,7 @@ router.post('/subscribe', (req, res) => {
     }
 
     // 创建新订阅
-    const id = require('crypto').randomUUID().replace(/-/g, '').slice(0, 16);
+    const id = crypto.randomUUID().replace(/-/g, '').slice(0, 16);
     runQuery(
       'INSERT INTO wechat_subscriptions (id, user_id, template_id, openid, remind_type) VALUES (?, ?, ?, ?, ?)',
       [id, req.user.id, template_id, openid, remind_type]
@@ -125,7 +127,6 @@ async function getWxAccessToken() {
   }
 
   try {
-    const https = require('https');
     const url = `https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=${appid}&secret=${secret}`;
 
     const token = await new Promise((resolve, reject) => {
@@ -171,7 +172,6 @@ export async function sendTemplateMessage(openid, templateId, data, page = 'page
   }
 
   try {
-    const https = require('https');
     const url = `https://api.weixin.qq.com/cgi-bin/message/subscribe/send?access_token=${accessToken}`;
 
     const payload = JSON.stringify({

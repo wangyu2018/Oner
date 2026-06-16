@@ -44,3 +44,22 @@ export const backupLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: '备份下载过于频繁，请稍后再试', code: 429 }
 });
+
+// 文件上传限制：每分钟 10 次
+export const uploadsLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: '上传过于频繁，请稍后再试', code: 429 }
+});
+
+// PIN 验证限制：15 分钟内最多 5 次（按用户 ID 限流）
+export const pinVerifyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  keyGenerator: (req) => req.user?.id || req.ip,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'PIN 验证尝试过多，请 15 分钟后再试', code: 429 }
+});

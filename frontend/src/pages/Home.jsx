@@ -7,12 +7,14 @@ import EmptyState from '../components/EmptyState';
 import CardWall from '../components/CardWall';
 import SwimlaneBoard from '../components/SwimlaneBoard';
 import SmartCardGrid from '../components/SmartCardGrid';
+import BatchActionBar from '../components/BatchActionBar';
 import NoteEditor from '../components/NoteEditor';
 import UndoToast from '../components/UndoToast';
 import ReminderOverlay from '../components/ReminderOverlay';
 import SwipeStatusTabs from '../components/SwipeStatusTabs';
 import { useNotes } from '../hooks/useNotes';
 import { useUndoDelete } from '../hooks/useUndoDelete';
+import { useBatchSelect } from '../hooks/useBatchSelect';
 import { useReminderCheck } from '../hooks/useReminderCheck';
 import { useAuthContext, useCommandPalette } from '../App';
 import { api } from '../utils/api';
@@ -168,6 +170,25 @@ export default function Home({ categories = [], onVoiceInput, mode = 'default' }
   }, []);
 
   const { pendingDelete, countdown, startDelete, undoDelete } = useUndoDelete(handleDeleteSuccess);
+
+  // 批量操作回调
+  const handleBatchDelete = useCallback(async (ids) => {
+    await api.notes.batch(ids, 'delete');
+    // 从本地状态移除
+    ids.forEach(id => removeNoteFromState(id));
+    refresh();
+  }, [removeNoteFromState, refresh]);
+
+  const handleBatchUpdate = useCallback(async (ids, updates) => {
+    const action = updates.status ? 'update_status' : 'update_priority';
+    await api.notes.batch(ids, action, updates);
+    refresh();
+  }, [refresh]);
+
+  const batch = useBatchSelect({
+    onBatchDelete: handleBatchDelete,
+    onBatchUpdate: handleBatchUpdate,
+  });
 
   const { reminders, showOverlay, dismissOverlay } = useReminderCheck();
 
@@ -458,6 +479,12 @@ export default function Home({ categories = [], onVoiceInput, mode = 'default' }
               onNoteClick={handleNoteClick}
               onDelete={handleDelete}
               onTagClick={handleTagClick}
+              batchMode={batch.batchMode}
+              isSelected={batch.isSelected}
+              onBatchClick={batch.handleClick}
+              onLongPressStart={batch.handleLongPressStart}
+              onLongPressEnd={batch.handleLongPressEnd}
+              selectedCount={batch.selectedCount}
             />
           ) : (
             <SwimlaneBoard
@@ -733,6 +760,15 @@ export default function Home({ categories = [], onVoiceInput, mode = 'default' }
           onNoteClick={handleReminderNoteClick}
         />
       )}
+
+      {/* 批量操作栏 */}
+      <BatchActionBar
+        count={batch.selectedCount}
+        onClear={batch.clearSelection}
+        onDelete={batch.batchDelete}
+        onUpdateStatus={batch.batchUpdateStatus}
+        onUpdatePriority={batch.batchUpdatePriority}
+      />
 
       {/* 移动端 FAB 创建按钮 */}
       <button

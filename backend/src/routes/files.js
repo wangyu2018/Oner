@@ -5,12 +5,32 @@ import crypto from 'crypto';
 import fs from 'fs';
 import { authMiddleware } from '../middleware/auth.js';
 import { queryAll, queryOne, runQuery } from '../db/helpers.js';
+import { uploadsLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
 router.use(authMiddleware);
 
 const UPLOAD_DIR = path.resolve(process.env.UPLOAD_DIR || path.join(import.meta.dirname, '..', '..', 'uploads'));
 const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024; // 10MB
+
+// MIME 白名单 + 对应的合法扩展名
+const ALLOWED_TYPES = {
+  'image/jpeg': ['jpg', 'jpeg'],
+  'image/png': ['png'],
+  'image/gif': ['gif'],
+  'image/webp': ['webp'],
+  'application/pdf': ['pdf'],
+  'text/plain': ['txt', 'log', 'md', 'csv'],
+  'text/markdown': ['md'],
+  'application/msword': ['doc'],
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['docx'],
+  'application/vnd.ms-excel': ['xls'],
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['xlsx'],
+  'application/zip': ['zip'],
+};
+
+const ALLOWED_MIMES = new Set(Object.keys(ALLOWED_TYPES));
+const ALLOWED_EXTS = new Set(Object.values(ALLOWED_TYPES).flat());
 
 // 确保上传目录存在
 if (!fs.existsSync(UPLOAD_DIR)) {
@@ -34,7 +54,19 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: MAX_FILE_SIZE }
+  limits: { fileSize: MAX_FILE_SIZE },
+  fileFilter: (req, file, cb) => {
+    // MIME 类型白名单
+    if (!ALLOWED_MIMES.has(file.mimetype)) {
+      return cb(new Error('不支持的文件类型: ' + file.mimetype), false);
+    }
+    // 扩展名二次校验
+    const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
+    if (ext && !ALLOWED_EXTS.has(ext)) {
+      return cb(new Error('文件扩展名不允许: .' + ext), false);
+    }
+    cb(null, true);
+  }
 });
 
 function generateId() {
@@ -42,7 +74,7 @@ function generateId() {
 }
 
 // POST /api/files/upload?note_id=xxx - 上传文件
-router.post('/upload', (req, res, next) => {
+router.post('/upload', uploadsLimiter, (req, res, next) => {
   upload.single('file')(req, res, (err) => {
     if (err) {
       if (err instanceof multer.MulterError) {

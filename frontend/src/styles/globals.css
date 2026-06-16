@@ -186,6 +186,21 @@ html[data-wallpaper="true"] body::before {
   animation: slide-down 0.15s ease-out;
 }
 
+/* Editor drawer slide-in from right */
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+.animate-slide-in-right {
+  animation: slide-in-right 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Batch action bar slide-up from bottom */
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
 /* Loading progress bar */
 @keyframes progress-bar {
   0%   { transform: translateX(-100%); }
@@ -824,7 +839,7 @@ html {
 .lane-collapse-btn {
   width: 18px; height: 18px; border-radius: 5px;
   background: var(--bg-muted); display: flex; align-items: center;
-  justify-content: center; font-size: 9px; color: var(--text-tertiary);
+  justify-content: center; font-size: 11px; color: var(--text-tertiary);
   cursor: pointer; margin-top: 4px; transition: all 0.15s;
   align-self: flex-start;
 }
@@ -906,17 +921,17 @@ html {
   display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 5px;
 }
 .badge-urgent {
-  font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 4px;
+  font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 4px;
   background: linear-gradient(135deg, #fef2f2, #fee2e2);
   color: #dc2626; letter-spacing: 0.02em;
 }
 .badge-high {
-  font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 4px;
+  font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 4px;
   background: linear-gradient(135deg, #fff7ed, #fed7aa);
   color: #ea580c;
 }
 .badge-subtask {
-  font-size: 9px; font-weight: 600; padding: 1px 6px; border-radius: 4px;
+  font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 4px;
   background: var(--bg-accent-subtle); color: var(--text-accent);
 }
 
@@ -941,7 +956,7 @@ html {
 }
 .swim-due {
   display: flex; align-items: center; gap: 4px;
-  font-size: 10px; font-weight: 600; margin-top: 5px;
+  font-size: 11px; font-weight: 600; margin-top: 5px;
 }
 .swim-due.overdue { color: var(--color-urgent); }
 .swim-due.today { color: var(--color-todo); }
@@ -950,13 +965,13 @@ html {
 /* Swim tags */
 .swim-tags { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
 .swim-tag {
-  font-size: 10px; font-weight: 500; padding: 1px 6px; border-radius: 4px;
+  font-size: 11px; font-weight: 500; padding: 1px 6px; border-radius: 4px;
   background: var(--bg-accent-subtle); color: var(--text-accent);
   cursor: pointer; transition: all 0.12s;
   max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .swim-tag:hover { background: hsl(240 81% 93%); transform: translateY(-1px); }
-.swim-tags-more { font-size: 10px; color: var(--text-tertiary); }
+.swim-tags-more { font-size: 11px; color: var(--text-tertiary); }
 
 /* Swim subtask bar */
 .swim-subtask-bar {
@@ -969,7 +984,7 @@ html {
   transition: width 0.35s ease;
 }
 .swim-subtask-text {
-  font-size: 9px; color: var(--text-tertiary); margin-top: 2px;
+  font-size: 11px; color: var(--text-tertiary); margin-top: 2px;
   text-align: right;
 }
 
@@ -1212,4 +1227,13 @@ html {
 .empty-btn:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 16px rgba(79,70,229,0.3);
+}
+
+/* 移动端最小字号 12px */
+@media (max-width: 767px) {
+  .swim-due, .swim-tag, .swim-tags-more, .swim-subtask-text,
+  .badge-urgent, .badge-high, .badge-subtask, .lane-collapse-btn,
+  .status-pill .pill-icon, .status-pill .pill-count {
+    font-size: max(11px, 0.75rem);
+  }
 }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Trash2, ListTodo } from 'lucide-react';
+import { Calendar, Trash2, ListTodo, Check } from 'lucide-react';
 import { getContentPreview, extractFirstLine } from '../utils/tags';
 
 // 视觉权重类名映射
@@ -23,13 +23,21 @@ function getDueStatus(note) {
   return 'future';
 }
 
-function SmartCard({ note, onClick, onDelete }) {
+function SmartCard({ note, onClick, onDelete, batchMode, isSelected, onBatchClick, onLongPressStart, onLongPressEnd }) {
   const weight = getWeightClass(note);
   const title = note.title || extractFirstLine(note.content) || '无标题';
   const preview = getContentPreview(note.content, 80);
   const dueStatus = getDueStatus(note);
   const isUrgent = weight === 'urgent-large';
   const isDone = weight === 'done-card';
+
+  const handleCardClick = (e) => {
+    if (batchMode || e.ctrlKey || e.metaKey) {
+      onBatchClick?.(note.id, e);
+      return;
+    }
+    onClick(note);
+  };
 
   // 状态徽章映射
   const badgeMap = {
@@ -42,10 +50,16 @@ function SmartCard({ note, onClick, onDelete }) {
 
   return (
     <div
-      onClick={() => onClick(note)}
+      onClick={handleCardClick}
+      onMouseDown={() => !batchMode && onLongPressStart?.(note.id)}
+      onMouseUp={onLongPressEnd}
+      onMouseLeave={onLongPressEnd}
+      onTouchStart={() => !batchMode && onLongPressStart?.(note.id)}
+      onTouchEnd={onLongPressEnd}
       className={`group relative bg-white dark:bg-gray-900 rounded-[10px] border p-3.5
         cursor-pointer transition-all duration-200 hover:-translate-y-0.5
         flex flex-col gap-2 overflow-hidden
+        ${batchMode && isSelected ? 'ring-2 ring-violet-500 ring-offset-1 dark:ring-offset-gray-950' : ''}
         ${isUrgent
           ? 'border-red-200/50 dark:border-red-900/30 col-span-2'
           : weight === 'in-progress'
@@ -63,6 +77,17 @@ function SmartCard({ note, onClick, onDelete }) {
         boxShadow: 'var(--shadow-xs, 0 1px 2px rgba(0,0,0,0.04))',
       }}
     >
+      {/* 批量选择复选框 */}
+      {batchMode && (
+        <span className={`absolute top-2 left-2 z-10 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all
+          ${isSelected
+            ? 'bg-violet-500 border-violet-500 text-white'
+            : 'border-gray-300 dark:border-gray-600 bg-white/80 dark:bg-gray-800/80'
+          }`}>
+          {isSelected && <Check size={12} strokeWidth={3} />}
+        </span>
+      )}
+
       {/* 左侧指示条 */}
       <span className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-r-sm
         ${isUrgent ? 'bg-red-500' : ''}
@@ -161,7 +186,7 @@ function SmartCard({ note, onClick, onDelete }) {
 }
 
 // ========== 紧凑卡片（compact 视图） ==========
-function CompactCard({ note, onClick, onDelete }) {
+function CompactCard({ note, onClick, onDelete, batchMode, isSelected, onBatchClick }) {
   const title = note.title || extractFirstLine(note.content) || '无标题';
   const badgeMap = {
     'note': { label: '备忘', cls: 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' },
@@ -172,10 +197,24 @@ function CompactCard({ note, onClick, onDelete }) {
   const badge = badgeMap[note.status] || badgeMap.note;
   return (
     <div
-      onClick={() => onClick(note)}
-      className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer
-        hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+      onClick={(e) => {
+        if (batchMode || e.ctrlKey || e.metaKey) { onBatchClick?.(note.id, e); return; }
+        onClick(note);
+      }}
+      className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer
+        hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors
+        ${batchMode && isSelected ? 'ring-2 ring-violet-500 ring-offset-1 dark:ring-offset-gray-950' : ''}
+      `}
     >
+      {batchMode && (
+        <span className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all
+          ${isSelected
+            ? 'bg-violet-500 border-violet-500 text-white'
+            : 'border-gray-300 dark:border-gray-600'
+          }`}>
+          {isSelected && <Check size={10} strokeWidth={3} />}
+        </span>
+      )}
       <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
         note.priority === 'urgent' ? 'bg-red-500' :
         note.status === 'in_progress' ? 'bg-indigo-500' :
@@ -194,7 +233,11 @@ function CompactCard({ note, onClick, onDelete }) {
   );
 }
 
-export default function SmartCardGrid({ notes = [], onNoteClick, onDelete, onTagClick }) {
+export default function SmartCardGrid({
+  notes = [], onNoteClick, onDelete, onTagClick,
+  batchMode, isSelected, onBatchClick, onLongPressStart, onLongPressEnd,
+  onSelectAll, selectedCount,
+}) {
   const [viewMode, setViewMode] = useState('grid');
   if (notes.length === 0) return null;
 
@@ -214,6 +257,11 @@ export default function SmartCardGrid({ notes = [], onNoteClick, onDelete, onTag
         <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
           📝 最近笔记
           <span className="text-xs font-normal text-gray-400">({notes.length})</span>
+          {batchMode && (
+            <span className="text-xs font-normal text-violet-500">
+              · 已选 {selectedCount}
+            </span>
+          )}
         </h2>
         {/* 视图切换 */}
         <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-gray-100 dark:bg-gray-800">
@@ -239,13 +287,16 @@ export default function SmartCardGrid({ notes = [], onNoteClick, onDelete, onTag
           ? 'flex flex-col gap-0.5'
           : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3'
       }`}>
-        {notes.map((note) => (
+        {notes.map((note) =>
           isCompact ? (
             <CompactCard
               key={note.id}
               note={note}
               onClick={onNoteClick}
               onDelete={onDelete}
+              batchMode={batchMode}
+              isSelected={isSelected?.(note.id)}
+              onBatchClick={onBatchClick}
             />
           ) : (
             <SmartCard
@@ -253,9 +304,14 @@ export default function SmartCardGrid({ notes = [], onNoteClick, onDelete, onTag
               note={note}
               onClick={onNoteClick}
               onDelete={onDelete}
+              batchMode={batchMode}
+              isSelected={isSelected?.(note.id)}
+              onBatchClick={onBatchClick}
+              onLongPressStart={onLongPressStart}
+              onLongPressEnd={onLongPressEnd}
             />
           )
-        ))}
+        )}
       </div>
     </section>
   );

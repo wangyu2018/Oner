@@ -208,6 +208,23 @@ ${buildNoteContext(note)}
       stream: false,
     });
 
+    // 自动存储分析结果到对话历史
+    try {
+      const now = new Date().toISOString();
+      const analyzeMessages = JSON.stringify([
+        { role: 'user', content: `[${action}] 分析笔记: ${note.title || '无标题'}`, timestamp: Date.now() },
+        { role: 'assistant', content: reply, timestamp: Date.now() },
+      ]);
+      const convId = generateId();
+      const title = `[${action}] ${note.title?.substring(0, 30) || '笔记分析'}`;
+      runQuery(
+        'INSERT INTO ai_conversations (id, user_id, context_type, context_id, title, messages, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [convId, req.user.id, 'note', noteId, title, analyzeMessages, now, now]
+      );
+    } catch (storeErr) {
+      console.warn('Failed to store analyze result:', storeErr.message);
+    }
+
     res.json({ success: true, data: { result: reply, action } });
   } catch (err) {
     console.error('AI analyze error:', err);

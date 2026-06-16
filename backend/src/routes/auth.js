@@ -4,7 +4,7 @@ import https from 'https';
 import { queryAll, queryOne, runQuery } from '../db/helpers.js';
 import { hashPassword, comparePassword } from '../utils/crypto.js';
 import { generateToken, authMiddleware } from '../middleware/auth.js';
-import { loginLimiter, registerLimiter } from '../middleware/rateLimiter.js';
+import { loginLimiter, registerLimiter, pinVerifyLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
 
@@ -407,7 +407,7 @@ router.delete('/sessions/:id', authMiddleware, (req, res) => {
 });
 
 // POST /api/auth/verify-vault-pin - 验证密码库 PIN（二次认证）
-router.post('/verify-vault-pin', authMiddleware, async (req, res) => {
+router.post('/verify-vault-pin', authMiddleware, pinVerifyLimiter, async (req, res) => {
   try {
     const { pin } = req.body;
     if (!pin || typeof pin !== 'string' || pin.length < 4 || pin.length > 20) {

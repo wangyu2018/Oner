@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Sparkles, ChevronDown, ChevronUp, Lightbulb, BookOpen, PenLine, Loader2, PlugZap } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Sparkles, ChevronDown, ChevronUp, Lightbulb, BookOpen, PenLine, Loader2, PlugZap, Send, Trash2, MessageSquare } from 'lucide-react';
 import { api } from '../utils/api';
 import { usePluginManagerContext } from '../App';
+import { useAIChat } from '../hooks/useAIChat';
 
 const QUICK_TAGS = [
   '拆解任务', '推荐行动', '扩展内容', '总结要点', '生成标题', '翻译英文', '润色表达',
@@ -14,8 +15,20 @@ export default function AIAssistant({ noteId, content, title, onContentUpdate })
   const [continuations, setContinuations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeAction, setActiveAction] = useState(null);
+  const [activeTab, setActiveTab] = useState('actions'); // 'actions' | 'chat'
   const { isPluginActive } = usePluginManagerContext();
   const aiEnabled = isPluginActive?.('oner.plugin.ai') ?? true;
+
+  // AI 对话 hook
+  const chat = useAIChat({ noteId, contextType: noteId ? 'note' : 'global', contextId: noteId });
+  const chatEndRef = useRef(null);
+  const chatInputRef = useRef(null);
+  const [chatInput, setChatInput] = useState('');
+
+  // 对话滚动到底部
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chat.messages, chat.streamContent]);
 
   // 加载建议
   useEffect(() => {
@@ -67,6 +80,16 @@ export default function AIAssistant({ noteId, content, title, onContentUpdate })
       const res = await api.ai.analyze({ noteId, action: actionMap[tag] || 'suggest' });
       const result = res.data?.result || '';
 
+      // 将分析结果也追加到对话历史
+      if (result.trim()) {
+        const actionLabel = tag;
+        const chatMsg = `[${actionLabel}] ${result.trim()}`;
+        chat.setMessages(prev => [
+          ...prev,
+          { role: 'assistant', content: chatMsg, timestamp: Date.now(), fromAction: true },
+        ]);
+      }
+
       // 润色/扩展/翻译 → 直接输出到编辑器
       if (['polish', 'expand', 'translate'].includes(actionMap[tag]) && onContentUpdate) {
         const polished = result.trim();
@@ -94,6 +117,21 @@ export default function AIAssistant({ noteId, content, title, onContentUpdate })
     // 续写建议追加到编辑器内容末尾
     if (onContentUpdate && content) {
       onContentUpdate(content + '\n\n' + text.replace('...', ''));
+    }
+  };
+
+  // 发送聊天消息
+  const handleSendChat = async () => {
+    const msg = chatInput.trim();
+    if (!msg || chat.loading || chat.streaming) return;
+    setChatInput('');
+    await chat.sendStreamMessage(msg);
+  };
+
+  const handleChatKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendChat();
     }
   };
 
@@ -127,10 +165,31 @@ export default function AIAssistant({ noteId, content, title, onContentUpdate })
           <Sparkles size={11} className="text-white" />
         </span>
         <span className="text-xs font-semibold text-violet-600 dark:text-violet-400">
-          AI 建议
+          AI 助手
         </span>
-        {/* 3 个快速标签 chip */}
-        {QUICK_TAGS.slice(0, 3).map(tag => (
+        {/* Tab 切换 */}
+        <span
+          onClick={(e) => { e.stopPropagation(); setActiveTab('actions'); }}
+          className={`hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors cursor-pointer
+            ${activeTab === 'actions'
+              ? 'bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400'
+              : 'bg-white/80 dark:bg-gray-800/60 text-gray-500 hover:text-violet-500'
+            }`}
+        >
+          <Lightbulb size={10} className="mr-0.5" /> 快捷
+        </span>
+        <span
+          onClick={(e) => { e.stopPropagation(); setActiveTab('chat'); }}
+          className={`hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors cursor-pointer
+            ${activeTab === 'chat'
+              ? 'bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400'
+              : 'bg-white/80 dark:bg-gray-800/60 text-gray-500 hover:text-violet-500'
+            }`}
+        >
+          <MessageSquare size={10} className="mr-0.5" /> 对话{chat.messages.length > 0 ? ` (${chat.messages.length})` : ''}
+        </span>
+        {/* 快速标签 chip — 仅在 actions tab 显示 */}
+        {activeTab === 'actions' && QUICK_TAGS.slice(0, 2).map(tag => (
           <span key={tag}
             onClick={(e) => { e.stopPropagation(); handleTagClick(tag); }}
             className="hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium
@@ -148,8 +207,8 @@ export default function AIAssistant({ noteId, content, title, onContentUpdate })
         </span>
       </button>
 
-      {/* 展开态：200px 3列布局 */}
-      {expanded && (
+      {/* 展开态 */}
+      {expanded && activeTab === 'actions' && (
         <div className="h-[200px] grid grid-cols-3 gap-0 border-t border-gray-100 dark:border-gray-800
           bg-gray-50/50 dark:bg-gray-900/50 overflow-hidden">
 
@@ -244,6 +303,84 @@ export default function AIAssistant({ noteId, content, title, onContentUpdate })
                 </button>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 对话 Tab */}
+      {expanded && activeTab === 'chat' && (
+        <div className="border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
+          {/* 消息区域 */}
+          <div className="h-[180px] overflow-y-auto px-3 py-2 space-y-2">
+            {chat.messages.length === 0 && !chat.streaming && (
+              <p className="text-[11px] text-gray-400 text-center py-4">
+                对话历史会自动保留，试试发送消息吧
+              </p>
+            )}
+            {chat.messages.map((msg, i) => (
+              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[80%] px-2.5 py-1.5 rounded-lg text-[11px] leading-relaxed
+                  ${msg.role === 'user'
+                    ? 'bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300'
+                    : msg.error
+                      ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'
+                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-100 dark:border-gray-700'
+                  }`}>
+                  <p className="whitespace-pre-wrap">{msg.content}</p>
+                  {msg.fromAction && (
+                    <span className="text-[9px] text-violet-400 mt-0.5 block">来自快捷操作</span>
+                  )}
+                </div>
+              </div>
+            ))}
+            {/* 流式输出中 */}
+            {chat.streaming && chat.streamContent && (
+              <div className="flex justify-start">
+                <div className="max-w-[80%] px-2.5 py-1.5 rounded-lg text-[11px] leading-relaxed
+                  bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-100 dark:border-gray-700">
+                  <p className="whitespace-pre-wrap">{chat.streamContent}</p>
+                  <span className="inline-block w-1 h-3 bg-violet-500 animate-pulse ml-0.5" />
+                </div>
+              </div>
+            )}
+            {chat.loading && !chat.streaming && (
+              <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+                <Loader2 size={11} className="animate-spin" /> 思考中...
+              </div>
+            )}
+            <div ref={chatEndRef} />
+          </div>
+          {/* 输入栏 */}
+          <div className="flex items-center gap-2 px-3 py-2 border-t border-gray-100 dark:border-gray-800">
+            <input
+              ref={chatInputRef}
+              type="text"
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onKeyDown={handleChatKeyDown}
+              placeholder="输入问题..."
+              className="flex-1 px-2.5 py-1.5 rounded-lg text-[11px] bg-white dark:bg-gray-800
+                border border-gray-200 dark:border-gray-700 outline-none
+                focus:border-violet-300 dark:focus:border-violet-700 transition-colors"
+            />
+            <button
+              onClick={handleSendChat}
+              disabled={!chatInput.trim() || chat.loading || chat.streaming}
+              className="p-1.5 rounded-lg bg-violet-100 dark:bg-violet-900/30
+                text-violet-600 dark:text-violet-400 hover:bg-violet-200 dark:hover:bg-violet-900/50
+                disabled:opacity-40 transition-colors"
+            >
+              <Send size={12} />
+            </button>
+            {chat.messages.length > 0 && (
+              <button
+                onClick={chat.clearChat}
+                title="清空对话"
+                className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              >
+                <Trash2 size={11} />
+              </button>
+            )}
           </div>
         </div>
       )}

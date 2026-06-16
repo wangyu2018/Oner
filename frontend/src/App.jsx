@@ -301,7 +301,7 @@ export default function App() {
             {/* 插件状态指示器 */}
             {pluginsReady && plugins.length > 0 && (
               <div className="fixed bottom-20 left-2 z-10">
-                <span className="text-[10px] text-gray-400 dark:text-gray-600">
+                <span className="text-xs text-gray-400 dark:text-gray-600">
                   {plugins.filter(p => p.status === 'active').length} 插件已加载
                 </span>
               </div>

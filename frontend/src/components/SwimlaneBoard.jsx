@@ -1,10 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import {
   DndContext, useDroppable, useDraggable,
   PointerSensor, useSensor, useSensors,
 } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { Calendar, CheckCircle2, ListTodo, Clock, Trash2, AlertTriangle, Tag, MoreHorizontal } from 'lucide-react';
+import { Calendar, CheckCircle2, ListTodo, Clock, Trash2, AlertTriangle, Tag, MoreHorizontal, ChevronDown, ChevronRight } from 'lucide-react';
 import { getContentPreview, extractFirstLine } from '../utils/tags';
 
 // ========== 泳道色彩主题 ==========
@@ -209,17 +209,23 @@ function LaneCell({ cellId, cards, onClick, onDelete, onTagClick, themeColor }) 
 }
 
 // ========== 泳道标签 ==========
-function LaneLabel({ category, stats, theme, isActive, onClick }) {
+function LaneLabel({ category, stats, theme, isActive, onClick, isCollapsed, onToggleCollapse }) {
   const progress = stats.total > 0 ? (stats.done / stats.total) * 100 : 0;
   const icon = getLaneIcon(category);
 
   return (
     <div
-      onClick={onClick}
       className="lane-label"
       style={{ borderLeftColor: theme.border }}
     >
-      <div className="lane-name" style={{ color: theme.color }}>
+      <div
+        className="lane-collapse-btn"
+        onClick={(e) => { e.stopPropagation(); onToggleCollapse?.(category || '__uncategorized__'); }}
+        title={isCollapsed ? '展开' : '折叠'}
+      >
+        {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+      </div>
+      <div className="lane-name" style={{ color: theme.color }} onClick={onClick}>
         <span className="lane-icon" style={{ background: `${theme.color}15`, color: theme.color }}>
           {icon}
         </span>
@@ -231,7 +237,6 @@ function LaneLabel({ category, stats, theme, isActive, onClick }) {
       <div className="lane-progress-track">
         <div className="lane-progress-fill" style={{ width: `${progress}%`, backgroundColor: theme.color }} />
       </div>
-      <div className="lane-collapse-btn">▾</div>
     </div>
   );
 }
@@ -247,6 +252,35 @@ function SwimlaneBoard({
   onCategoryClick,
   onMoveNote,
 }) {
+  // 折叠状态管理 (localStorage 持久化)
+  const [collapsedLanes, setCollapsedLanes] = useState(() => {
+    try {
+      const saved = localStorage.getItem('oner_swimlane_collapsed');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch { return new Set(); }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('oner_swimlane_collapsed', JSON.stringify([...collapsedLanes]));
+  }, [collapsedLanes]);
+
+  const toggleCollapse = useCallback((laneKey) => {
+    setCollapsedLanes(prev => {
+      const next = new Set(prev);
+      if (next.has(laneKey)) next.delete(laneKey);
+      else next.add(laneKey);
+      return next;
+    });
+  }, []);
+
+  const toggleAllCollapsed = useCallback(() => {
+    setCollapsedLanes(prev => {
+      const allKeys = lanes.map(l => l.category || '__uncategorized__');
+      // 如果全部已折叠 → 全部展开，否则 → 全部折叠
+      const allCollapsed = allKeys.every(k => prev.has(k));
+      return allCollapsed ? new Set() : new Set(allKeys);
+    });
+  }, []);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
@@ -335,8 +369,19 @@ function SwimlaneBoard({
       <div style={{ minWidth: 800 }}>
         {/* ===== 列头 ===== */}
         <div className="col-header">
-          <div className="col-header-cell">
+          <div className="col-header-cell" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             分类 \ 状态
+            <button
+              onClick={toggleAllCollapsed}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px',
+                borderRadius: 4, fontSize: 11, color: 'var(--text-tertiary)',
+                transition: 'all 0.15s',
+              }}
+              title="全部折叠/展开"
+            >
+              {lanes.length > 0 && lanes.every(l => collapsedLanes.has(l.category || '__uncategorized__')) ? '全部展开' : '全部折叠'}
+            </button>
           </div>
           {COLUMNS.map(col => (
             <div key={col.id} className="col-header-cell">
@@ -352,15 +397,18 @@ function SwimlaneBoard({
         {/* ===== 泳道行 ===== */}
         {lanes.map((lane) => {
           const theme = lane.category ? getLaneTheme(lane.category) : LANE_THEMES[4];
+          const laneKey = lane.category || '__uncategorized__';
+          const isCollapsed = collapsedLanes.has(laneKey);
           return (
             <div
-              key={lane.category || '__uncategorized__'}
+              key={laneKey}
               className="swim-row last:border-b-0"
               style={{
                 display: 'grid',
-                gridTemplateColumns: '140px repeat(4, 1fr)',
+                gridTemplateColumns: isCollapsed ? '1fr' : '140px repeat(4, 1fr)',
                 background: lane.category && theme.bg !== 'transparent' ? theme.bg : 'transparent',
                 borderBottom: '1px solid var(--border-default)',
+                transition: 'grid-template-columns 0.2s ease',
               }}
             >
               {/* 泳道标签 */}
@@ -370,10 +418,12 @@ function SwimlaneBoard({
                 theme={theme}
                 isActive={activeCategory === lane.category}
                 onClick={() => onCategoryClick?.(lane.category)}
+                isCollapsed={isCollapsed}
+                onToggleCollapse={toggleCollapse}
               />
 
-              {/* 泳道格 */}
-              {COLUMNS.map(col => {
+              {/* 泳道格（折叠时隐藏） */}
+              {!isCollapsed && COLUMNS.map(col => {
                 const cellCards = getCellCards(lane.notes, col.id);
                 return (
                   <LaneCell

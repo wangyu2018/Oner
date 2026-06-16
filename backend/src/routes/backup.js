@@ -65,21 +65,11 @@ router.get('/export', backupLimiter, (req, res) => {
   archive.finalize();
 });
 
-// GET /api/backup/download-db - download the SQLite database
-// ⚠️ 安全警告：此端点会暴露所有用户数据（含密码哈希）
-// 仅限于管理员在受控环境使用
-router.get('/download-db', backupLimiter, (req, res) => {
-  console.warn(`[SECURITY] User ${req.user.id} (${req.user.username}) downloaded the database at ${new Date().toISOString()}`);
-  const dbPath = process.env.DB_PATH || path.join(__dirname, '..', '..', 'oner.db');
-  if (fs.existsSync(dbPath)) {
-    // 禁止在非开发环境下下载完整数据库
-    if (process.env.NODE_ENV === 'production') {
-      return res.status(403).json({ error: '生产环境禁止下载数据库', code: 403 });
-    }
-    res.download(dbPath, 'oner.db');
-  } else {
-    res.status(404).json({ error: 'Database file not found', code: 404 });
-  }
+// GET /api/backup/download-db - 已禁用
+// ⚠️ 安全策略：此端点已永久禁用，防止数据库泄露
+router.get('/download-db', (req, res) => {
+  console.warn(`[SECURITY] Blocked database download attempt by user ${req.user.id} at ${new Date().toISOString()}`);
+  res.status(403).json({ error: '此端点已禁用', code: 403 });
 });
 
 export default router;
