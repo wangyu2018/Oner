@@ -1,5 +1,6 @@
 // 与主项目同一套后端 API
-const API_BASE = 'https://your-api-domain.com/api';
+// 通过环境变量 TARO_APP_API_BASE 配置生产地址，确保编译时注入
+const API_BASE = process.env.TARO_APP_API_BASE || 'https://your-api-domain.com/api';
 
 let token = '';
 

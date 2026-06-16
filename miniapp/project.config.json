@@ -24,7 +24,7 @@
     "useApiHostProcess": true
   },
   "appid": "YOUR_WX_APPID",
-  "projectname": "Oner",
+  "projectname": "Oner 效率工作台",
   "libVersion": "3.7.0",
   "condition": {}
 }
