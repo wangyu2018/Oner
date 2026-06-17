@@ -10,6 +10,8 @@ services:
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required for production deployment}
       - PASSWORD_VAULT_KEY=${PASSWORD_VAULT_KEY:-}
       - NODE_ENV=${NODE_ENV:-production}
+      - WX_APPID=${WX_APPID:-}
+      - WX_APPSECRET=${WX_APPSECRET:-}
     volumes:
       - oner-data:/data
       - oner-uploads:/app/uploads
