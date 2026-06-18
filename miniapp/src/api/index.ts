@@ -122,5 +122,8 @@ export const api = {
       request<any>(`/wechat/subscriptions/${id}`, {
         method: 'DELETE',
       }),
+    // 获取用户专属小程序码（带参数，用于邀请溯源）
+    getQrCode: () =>
+      request<{ qrCodeUrl: string }>('/wechat/qrcode'),
   },
 };

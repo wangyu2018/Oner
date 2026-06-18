@@ -1,6 +1,6 @@
 import { View, Text, ScrollView, Image } from '@tarojs/components';
 import { useState, useEffect } from 'react';
-import Taro from '@tarojs/taro';
+import Taro, { useShareAppMessage, useShareTimeline } from '@tarojs/taro';
 import PluginCard from '../../components/plugin-card';
 import DownloadBar from '../../components/download-bar';
 import { api, setToken } from '../../api';
@@ -27,6 +27,20 @@ const APP_ONLY_PLUGINS = [
 export default function Index() {
   const [user, setUser] = useState<any>(null);
   const [stats, setStats] = useState({ notes: 0, todos: 0 });
+
+  // 动态分享：标题带统计数据，增加吸引力
+  useShareAppMessage(() => ({
+    title: user
+      ? `我在 Oner 管理了 ${stats.notes} 篇笔记、${stats.todos} 个待办，快来试试！`
+      : 'Oner - 笔记·AI·看板·密码库·备忘，你的效率工作台',
+    path: '/pages/index/index',
+    imageUrl: '/assets/share-cover.svg',
+  }));
+
+  useShareTimeline(() => ({
+    title: 'Oner - 你的效率工作台',
+    imageUrl: '/assets/share-cover.svg',
+  }));
 
   useEffect(() => {
     // 尝试自动登录（wx.login）
@@ -94,7 +108,16 @@ export default function Index() {
           <View className='notif-entry__icon'>🔔</View>
           <View className='notif-entry__info'>
             <Text className='notif-entry__title'>微信提醒设置</Text>
-            <Text className='notif-entry__desc'>待办到期时通过微信推送通知</Text>
+            <Text className='notif-entry__desc'>待办到期 / 备忘回执 / 每日汇总</Text>
+          </View>
+          <Text className='notif-entry__arrow'>›</Text>
+        </View>
+
+        <View className='notif-entry' onClick={() => Taro.navigateTo({ url: '/pages/share/index' })}>
+          <View className='notif-entry__icon'>🔗</View>
+          <View className='notif-entry__info'>
+            <Text className='notif-entry__title'>邀请好友</Text>
+            <Text className='notif-entry__desc'>生成专属小程序码，邀请朋友体验</Text>
           </View>
           <Text className='notif-entry__arrow'>›</Text>
         </View>

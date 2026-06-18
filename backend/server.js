@@ -18,7 +18,7 @@ import settingsRouter from './src/routes/settings.js';
 import passwordsRouter from './src/routes/passwords.js';
 import filesRouter from './src/routes/files.js';
 import aiRouter from './src/routes/ai.js';
-import wechatRouter, { checkAndSendReminders } from './src/routes/wechat.js';
+import wechatRouter, { checkAndSendReminders, checkAndSendDailySummary, sendMemoReceipt } from './src/routes/wechat.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -143,6 +143,15 @@ function start() {
         console.log('\u{23F0} WeChat reminder scheduler started (interval: 10min)');
         // 启动后立即执行一次
         setTimeout(checkAndSendReminders, 5000);
+
+        // 每日汇总推送（每小时检查一次，只在 9:00 触发）
+        setInterval(() => {
+          const hour = new Date().getHours();
+          if (hour === 9) {
+            checkAndSendDailySummary();
+          }
+        }, 60 * 60 * 1000);
+        console.log('\u{1F4CA} WeChat daily summary scheduler started (triggers at 09:00)');
       }
     });
   } catch (err) {

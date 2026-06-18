@@ -4,6 +4,7 @@ import { queryAll, queryOne, runQuery } from '../db/helpers.js';
 import { extractTags } from '../utils/tags.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { notesWriteLimiter } from '../middleware/rateLimiter.js';
+import { sendMemoReceipt } from './wechat.js';
 
 const router = Router();
 
@@ -287,6 +288,13 @@ router.put('/:id', notesWriteLimiter, (req, res) => {
       runQuery("INSERT INTO notes (id, user_id, title, content, tags, status, due_date, priority, recurrence, category) VALUES (?, ?, ?, ?, ?, 'todo', ?, ?, ?, ?)",
         [newId, existing.user_id, existing.title, existing.content, existing.tags, nextDue, existing.priority || 'normal', existing.recurrence, existing.category || '']);
     }
+  }
+
+  // 备忘回执通知：当任务标记为已完成时，异步推送微信通知
+  if (noteStatus === 'done' && existing.status !== 'done') {
+    sendMemoReceipt(userId, title).catch(err =>
+      console.error('[WeChat] 备忘回执推送失败:', err)
+    );
   }
 
   const note = queryOne('SELECT * FROM notes WHERE id = ?', [req.params.id]);
