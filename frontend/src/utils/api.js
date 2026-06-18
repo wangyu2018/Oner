@@ -248,6 +248,31 @@ export const api = {
     }),
   },
 
+  // 插件市场 + 多端同步
+  plugins: {
+    sync: () => fetchJSON('/plugins/sync'),
+    batchSync: (disabledPluginIds) => fetchJSON('/plugins/sync/batch', {
+      method: 'POST',
+      body: JSON.stringify({ disabled_plugin_ids: disabledPluginIds }),
+    }),
+    toggle: (pluginId, enabled) => fetchJSON(`/plugins/${pluginId}/toggle`, {
+      method: 'POST',
+      body: JSON.stringify({ enabled }),
+    }),
+    marketplace: (params = {}) => {
+      const query = new URLSearchParams(params);
+      return fetchJSON(`/plugins/marketplace${query.toString() ? `?${query}` : ''}`);
+    },
+    installed: () => fetchJSON('/plugins/installed'),
+    install: (id) => fetchJSON('/plugins/install', {
+      method: 'POST',
+      body: JSON.stringify({ id }),
+    }),
+    uninstall: (id) => fetchJSON(`/plugins/${id}`, {
+      method: 'DELETE',
+    }),
+  },
+
   // AI
   ai: {
     chat: (data) => fetchJSON('/ai/chat', {

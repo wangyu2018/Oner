@@ -101,6 +101,11 @@ export const api = {
     },
   },
 
+  plugins: {
+    // 启动同步：拉取用户插件状态
+    sync: () => request<{ data: { plugins: any[]; updated_at: string } }>('/plugins/sync'),
+  },
+
   wechat: {
     // 保存订阅记录
     subscribe: (templateId: string, remindType: string, openid: string) =>

@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { PluginManager } from './kernel/index.js';
+import { syncPluginsOnStartup, togglePlugin } from './pluginSync.js';
 
 // 全局单例
 let pluginManagerInstance = null;
@@ -68,6 +69,7 @@ export function usePluginManager() {
     isReady,
     registerPlugin,
     deactivatePlugin,
+    togglePlugin,
   };
 }
 
@@ -79,7 +81,7 @@ export function getPluginManager() {
 }
 
 /**
- * 加载所有插件
+ * 加载所有插件（含多端同步）
  */
 async function loadPlugins(manager) {
   // 动态导入插件（Vite 支持）
@@ -116,13 +118,17 @@ async function loadPlugins(manager) {
     }
   }
 
-  // 读取持久化的禁用列表，跳过已停用的插件
-  const disabledPlugins = (() => {
+  // 多端同步：从服务端拉取插件状态，网络失败时降级 localStorage
+  let disabledPlugins;
+  try {
+    disabledPlugins = await syncPluginsOnStartup();
+  } catch {
+    // 最终降级：直接读 localStorage
     try {
       const raw = localStorage.getItem('oner_disabled_plugins');
-      return raw ? JSON.parse(raw) : [];
-    } catch { return []; }
-  })();
+      disabledPlugins = raw ? JSON.parse(raw) : [];
+    } catch { disabledPlugins = []; }
+  }
 
   // 按依赖顺序激活（跳过已停用的）
   const pluginIds = ['oner.plugin.core-notes', 'oner.plugin.ai', 'oner.plugin.password', 'oner.plugin.kanban', 'oner.plugin.memo'];

@@ -1,10 +1,13 @@
 /**
- * 插件市场 API 路由
+ * 插件市场 + 多端同步 API 路由
  *
+ * GET    /sync              — 启动同步（多端拉取）
+ * POST   /sync/batch        — 批量迁移（localStorage→DB）
  * GET    /marketplace       — 浏览可用插件
  * GET    /marketplace/:id   — 插件详情
  * POST   /install           — 安装插件
  * DELETE /:id               — 卸载插件
+ * POST   /:id/toggle        — 启用/禁用切换
  * POST   /:id/reload        — 热重载插件
  * GET    /installed         — 已安装插件列表
  */
@@ -16,6 +19,15 @@ import { fileURLToPath } from 'url';
 import semver from 'semver';
 import AdmZip from 'adm-zip';
 import { authMiddleware } from '../middleware/auth.js';
+import { queryAll, queryOne, runQuery } from '../db/helpers.js';
+
+const BUILTIN_PLUGINS = [
+  'oner.plugin.core-notes',
+  'oner.plugin.ai',
+  'oner.plugin.password',
+  'oner.plugin.kanban',
+  'oner.plugin.memo',
+];
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -39,6 +51,100 @@ export default function createPluginsRouter(pluginLoader) {
   function saveRegistry(data) {
     fs.writeFileSync(registryPath, JSON.stringify(data, null, 2), 'utf-8');
   }
+
+  // ========== 多端同步端点 ==========
+
+  // ---------- GET /sync — 启动同步 ----------
+  router.get('/sync', (req, res) => {
+    try {
+      const userId = req.user.id;
+      const dbRecords = queryAll(
+        'SELECT plugin_id, status, enabled, version, updated_at FROM user_plugins WHERE user_id = ?',
+        [userId]
+      );
+      const dbMap = new Map(dbRecords.map(r => [r.plugin_id, r]));
+      const installedPlugins = pluginLoader.getInstalled();
+      const installedMap = new Map(installedPlugins.map(p => [p.id, p]));
+
+      const plugins = [];
+
+      // 内置插件：始终已安装，同步 enabled 状态
+      for (const pid of BUILTIN_PLUGINS) {
+        const dbRec = dbMap.get(pid);
+        const fsRec = installedMap.get(pid);
+        plugins.push({
+          plugin_id: pid,
+          status: 'installed',
+          enabled: dbRec ? !!dbRec.enabled : true,
+          version: dbRec?.version || fsRec?.version || '1.0.0',
+          source: 'builtin',
+        });
+      }
+
+      // 市场插件：以 DB 记录为准，补充文件系统状态
+      for (const [pid, dbRec] of dbMap) {
+        if (BUILTIN_PLUGINS.includes(pid)) continue;
+        const fsRec = installedMap.get(pid);
+        plugins.push({
+          plugin_id: pid,
+          status: dbRec.status,
+          enabled: !!dbRec.enabled,
+          version: dbRec.version || fsRec?.version || '',
+          source: 'marketplace',
+        });
+      }
+
+      // 文件系统中有但 DB 中没有的市场插件（服务器全局安装的）
+      for (const [pid, fsRec] of installedMap) {
+        if (BUILTIN_PLUGINS.includes(pid)) continue;
+        if (dbMap.has(pid)) continue;
+        plugins.push({
+          plugin_id: pid,
+          status: 'installed',
+          enabled: true,
+          version: fsRec.version || '',
+          source: 'marketplace',
+        });
+      }
+
+      const updatedAt = dbRecords.length > 0
+        ? dbRecords.reduce((max, r) => r.updated_at > max ? r.updated_at : max, '')
+        : new Date().toISOString();
+
+      res.json({ success: true, data: { plugins, updated_at: updatedAt } });
+    } catch (err) {
+      console.error('[Plugins] sync error:', err);
+      res.status(500).json({ success: false, error: '同步失败', code: 500 });
+    }
+  });
+
+  // ---------- POST /sync/batch — 批量迁移（localStorage→DB） ----------
+  router.post('/sync/batch', (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { disabled_plugin_ids = [] } = req.body;
+
+      // 将所有内置插件标记为 installed+enabled
+      for (const pid of BUILTIN_PLUGINS) {
+        const isEnabled = disabled_plugin_ids.includes(pid) ? 0 : 1;
+        runQuery(
+          `INSERT INTO user_plugins (user_id, plugin_id, status, enabled, updated_at)
+           VALUES (?, ?, 'installed', ?, datetime('now'))
+           ON CONFLICT(user_id, plugin_id) DO UPDATE SET
+             enabled = excluded.enabled,
+             updated_at = datetime('now')`,
+          [userId, pid, isEnabled]
+        );
+      }
+
+      res.json({ success: true, data: { message: '批量迁移完成', count: BUILTIN_PLUGINS.length } });
+    } catch (err) {
+      console.error('[Plugins] batch sync error:', err);
+      res.status(500).json({ success: false, error: '批量迁移失败', code: 500 });
+    }
+  });
+
+  // ========== 市场浏览端点 ==========
 
   // ---------- GET /marketplace — 浏览市场 ----------
   router.get('/marketplace', (req, res) => {
@@ -186,6 +292,20 @@ export default function createPluginsRouter(pluginLoader) {
         saveRegistry(registry);
       }
 
+      // 记录到 user_plugins（per-user 安装状态）
+      try {
+        runQuery(
+          `INSERT INTO user_plugins (user_id, plugin_id, status, enabled, version, updated_at)
+           VALUES (?, ?, 'installed', 1, ?, datetime('now'))
+           ON CONFLICT(user_id, plugin_id) DO UPDATE SET
+             status = 'installed', enabled = 1, version = excluded.version,
+             updated_at = datetime('now')`,
+          [req.user.id, id, manifest.version || '']
+        );
+      } catch (e) {
+        console.warn('[Plugins] user_plugins upsert (install) warning:', e.message);
+      }
+
       res.json({
         success: true,
         data: {
@@ -218,6 +338,20 @@ export default function createPluginsRouter(pluginLoader) {
         return res.status(500).json({ success: false, error: '卸载失败', code: 500 });
       }
 
+      // 记录到 user_plugins（标记为 uninstalled）
+      try {
+        runQuery(
+          `INSERT INTO user_plugins (user_id, plugin_id, status, enabled, updated_at)
+           VALUES (?, ?, 'uninstalled', 0, datetime('now'))
+           ON CONFLICT(user_id, plugin_id) DO UPDATE SET
+             status = 'uninstalled', enabled = 0,
+             updated_at = datetime('now')`,
+          [req.user.id, id]
+        );
+      } catch (e) {
+        console.warn('[Plugins] user_plugins upsert (uninstall) warning:', e.message);
+      }
+
       res.json({
         success: true,
         data: { message: `插件 "${plugin.name}" 已卸载` }
@@ -225,6 +359,49 @@ export default function createPluginsRouter(pluginLoader) {
     } catch (err) {
       console.error('[Plugins] uninstall error:', err);
       res.status(500).json({ success: false, error: '卸载失败: ' + err.message, code: 500 });
+    }
+  });
+
+  // ---------- POST /:id/toggle — 启用/禁用切换 ----------
+  router.post('/:id/toggle', (req, res) => {
+    try {
+      const { id } = req.params;
+      const { enabled } = req.body;
+      const userId = req.user.id;
+
+      // 验证插件存在
+      const isBuiltin = BUILTIN_PLUGINS.includes(id);
+      const fsPlugin = pluginLoader.getPlugin(id);
+      if (!isBuiltin && !fsPlugin) {
+        return res.status(404).json({ success: false, error: '插件不存在', code: 404 });
+      }
+
+      // required 插件不允许禁用
+      if (fsPlugin?.required && enabled === false) {
+        return res.status(400).json({ success: false, error: '核心插件不可禁用', code: 400 });
+      }
+
+      const newEnabled = typeof enabled === 'boolean' ? (enabled ? 1 : 0) : null;
+      if (newEnabled === null) {
+        return res.status(400).json({ success: false, error: '缺少 enabled 参数', code: 400 });
+      }
+
+      runQuery(
+        `INSERT INTO user_plugins (user_id, plugin_id, status, enabled, updated_at)
+         VALUES (?, ?, 'installed', ?, datetime('now'))
+         ON CONFLICT(user_id, plugin_id) DO UPDATE SET
+           enabled = excluded.enabled,
+           updated_at = datetime('now')`,
+        [userId, id, newEnabled]
+      );
+
+      res.json({
+        success: true,
+        data: { plugin_id: id, enabled: !!newEnabled },
+      });
+    } catch (err) {
+      console.error('[Plugins] toggle error:', err);
+      res.status(500).json({ success: false, error: '切换失败: ' + err.message, code: 500 });
     }
   });
 

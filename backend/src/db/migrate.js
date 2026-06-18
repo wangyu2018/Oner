@@ -275,6 +275,27 @@ export function migrate() {
       console.log('Created wechat_subscriptions table');
     }
 
+    // 创建 user_plugins 表（多端插件同步）
+    const upTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='user_plugins'").get();
+    if (!upTable) {
+      db.exec(`
+        CREATE TABLE user_plugins (
+          id            TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+          user_id       TEXT NOT NULL,
+          plugin_id     TEXT NOT NULL,
+          status        TEXT NOT NULL DEFAULT 'installed',
+          enabled       INTEGER NOT NULL DEFAULT 1,
+          version       TEXT DEFAULT '',
+          installed_at  TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at    TEXT NOT NULL DEFAULT (datetime('now')),
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+          UNIQUE(user_id, plugin_id)
+        )
+      `);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_user_plugins_user ON user_plugins(user_id)');
+      console.log('Created user_plugins table');
+    }
+
     console.log('Migration completed successfully');
 
   } catch (err) {

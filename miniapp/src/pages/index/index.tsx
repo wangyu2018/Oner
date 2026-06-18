@@ -8,11 +8,11 @@ import './index.less';
 
 // 插件列表配置 - 有预览页面的
 const PREVIEW_PLUGINS = [
-  { icon: '📝', name: '笔记', desc: '记录灵感、管理待办', features: ['笔记管理', '待办事项', '分类筛选'], path: '/pages/notes/index' },
-  { icon: '🤖', name: 'AI 助手', desc: '智能对话、内容润色', features: ['AI对话', '智能分析'], path: '/pages/ai/index' },
-  { icon: '📋', name: '看板', desc: '泳道看板、拖拽管理', features: ['泳道视图', '状态流转'], path: '/pages/kanban/index' },
-  { icon: '🔐', name: '密码库', desc: '安全存储密码', features: ['密码管理', '加密存储'], path: '/pages/passwords/index' },
-  { icon: '📌', name: '备忘', desc: '快速记录碎片信息', features: ['时间线', '快速记录'], path: '/pages/memos/index' },
+  { id: 'oner.plugin.core-notes', icon: '📝', name: '笔记', desc: '记录灵感、管理待办', features: ['笔记管理', '待办事项', '分类筛选'], path: '/pages/notes/index' },
+  { id: 'oner.plugin.ai', icon: '🤖', name: 'AI 助手', desc: '智能对话、内容润色', features: ['AI对话', '智能分析'], path: '/pages/ai/index' },
+  { id: 'oner.plugin.kanban', icon: '📋', name: '看板', desc: '泳道看板、拖拽管理', features: ['泳道视图', '状态流转'], path: '/pages/kanban/index' },
+  { id: 'oner.plugin.password', icon: '🔐', name: '密码库', desc: '安全存储密码', features: ['密码管理', '加密存储'], path: '/pages/passwords/index' },
+  { id: 'oner.plugin.memo', icon: '📌', name: '备忘', desc: '快速记录碎片信息', features: ['时间线', '快速记录'], path: '/pages/memos/index' },
 ];
 
 // 仅 App 端可用的插件
@@ -27,6 +27,7 @@ const APP_ONLY_PLUGINS = [
 export default function Index() {
   const [user, setUser] = useState<any>(null);
   const [stats, setStats] = useState({ notes: 0, todos: 0 });
+  const [pluginStatus, setPluginStatus] = useState<Record<string, { installed: boolean; enabled: boolean }>>({});
 
   // 动态分享：标题带统计数据，增加吸引力
   useShareAppMessage(() => ({
@@ -60,6 +61,21 @@ export default function Index() {
         notes: all.filter(n => n.status === 'note' || !n.status).length,
         todos: all.filter(n => n.status === 'todo' || n.status === 'in_progress').length,
       });
+      // 拉取插件同步状态
+      try {
+        const syncRes = await api.plugins.sync();
+        const plugins = syncRes?.data?.plugins || [];
+        const statusMap: Record<string, { installed: boolean; enabled: boolean }> = {};
+        plugins.forEach((p: any) => {
+          statusMap[p.plugin_id] = {
+            installed: p.status === 'installed',
+            enabled: !!p.enabled,
+          };
+        });
+        setPluginStatus(statusMap);
+      } catch {
+        // 同步失败不阻塞
+      }
     } catch (err) {
       console.error('Login failed:', err);
     }
@@ -97,9 +113,11 @@ export default function Index() {
       <View className='section'>
         <Text className='section__title'>功能预览</Text>
         <Text className='section__desc'>点击查看各模块内容预览</Text>
-        {PREVIEW_PLUGINS.map((p) => (
-          <PluginCard key={p.name} {...p} />
-        ))}
+        {PREVIEW_PLUGINS.map((p) => {
+          const status = pluginStatus[p.id];
+          const badge = status?.installed ? '已启用' : '';
+          return <PluginCard key={p.name} {...p} badge={badge} />;
+        })}
       </View>
 
       {/* 提醒设置入口 */}
