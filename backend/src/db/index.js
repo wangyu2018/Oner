@@ -2,6 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { clearStmtCache } from './helpers.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dbPath = process.env.DB_PATH || path.join(__dirname, '..', '..', 'oner.db');
@@ -14,6 +15,9 @@ export function initDb() {
   if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
   }
+
+  // 清除旧的 Prepared Statement 缓存（旧语句绑定到旧 DB 连接）
+  clearStmtCache();
 
   // 打开或创建数据库（实时文件写入，无需手动 save）
   db = new DatabaseSync(dbPath);
@@ -33,6 +37,7 @@ export function getDb() {
 
 export function closeDb() {
   if (db) {
+    clearStmtCache();
     db.close();
     db = null;
   }

@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import https from 'https';
 import { queryAll, queryOne, runQuery } from '../db/helpers.js';
 import { hashPassword, comparePassword } from '../utils/crypto.js';
-import { generateToken, authMiddleware } from '../middleware/auth.js';
+import { generateToken, authMiddleware, invalidateAuthCache } from '../middleware/auth.js';
 import { loginLimiter, registerLimiter, pinVerifyLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
@@ -303,6 +303,7 @@ router.post('/logout', authMiddleware, (req, res) => {
   try {
     const token = extractToken(req);
     if (token) {
+      invalidateAuthCache(token); // 清除 auth 内存缓存
       runQuery('DELETE FROM sessions WHERE token = ?', [token]);
     }
 

@@ -6,6 +6,20 @@ import { queryOne } from '../db/helpers.js';
 const JWT_SECRET = process.env.JWT_SECRET;
 const TOKEN_EXPIRY = '7d';
 
+// ========================================
+// Auth 内存缓存（60 秒 TTL）
+// 每个请求省 2 次 DB 查询（session + user）
+// ========================================
+const authCache = new Map(); // token -> { user, session, expiresAt }
+const AUTH_CACHE_TTL = 60 * 1000; // 60 秒
+
+/**
+ * 清除指定 token 的认证缓存（logout/session 失效时调用）
+ */
+export function invalidateAuthCache(token) {
+  authCache.delete(token);
+}
+
 export function generateToken(userId, device = '') {
   if (!JWT_SECRET) {
     throw new Error('JWT_SECRET not configured');
@@ -47,6 +61,15 @@ export function authMiddleware(req, res, next) {
     });
   }
 
+  // ===== Auth 缓存：命中则跳过 DB 查询 =====
+  const cached = authCache.get(token);
+  if (cached && cached.expiresAt > Date.now()) {
+    req.user = cached.user;
+    req.session = cached.session;
+    return next();
+  }
+  if (cached) authCache.delete(token);
+
   // 检查 session 是否存在且未过期
   const session = queryOne(
     "SELECT * FROM sessions WHERE token = ? AND expires_at > datetime('now')",
@@ -77,6 +100,10 @@ export function authMiddleware(req, res, next) {
 
   req.user = user;
   req.session = session;
+
+  // 写入缓存（60 秒有效）
+  authCache.set(token, { user, session, expiresAt: Date.now() + AUTH_CACHE_TTL });
+
   next();
 }
 

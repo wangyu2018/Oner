@@ -19,8 +19,8 @@ router.get('/', (req, res) => {
       return res.json({ success: true, data: { results: [] } });
     }
 
-    // 搜索笔记：FTS5优先，无结果时回退LIKE（兼容中文）
-    const ftsQuery = `"${q.replace(/"/g, '""')}"`;
+    // 搜索笔记：FTS5优先（trigram 支持中文子串匹配），无结果时回退LIKE
+    const ftsQuery = q.replace(/"/g, '""'); // trigram tokenizer 直接子串匹配
     let notes = [];
 
     // FTS5 MATCH

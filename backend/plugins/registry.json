@@ -1,0 +1,62 @@
+[
+  {
+    "id": "oner.plugin.calendar",
+    "name": "日程管理",
+    "version": "1.0.0",
+    "minAppVersion": "1.3.0",
+    "description": "日历视图任务规划，支持月/周/日视图切换",
+    "author": "community",
+    "downloadUrl": "",
+    "tags": ["productivity", "calendar"],
+    "downloads": 0,
+    "rating": 0
+  },
+  {
+    "id": "oner.plugin.kanban",
+    "name": "看板视图",
+    "version": "1.0.0",
+    "minAppVersion": "1.3.0",
+    "description": "拖拽式看板任务管理，支持自定义列",
+    "author": "community",
+    "downloadUrl": "",
+    "tags": ["productivity", "kanban"],
+    "downloads": 0,
+    "rating": 0
+  },
+  {
+    "id": "oner.plugin.pomodoro",
+    "name": "番茄钟",
+    "version": "1.0.0",
+    "minAppVersion": "1.3.0",
+    "description": "专注工作计时器，25分钟工作+5分钟休息循环",
+    "author": "community",
+    "downloadUrl": "",
+    "tags": ["productivity", "focus"],
+    "downloads": 0,
+    "rating": 0
+  },
+  {
+    "id": "oner.plugin.weather",
+    "name": "天气助手",
+    "version": "1.0.0",
+    "minAppVersion": "1.3.0",
+    "description": "在笔记中嵌入天气信息，自动记录写作时的天气",
+    "author": "community",
+    "downloadUrl": "",
+    "tags": ["utility", "weather"],
+    "downloads": 0,
+    "rating": 0
+  },
+  {
+    "id": "oner.plugin.export-pdf",
+    "name": "PDF 导出",
+    "version": "1.0.0",
+    "minAppVersion": "1.3.0",
+    "description": "将笔记导出为格式化的 PDF 文件",
+    "author": "community",
+    "downloadUrl": "",
+    "tags": ["utility", "export"],
+    "downloads": 0,
+    "rating": 0
+  }
+]

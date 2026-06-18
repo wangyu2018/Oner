@@ -1,13 +1,16 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import cron from 'node-cron';
 import path from 'path';
-import { initDb, closeDb } from './src/db/index.js';
+import { initDb, closeDb, getDb } from './src/db/index.js';
 import { migrate } from './src/db/migrate.js';
 import { errorHandler } from './src/middleware/errorHandler.js';
 import { limiter } from './src/middleware/rateLimiter.js';
+import BackendPluginLoader from './src/utils/pluginLoader.js';
 import notesRouter from './src/routes/notes.js';
 import backupRouter from './src/routes/backup.js';
 import authRouter from './src/routes/auth.js';
@@ -19,9 +22,13 @@ import passwordsRouter from './src/routes/passwords.js';
 import filesRouter from './src/routes/files.js';
 import aiRouter from './src/routes/ai.js';
 import wechatRouter, { checkAndSendReminders, checkAndSendDailySummary, sendMemoReceipt } from './src/routes/wechat.js';
+import createPluginsRouter from './src/routes/plugins.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// 插件加载器（提前声明，start() 中注入 db）
+const pluginLoader = new BackendPluginLoader(app, null);
 
 // 验证 JWT_SECRET 是否已设置（拒绝空值和已知的默认值）
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -66,6 +73,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json({ limit: '1mb' }));
+app.use(compression()); // gzip 压缩（大 payload 减少 60-80% 传输量）
 app.use(limiter);
 
 // 请求日志
@@ -88,6 +96,7 @@ app.use('/api/passwords', passwordsRouter);
 app.use('/api/files', filesRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/wechat', wechatRouter);
+app.use('/api/plugins', createPluginsRouter(pluginLoader)); // 插件市场 API
 
 // 静态文件服务（上传文件访问，强制下载防止内联执行）
 const uploadsDir = path.resolve(process.env.UPLOAD_DIR || path.join(import.meta.dirname, 'uploads'));
@@ -103,16 +112,10 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// 插件状态 API
+// 插件状态 API（动态列表）
 app.get('/api/plugins', (req, res) => {
   res.json({
-    plugins: [
-      { id: 'oner.plugin.core-notes', name: '核心笔记', type: 'core', status: 'active', required: true },
-      { id: 'oner.plugin.ai', name: 'AI 智能助手', type: 'feature', status: 'active', required: false },
-      { id: 'oner.plugin.password', name: '密码保险库', type: 'feature', status: 'active', required: false },
-      { id: 'oner.plugin.kanban', name: '看板视图', type: 'feature', status: 'active', required: false },
-      { id: 'oner.plugin.memo', name: '备忘插件', type: 'feature', status: 'active', required: false },
-    ],
+    plugins: pluginLoader.getInstalled(),
     kernel: {
       version: '1.0.0',
       eventBus: true,
@@ -127,31 +130,40 @@ app.get('/api/plugins', (req, res) => {
 app.use(errorHandler);
 
 // Initialize database and start server
-function start() {
+async function start() {
   try {
     initDb();
     migrate();
     console.log('Database initialized');
 
+    // 初始化插件系统
+    pluginLoader.db = getDb();
+    const pluginCount = await pluginLoader.loadAll();
+    console.log(`\u{1F50C} Plugin system ready: ${pluginCount} plugins loaded`);
+
     app.listen(PORT, () => {
       console.log(`Oner backend running on port ${PORT}`);
-      console.log(`\u{1F50C} Plugin system ready: 5 plugins registered`);
 
-      // 启动微信待办提醒定时任务（每 10 分钟检查一次）
+      // 启动微信推送定时任务（使用 node-cron，支持时区 + 错误隔离）
       if (process.env.WX_APPID) {
-        setInterval(checkAndSendReminders, 10 * 60 * 1000);
-        console.log('\u{23F0} WeChat reminder scheduler started (interval: 10min)');
-        // 启动后立即执行一次
-        setTimeout(checkAndSendReminders, 5000);
+        // 每 10 分钟检查待办提醒
+        cron.schedule('*/10 * * * *', () => {
+          checkAndSendReminders().catch(err =>
+            console.error('[Cron] 待办提醒任务失败:', err.message)
+          );
+        }, { timezone: 'Asia/Shanghai' });
+        console.log('\u{23F0} WeChat reminder scheduler started (cron: */10 * * * *, TZ: Asia/Shanghai)');
 
-        // 每日汇总推送（每小时检查一次，只在 9:00 触发）
-        setInterval(() => {
-          const hour = new Date().getHours();
-          if (hour === 9) {
-            checkAndSendDailySummary();
-          }
-        }, 60 * 60 * 1000);
-        console.log('\u{1F4CA} WeChat daily summary scheduler started (triggers at 09:00)');
+        // 每天 9:00 推送汇总
+        cron.schedule('0 9 * * *', () => {
+          checkAndSendDailySummary().catch(err =>
+            console.error('[Cron] 每日汇总任务失败:', err.message)
+          );
+        }, { timezone: 'Asia/Shanghai' });
+        console.log('\u{1F4CA} WeChat daily summary scheduler started (cron: 0 9 * * *, TZ: Asia/Shanghai)');
+
+        // 启动后立即执行一次
+        setTimeout(() => checkAndSendReminders().catch(console.error), 5000);
       }
     });
   } catch (err) {

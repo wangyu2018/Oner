@@ -1,27 +1,36 @@
 /**
- * 后端插件加载器
+ * 后端插件加载器（ESM 版本）
  *
  * 职责：
  * 1. 扫描 plugins/ 目录下的 plugin.json
- * 2. 动态挂载 Express 路由
- * 3. 管理插件生命周期
+ * 2. 动态挂载 Express 路由（ESM dynamic import）
+ * 3. 管理插件生命周期（load/unload/reload/install/uninstall）
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath, pathToFileURL } from 'url';
 
-class BackendPluginLoader {
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export default class BackendPluginLoader {
   constructor(app, db) {
     this.app = app;
     this.db = db;
     this.pluginsDir = path.join(__dirname, '../../plugins');
-    this.loadedPlugins = new Map();
+    this.loadedPlugins = new Map(); // id -> { manifest, dir, status, configSnapshot }
   }
 
   /**
    * 扫描并加载所有插件
    */
   async loadAll() {
+    // 确保 plugins 目录存在
+    if (!fs.existsSync(this.pluginsDir)) {
+      fs.mkdirSync(this.pluginsDir, { recursive: true });
+      console.log(`[PluginLoader] Created plugins directory: ${this.pluginsDir}`);
+    }
+
     const pluginDirs = this._scanPluginDirs();
     console.log(`[PluginLoader] Found ${pluginDirs.length} plugin directories`);
 
@@ -38,6 +47,7 @@ class BackendPluginLoader {
 
   /**
    * 加载单个插件
+   * @param {string} pluginDir - 插件目录名（plugins/ 下的子目录）
    */
   async load(pluginDir) {
     const manifestPath = path.join(this.pluginsDir, pluginDir, 'plugin.json');
@@ -57,7 +67,7 @@ class BackendPluginLoader {
 
     // 挂载后端路由
     if (manifest.backend?.routes) {
-      this._mountRoutes(pluginDir, manifest.backend.routes);
+      await this._mountRoutes(pluginDir, manifest.backend.routes);
     }
 
     // 执行数据库迁移
@@ -67,7 +77,7 @@ class BackendPluginLoader {
 
     // 调用安装钩子
     if (manifest.lifecycle?.install) {
-      const installHook = this._loadModule(pluginDir, manifest.lifecycle.install);
+      const installHook = await this._loadModule(pluginDir, manifest.lifecycle.install);
       if (installHook && typeof installHook === 'function') {
         await installHook({ db: this.db });
       }
@@ -77,6 +87,7 @@ class BackendPluginLoader {
       manifest,
       dir: pluginDir,
       status: 'active',
+      configSnapshot: null,
     });
 
     console.log(`[PluginLoader] Loaded: ${pluginId} v${manifest.version}`);
@@ -95,9 +106,12 @@ class BackendPluginLoader {
       return false;
     }
 
+    // 保存配置快照（reload 时恢复）
+    const configSnapshot = plugin.configSnapshot;
+
     // 调用卸载钩子
     if (plugin.manifest.lifecycle?.uninstall) {
-      const uninstallHook = this._loadModule(plugin.dir, plugin.manifest.lifecycle.uninstall);
+      const uninstallHook = await this._loadModule(plugin.dir, plugin.manifest.lifecycle.uninstall);
       if (uninstallHook && typeof uninstallHook === 'function') {
         await uninstallHook({ db: this.db });
       }
@@ -105,13 +119,70 @@ class BackendPluginLoader {
 
     this.loadedPlugins.delete(pluginId);
     console.log(`[PluginLoader] Unloaded: ${pluginId}`);
-    return true;
+    return { configSnapshot };
   }
 
   /**
-   * 挂载路由
+   * 热重载插件（卸载 → 清除缓存 → 重新加载）
    */
-  _mountRoutes(pluginDir, routes) {
+  async reload(pluginId) {
+    const plugin = this.loadedPlugins.get(pluginId);
+    if (!plugin) {
+      console.warn(`[PluginLoader] Plugin "${pluginId}" not found for reload`);
+      return false;
+    }
+
+    const pluginDir = plugin.dir;
+    const configSnapshot = plugin.configSnapshot;
+
+    // 卸载
+    await this.unload(pluginId);
+
+    // 重新加载（通过 cache buster 强制重新 import）
+    const manifest = await this.load(pluginDir);
+    if (manifest) {
+      // 恢复配置快照
+      const loaded = this.loadedPlugins.get(pluginId);
+      if (loaded) {
+        loaded.configSnapshot = configSnapshot;
+      }
+    }
+
+    return !!manifest;
+  }
+
+  /**
+   * 获取已加载插件列表
+   */
+  getInstalled() {
+    return Array.from(this.loadedPlugins.entries()).map(([id, plugin]) => ({
+      id,
+      name: plugin.manifest.name,
+      version: plugin.manifest.version,
+      type: plugin.manifest.type || 'feature',
+      required: plugin.manifest.required || false,
+      status: plugin.status,
+      description: plugin.manifest.description || '',
+    }));
+  }
+
+  /**
+   * 获取单个插件信息
+   */
+  getPlugin(pluginId) {
+    const plugin = this.loadedPlugins.get(pluginId);
+    if (!plugin) return null;
+    return {
+      id: pluginId,
+      ...plugin.manifest,
+      status: plugin.status,
+    };
+  }
+
+  /**
+   * 挂载路由（ESM dynamic import）
+   */
+  async _mountRoutes(pluginDir, routes) {
     for (const routeConfig of routes) {
       const routePath = path.join(this.pluginsDir, pluginDir, routeConfig.file);
 
@@ -121,11 +192,19 @@ class BackendPluginLoader {
       }
 
       try {
-        const router = require(routePath);
+        // ESM dynamic import：使用 file:// URL + cache buster
+        const fileUrl = pathToFileURL(routePath).href;
+        const cacheBuster = `?v=${Date.now()}`;
+        const mod = await import(fileUrl + cacheBuster);
+
+        const router = mod.default || mod.router || mod;
         if (typeof router === 'function') {
-          this.app.use(routeConfig.path, router(this.db));
-        } else if (router.router) {
-          this.app.use(routeConfig.path, router.router);
+          // 如果路由是工厂函数，传入 db
+          if (router.length > 0) {
+            this.app.use(routeConfig.path, router(this.db));
+          } else {
+            this.app.use(routeConfig.path, router);
+          }
         } else {
           this.app.use(routeConfig.path, router);
         }
@@ -162,13 +241,15 @@ class BackendPluginLoader {
   }
 
   /**
-   * 加载模块
+   * 加载模块（ESM dynamic import）
    */
-  _loadModule(pluginDir, modulePath) {
+  async _loadModule(pluginDir, modulePath) {
     const fullPath = path.join(this.pluginsDir, pluginDir, modulePath);
     if (!fs.existsSync(fullPath)) return null;
     try {
-      return require(fullPath);
+      const fileUrl = pathToFileURL(fullPath).href;
+      const mod = await import(fileUrl);
+      return mod.default || mod;
     } catch (err) {
       console.error(`[PluginLoader] Failed to load module ${modulePath}:`, err.message);
       return null;
@@ -194,20 +275,4 @@ class BackendPluginLoader {
         return fs.existsSync(manifestPath);
       });
   }
-
-  /**
-   * 获取已加载插件列表
-   */
-  getLoadedPlugins() {
-    return Array.from(this.loadedPlugins.entries()).map(([id, plugin]) => ({
-      id,
-      name: plugin.manifest.name,
-      version: plugin.manifest.version,
-      type: plugin.manifest.type,
-      required: plugin.manifest.required,
-      status: plugin.status,
-    }));
-  }
 }
-
-module.exports = BackendPluginLoader;
